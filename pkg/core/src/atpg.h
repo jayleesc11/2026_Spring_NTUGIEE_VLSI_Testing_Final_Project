@@ -178,7 +178,7 @@ namespace CoreNs
 		inline void clearAllEvents();
 
 		inline int vecPop(std::vector<int> &vec);
-		inline void vecDelete(std::vector<int> &list, const int &index);
+		inline void vecDelete(std::vector<int> &list, const size_t &index);
 
 		// 5-Value logic evaluation functions
 		inline Value cINV(const Value &i1);
@@ -879,7 +879,7 @@ namespace CoreNs
 		return lastElement;
 	}
 
-	inline void Atpg::vecDelete(std::vector<int> &list, const int &index)
+	inline void Atpg::vecDelete(std::vector<int> &list, const size_t &index)
 	{
 		list[index] = list.back();
 		list.pop_back();

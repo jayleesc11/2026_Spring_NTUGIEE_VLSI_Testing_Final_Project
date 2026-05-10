@@ -59,7 +59,6 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 
 	// testClearFaultEffect(originalFaultPtrList); // only used for debug
 
-	const double faultPtrListSize = (double)(originalFaultPtrList.size());
 	int numOfAtpgUntestableFaults = 0;
 	// record pattern set when lower undetected fault/ lower test length with same undetected fault
 	numOfAtpgUntestableFaults = 0;
@@ -2017,7 +2016,7 @@ void Atpg::updateUnjustifiedGateIDs()
 // **************************************************************************
 void Atpg::updateDFrontiers()
 {
-	for (int i = 0; i < dFrontiers_.size();)
+	for (size_t i = 0; i < dFrontiers_.size();)
 	{
 		Gate &mGate = pCircuit_->circuitGates_[dFrontiers_[i]];
 		if (mGate.atpgVal_ == D || mGate.atpgVal_ == B)
@@ -2089,7 +2088,7 @@ bool Atpg::checkIfFaultHasPropagatedToPO(bool &faultHasPropagatedToPO)
 bool Atpg::checkForUnjustifiedBoundLines()
 {
 	// Find if there exists any unjustified bound line
-	for (int i = 0; i < unjustifiedGateIDs_.size(); ++i)
+	for (size_t i = 0; i < unjustifiedGateIDs_.size(); ++i)
 	{
 		Gate *pGate = &pCircuit_->circuitGates_[unjustifiedGateIDs_[i]];
 		if (pGate->atpgVal_ != X && !gateID_to_valModified_[pGate->gateId_] && gateID_to_lineType_[pGate->gateId_] == BOUND_LINE)
@@ -2646,7 +2645,7 @@ int Atpg::doUniquePathSensitization(Gate &gate)
 					Gate *pFaninGate = &pCircuit_->circuitGates_[pNextGate->faninVector_[i]];
 					DependOnCurrent = false;
 
-					for (int j = 1; j < UniquePathList.size(); ++j)
+					for (size_t j = 1; j < UniquePathList.size(); ++j)
 					{
 						if (UniquePathList[j] == pFaninGate->gateId_)
 						{
@@ -3971,7 +3970,7 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 	pPatternProcessor->patternVector_.clear();
 
 	// Perform reverse fault simulation
-	int leftFaultCount = originalFaultList.size();
+	FaultPtrList::size_type leftFaultCount = originalFaultList.size();
 	for (std::vector<Pattern>::reverse_iterator rit = tmp.rbegin(); rit != tmp.rend(); ++rit)
 	{
 		pSimulator_->parallelFaultFaultSimWithOnePattern((*rit), originalFaultList);

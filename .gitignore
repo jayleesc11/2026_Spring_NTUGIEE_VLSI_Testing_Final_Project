@@ -1,3 +1,10 @@
 .vscode/*
 makefile_output.txt
 profiler.txt
+
+# Build outputs
+**/bin/opt/**
+**/bin/dbg/**
+**/lib/opt/**
+**/lib/dbg/**
+!**/.gitignore
