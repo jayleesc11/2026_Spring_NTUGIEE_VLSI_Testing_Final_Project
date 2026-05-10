@@ -223,7 +223,7 @@ namespace CoreNs
 				gateID_to_lineType_(pCircuit->totalGate_, FREE_LINE),
 				gateID_to_xPathStatus_(pCircuit->totalGate_),
 				gateID_to_uniquePath_(pCircuit->totalGate_, std::vector<int>()),
-				circuitLevel_to_EventStack_(pCircuit->circuitLvl_)
+				circuitLevel_to_EventStack_(pCircuit->totalLvl_)
 	{
 		initialObjectives_.reserve(MAX_LIST_SIZE);
 		currentObjectives_.reserve(MAX_LIST_SIZE);
