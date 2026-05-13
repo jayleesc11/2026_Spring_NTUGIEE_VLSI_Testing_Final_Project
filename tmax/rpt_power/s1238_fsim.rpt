@@ -1,0 +1,48 @@
+#                 Statistics Report
+#  Circuit name                                s1238
+#  Fault model                                   SAF
+#  Pattern type                                BASIC
+#  -------------------------------------------------
+#  Fault classes                             #faults
+#    --------------------------  -------------------
+#    FU (full)                                  3354
+#    FU (collapsed)                             2245
+#    --------------------------  -------------------
+#    UD (undetected)                             122
+#    PT (possibly testable)                        0
+#    AU (atpg untestable)                          0
+#    RE (redundant)                                0
+#    AB (atpg abort)                               0
+#    TI (tied)                                     0
+#    --------------------------  -------------------
+#    DT (detected)                              3232
+#  -------------------------------------------------
+#  Coverage                               percentage
+#    --------------------------  -------------------
+#    test coverage                            96.36%
+#    fault coverage                           96.36%
+#    atpg effectiveness                       96.36%
+#  -------------------------------------------------
+#  #Patterns                                     165
+#  -------------------------------------------------
+#  Power metric
+#    -----------------------------------------------
+#    scan flip-flops                              18
+#    shift FFTC
+#      ---------------------------------------------
+#      shift operations                          165
+#      shift cycles evaluated                   2970
+#      total FFTC                              10576
+#      average FFTC/cycle                      3.561
+#      maximum FFTC/cycle                         12
+#      unknown transitions                         0
+#    -----------------------------------------------
+#    capture FFTC
+#      ---------------------------------------------
+#      total FFTC                               1112
+#      average FFTC/pattern                    6.739
+#      maximum FFTC/pattern                       15
+#      unknown transitions                         0
+#  -------------------------------------------------
+#  ATPG runtime                           0.004249 s
+#  -------------------------------------------------

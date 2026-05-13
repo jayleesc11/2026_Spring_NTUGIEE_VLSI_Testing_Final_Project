@@ -1,0 +1,165 @@
+read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
+ Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
+ End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.02 sec, Memory=0MB
+read_netlist mod_netlist/s27.v -format verilog
+ Begin reading netlist ( mod_netlist/s27.v )...
+ End parsing Verilog file mod_netlist/s27.v with 0 errors.
+ End reading netlist: #modules=1, top=s27, #lines=90, CPU_time=0.00 sec, Memory=0MB
+run_build_model s27
+ ------------------------------------------------------------------------------
+ Begin build model for topcut = s27 ...
+ ------------------------------------------------------------------------------
+ There were 39 primitives and 3 faultable pins removed during model optimizations
+ Warning: Rule B10 (unconnected module internal net) was violated 4 times.
+ Warning: Rule N21 (unsupported UDP entry) was violated 1 times.
+ End build model: #primitives=28, CPU_time=0.00 sec, Memory=0MB
+ ------------------------------------------------------------------------------
+ Begin learning analyses...
+ End learning analyses, total learning CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+add_clocks 0 CK -shift
+add_scan_enables 1 test_se
+add_scan_chains chain1 test_si test_so
+run_drc
+ ------------------------------------------------------------------------------
+ Begin scan design rules checking...
+ ------------------------------------------------------------------------------
+ Begin simulating test protocol procedures...
+ Test protocol simulation completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin scan chain operation checking...
+ Chain chain1 successfully traced with 3 scan_cells.
+ Scan chain operation checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin clock rules checking...
+ Clock rules checking completed, CPU time=0.00 sec.
+ Performing clock grouping analysis for 1 clock.
+ Clock grouping results: #pairs=0, #groups=0, #serial_pairs=0, #disturbed_pairs=0, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin tracing connection cones...
+ Tracing connection cones completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin nonscan rules checking...
+ Nonscan cell summary: #DFF=0  #DLAT=0  #RAM_outs=0  tla_usage_type=none
+ Nonscan rules checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin DRC dependent learning...
+ Fast-sequential depth results: control=0(0), observe=0(0), detect=0(0), CPU time=0.00 sec
+ DRC dependent learning completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin set operation for load unload constant latches...
+ Set operation for load unload constant latches completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ DRC Summary Report
+ ------------------------------------------------------------------------------
+ No violations occurred during DRC process.
+ Design rules checking was successful, total CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+puts "ATPG mode: normal"
+ATPG mode: normal
+set_atpg -fill 0
+add_faults -all
+ 104 faults were added to fault list.
+run_atpg -auto_compression
+ 
+ ATPG performed for stuck fault model using internal pattern source.
+ ----------------------------------------------------------
+ #patterns     #faults     #ATPG faults  test      process
+ stored     detect/active  red/au/abort  coverage  CPU time
+ ---------  -------------  ------------  --------  --------
+ Begin deterministic ATPG: #uncollapsed_faults=76, abort_limit=10...
+ 10             76      0         0/0/0   100.00%      0.00
+ 
+     Uncollapsed Stuck Fault Summary Report
+ -----------------------------------------------
+ fault class                     code   #faults
+ ------------------------------  ----  ---------
+ Detected                         DT        104
+ Possibly detected                PT          0
+ Undetectable                     UD          0
+ ATPG untestable                  AU          0
+ Not detected                     ND          0
+ -----------------------------------------------
+ total faults                               104
+ test coverage                           100.00%
+ -----------------------------------------------
+            Pattern Summary Report
+ -----------------------------------------------
+ #internal patterns                          10
+     #basic_scan patterns                    10
+ -----------------------------------------------
+            CPU Usage Summary Report
+ -----------------------------------------------
+ Total CPU time                            0.00
+ -----------------------------------------------
+report_power -per_pattern -percentage
+ ------------------------------------------------------------------------------
+                                Power Analysis: Per Pattern
+ ------------------------------------------------------------------------------
+ 
+     Shift Results:
+      Peak
+        pattern    load cycle   shift cycle     switching    percentage
+              0             0             2             1        33.33%
+              1             0             1             2        66.67%
+              2             0             2             2        66.67%
+              3             0             0             1        33.33%
+              4             0             0             0         0.00%
+              5             0             0             2        66.67%
+              6             0             1             3       100.00%
+              7             0             0             2        66.67%
+              8             0             1             3       100.00%
+              9             0             0             2        66.67%
+      Average
+        pattern           average switching    percentage
+              0                        0.33        11.11%
+              1                        1.67        55.56%
+              2                        1.33        44.44%
+              3                        1.00        33.33%
+              4                        0.00         0.00%
+              5                        1.67        55.56%
+              6                        2.67        88.89%
+              7                        1.00        33.33%
+              8                        2.67        88.89%
+              9                        1.67        55.56%
+ 
+     Capture Results:
+      Peak
+        pattern capture cycle     switching    percentage
+              0             0             0         0.00%
+              1             0             1        33.33%
+              2             0             1        33.33%
+              3             0             1        33.33%
+              4             0             1        33.33%
+              5             0             1        33.33%
+              6             0             0         0.00%
+              7             0             1        33.33%
+              8             0             2        66.67%
+              9             0             1        33.33%
+      Average
+        pattern           average switching    percentage
+              0                        0.00         0.00%
+              1                        1.00        33.33%
+              2                        1.00        33.33%
+              3                        1.00        33.33%
+              4                        1.00        33.33%
+              5                        1.00        33.33%
+              6                        0.00         0.00%
+              7                        1.00        33.33%
+              8                        2.00        66.67%
+              9                        1.00        33.33%
+ ------------------------------------------------------------------------------
+                                Power Analysis Summary
+ ------------------------------------------------------------------------------
+      Number of Scan Cells                       3
+      Number of Patterns                         0-9
+      Cycles Per Load                            3
+      Average Shift Switching                    1.40 46.67%
+      Average Capture Switching                  0.90 30.00%
+      Peak Shift Switching                       3 100.00% (pattern: 6 cycle: 1)
+      Peak Capture Switching                     2 66.67% (pattern: 8)
+write_patterns tmax/pat/s27.stil -format stil -replace
+ Patterns written reference 41 V statements, generating 63 test cycles
+ End writing file 's27.stil' with 10 patterns, File_size = 6101, CPU_time = 0.0 sec.
+exit

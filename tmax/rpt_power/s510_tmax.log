@@ -1,0 +1,400 @@
+read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
+ Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
+ End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.02 sec, Memory=0MB
+read_netlist mod_netlist/s510.v -format verilog
+ Begin reading netlist ( mod_netlist/s510.v )...
+ End parsing Verilog file mod_netlist/s510.v with 0 errors.
+ End reading netlist: #modules=1, top=s510, #lines=952, CPU_time=0.00 sec, Memory=0MB
+run_build_model s510
+ ------------------------------------------------------------------------------
+ Begin build model for topcut = s510 ...
+ ------------------------------------------------------------------------------
+ There were 217 primitives and 6 faultable pins removed during model optimizations
+ Warning: Rule B10 (unconnected module internal net) was violated 4 times.
+ Warning: Rule N21 (unsupported UDP entry) was violated 1 times.
+ End build model: #primitives=259, CPU_time=0.00 sec, Memory=0MB
+ ------------------------------------------------------------------------------
+ Begin learning analyses...
+ End learning analyses, total learning CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+add_clocks 0 CK -shift
+add_scan_enables 1 test_se
+add_scan_chains chain1 test_si test_so
+run_drc
+ ------------------------------------------------------------------------------
+ Begin scan design rules checking...
+ ------------------------------------------------------------------------------
+ Begin simulating test protocol procedures...
+ Test protocol simulation completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin scan chain operation checking...
+ Chain chain1 successfully traced with 6 scan_cells.
+ Scan chain operation checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin clock rules checking...
+ Clock rules checking completed, CPU time=0.00 sec.
+ Performing clock grouping analysis for 1 clock.
+ Clock grouping results: #pairs=0, #groups=0, #serial_pairs=0, #disturbed_pairs=0, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin tracing connection cones...
+ Tracing connection cones completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin nonscan rules checking...
+ Nonscan cell summary: #DFF=0  #DLAT=0  #RAM_outs=0  tla_usage_type=none
+ Nonscan rules checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin DRC dependent learning...
+ Fast-sequential depth results: control=0(0), observe=0(0), detect=0(0), CPU time=0.00 sec
+ DRC dependent learning completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin set operation for load unload constant latches...
+ Set operation for load unload constant latches completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ DRC Summary Report
+ ------------------------------------------------------------------------------
+ No violations occurred during DRC process.
+ Design rules checking was successful, total CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+puts "ATPG mode: power-aware"
+ATPG mode: power-aware
+set_atpg -fill adjacent
+set_atpg -shift_power_effort high -shift_power_budget 100
+add_faults -all
+ 1390 faults were added to fault list.
+run_atpg -auto_compression
+ 
+ ATPG performed for stuck fault model using internal pattern source.
+ ----------------------------------------------------------
+ #patterns     #faults     #ATPG faults  test      process
+ stored     detect/active  red/au/abort  coverage  CPU time
+ ---------  -------------  ------------  --------  --------
+ Begin deterministic ATPG: #uncollapsed_faults=1341, abort_limit=10...
+ 28           1061    280         0/0/0    79.86%      0.00
+ 56            240     40         0/0/0    97.12%      0.00
+ 68             40      0         0/0/0   100.00%      0.00
+ 
+     Uncollapsed Stuck Fault Summary Report
+ -----------------------------------------------
+ fault class                     code   #faults
+ ------------------------------  ----  ---------
+ Detected                         DT       1390
+ Possibly detected                PT          0
+ Undetectable                     UD          0
+ ATPG untestable                  AU          0
+ Not detected                     ND          0
+ -----------------------------------------------
+ total faults                              1390
+ test coverage                           100.00%
+ -----------------------------------------------
+            Pattern Summary Report
+ -----------------------------------------------
+ #internal patterns                          68
+     #basic_scan patterns                    68
+ -----------------------------------------------
+            CPU Usage Summary Report
+ -----------------------------------------------
+ Total CPU time                            0.01
+ -----------------------------------------------
+report_power -per_pattern -percentage
+ ------------------------------------------------------------------------------
+                                Power Analysis: Per Pattern
+ ------------------------------------------------------------------------------
+ 
+     Shift Results:
+      Peak
+        pattern    load cycle   shift cycle     switching    percentage
+              0             0             4             2        33.33%
+              1             0             1             3        50.00%
+              2             0             2             4        66.67%
+              3             0             0             3        50.00%
+              4             0             1             3        50.00%
+              5             0             0             4        66.67%
+              6             0             0             2        33.33%
+              7             0             0             5        83.33%
+              8             0             0             3        50.00%
+              9             0             3             4        66.67%
+             10             0             5             4        66.67%
+             11             0             0             2        33.33%
+             12             0             0             5        83.33%
+             13             0             1             4        66.67%
+             14             0             0             4        66.67%
+             15             0             0             3        50.00%
+             16             0             3             3        50.00%
+             17             0             1             3        50.00%
+             18             0             4             6       100.00%
+             19             0             5             6       100.00%
+             20             0             0             4        66.67%
+             21             0             0             4        66.67%
+             22             0             2             4        66.67%
+             23             0             1             4        66.67%
+             24             0             1             4        66.67%
+             25             0             5             6       100.00%
+             26             0             0             5        83.33%
+             27             0             2             2        33.33%
+             28             0             5             4        66.67%
+             29             0             2             4        66.67%
+             30             0             4             4        66.67%
+             31             0             0             4        66.67%
+             32             0             2             4        66.67%
+             33             0             1             3        50.00%
+             34             0             0             6       100.00%
+             35             0             4             2        33.33%
+             36             0             0             2        33.33%
+             37             0             2             3        50.00%
+             38             0             3             6       100.00%
+             39             0             0             4        66.67%
+             40             0             2             5        83.33%
+             41             0             0             4        66.67%
+             42             0             0             1        16.67%
+             43             0             2             4        66.67%
+             44             0             0             3        50.00%
+             45             0             1             2        33.33%
+             46             0             0             0         0.00%
+             47             0             3             5        83.33%
+             48             0             0             5        83.33%
+             49             0             0             3        50.00%
+             50             0             3             4        66.67%
+             51             0             0             3        50.00%
+             52             0             3             3        50.00%
+             53             0             4             4        66.67%
+             54             0             1             4        66.67%
+             55             0             0             5        83.33%
+             56             0             1             2        33.33%
+             57             0             0             4        66.67%
+             58             0             0             5        83.33%
+             59             0             5             5        83.33%
+             60             0             1             5        83.33%
+             61             0             0             5        83.33%
+             62             0             5             5        83.33%
+             63             0             0             3        50.00%
+             64             0             2             4        66.67%
+             65             0             5             4        66.67%
+             66             0             5             3        50.00%
+             67             0             2             5        83.33%
+      Average
+        pattern           average switching    percentage
+              0                        1.00        16.67%
+              1                        2.67        44.44%
+              2                        3.67        61.11%
+              3                        2.67        44.44%
+              4                        2.67        44.44%
+              5                        2.67        44.44%
+              6                        1.50        25.00%
+              7                        3.83        63.89%
+              8                        1.67        27.78%
+              9                        2.83        47.22%
+             10                        2.83        47.22%
+             11                        1.50        25.00%
+             12                        5.00        83.33%
+             13                        3.00        50.00%
+             14                        3.33        55.56%
+             15                        2.83        47.22%
+             16                        2.33        38.89%
+             17                        2.33        38.89%
+             18                        4.67        77.78%
+             19                        5.17        86.11%
+             20                        3.17        52.78%
+             21                        2.33        38.89%
+             22                        3.17        52.78%
+             23                        3.00        50.00%
+             24                        3.67        61.11%
+             25                        4.83        80.56%
+             26                        2.50        41.67%
+             27                        1.50        25.00%
+             28                        2.83        47.22%
+             29                        3.50        58.33%
+             30                        3.00        50.00%
+             31                        3.17        52.78%
+             32                        3.33        55.56%
+             33                        2.67        44.44%
+             34                        5.00        83.33%
+             35                        1.33        22.22%
+             36                        1.83        30.56%
+             37                        2.33        38.89%
+             38                        5.00        83.33%
+             39                        2.67        44.44%
+             40                        4.50        75.00%
+             41                        3.83        63.89%
+             42                        0.50         8.33%
+             43                        3.33        55.56%
+             44                        2.00        33.33%
+             45                        1.83        30.56%
+             46                        0.00         0.00%
+             47                        4.33        72.22%
+             48                        3.17        52.78%
+             49                        2.17        36.11%
+             50                        3.50        58.33%
+             51                        2.50        41.67%
+             52                        2.17        36.11%
+             53                        2.83        47.22%
+             54                        3.83        63.89%
+             55                        3.33        55.56%
+             56                        1.33        22.22%
+             57                        2.83        47.22%
+             58                        4.67        77.78%
+             59                        4.00        66.67%
+             60                        4.83        80.56%
+             61                        4.00        66.67%
+             62                        2.67        44.44%
+             63                        2.00        33.33%
+             64                        3.33        55.56%
+             65                        2.83        47.22%
+             66                        2.00        33.33%
+             67                        4.33        72.22%
+ 
+     Capture Results:
+      Peak
+        pattern capture cycle     switching    percentage
+              0             0             0         0.00%
+              1             0             1        16.67%
+              2             0             3        50.00%
+              3             0             0         0.00%
+              4             0             3        50.00%
+              5             0             1        16.67%
+              6             0             2        33.33%
+              7             0             1        16.67%
+              8             0             0         0.00%
+              9             0             0         0.00%
+             10             0             4        66.67%
+             11             0             2        33.33%
+             12             0             1        16.67%
+             13             0             0         0.00%
+             14             0             0         0.00%
+             15             0             5        83.33%
+             16             0             0         0.00%
+             17             0             1        16.67%
+             18             0             0         0.00%
+             19             0             5        83.33%
+             20             0             2        33.33%
+             21             0             2        33.33%
+             22             0             1        16.67%
+             23             0             3        50.00%
+             24             0             0         0.00%
+             25             0             0         0.00%
+             26             0             3        50.00%
+             27             0             5        83.33%
+             28             0             2        33.33%
+             29             0             3        50.00%
+             30             0             0         0.00%
+             31             0             0         0.00%
+             32             0             3        50.00%
+             33             0             3        50.00%
+             34             0             1        16.67%
+             35             0             0         0.00%
+             36             0             0         0.00%
+             37             0             0         0.00%
+             38             0             0         0.00%
+             39             0             1        16.67%
+             40             0             1        16.67%
+             41             0             2        33.33%
+             42             0             1        16.67%
+             43             0             0         0.00%
+             44             0             0         0.00%
+             45             0             2        33.33%
+             46             0             2        33.33%
+             47             0             0         0.00%
+             48             0             1        16.67%
+             49             0             2        33.33%
+             50             0             2        33.33%
+             51             0             1        16.67%
+             52             0             1        16.67%
+             53             0             3        50.00%
+             54             0             2        33.33%
+             55             0             0         0.00%
+             56             0             2        33.33%
+             57             0             2        33.33%
+             58             0             1        16.67%
+             59             0             1        16.67%
+             60             0             0         0.00%
+             61             0             1        16.67%
+             62             0             3        50.00%
+             63             0             6       100.00%
+             64             0             2        33.33%
+             65             0             3        50.00%
+             66             0             3        50.00%
+             67             0             4        66.67%
+      Average
+        pattern           average switching    percentage
+              0                        0.00         0.00%
+              1                        1.00        16.67%
+              2                        3.00        50.00%
+              3                        0.00         0.00%
+              4                        3.00        50.00%
+              5                        1.00        16.67%
+              6                        2.00        33.33%
+              7                        1.00        16.67%
+              8                        0.00         0.00%
+              9                        0.00         0.00%
+             10                        4.00        66.67%
+             11                        2.00        33.33%
+             12                        1.00        16.67%
+             13                        0.00         0.00%
+             14                        0.00         0.00%
+             15                        5.00        83.33%
+             16                        0.00         0.00%
+             17                        1.00        16.67%
+             18                        0.00         0.00%
+             19                        5.00        83.33%
+             20                        2.00        33.33%
+             21                        2.00        33.33%
+             22                        1.00        16.67%
+             23                        3.00        50.00%
+             24                        0.00         0.00%
+             25                        0.00         0.00%
+             26                        3.00        50.00%
+             27                        5.00        83.33%
+             28                        2.00        33.33%
+             29                        3.00        50.00%
+             30                        0.00         0.00%
+             31                        0.00         0.00%
+             32                        3.00        50.00%
+             33                        3.00        50.00%
+             34                        1.00        16.67%
+             35                        0.00         0.00%
+             36                        0.00         0.00%
+             37                        0.00         0.00%
+             38                        0.00         0.00%
+             39                        1.00        16.67%
+             40                        1.00        16.67%
+             41                        2.00        33.33%
+             42                        1.00        16.67%
+             43                        0.00         0.00%
+             44                        0.00         0.00%
+             45                        2.00        33.33%
+             46                        2.00        33.33%
+             47                        0.00         0.00%
+             48                        1.00        16.67%
+             49                        2.00        33.33%
+             50                        2.00        33.33%
+             51                        1.00        16.67%
+             52                        1.00        16.67%
+             53                        3.00        50.00%
+             54                        2.00        33.33%
+             55                        0.00         0.00%
+             56                        2.00        33.33%
+             57                        2.00        33.33%
+             58                        1.00        16.67%
+             59                        1.00        16.67%
+             60                        0.00         0.00%
+             61                        1.00        16.67%
+             62                        3.00        50.00%
+             63                        6.00       100.00%
+             64                        2.00        33.33%
+             65                        3.00        50.00%
+             66                        3.00        50.00%
+             67                        4.00        66.67%
+ ------------------------------------------------------------------------------
+                                Power Analysis Summary
+ ------------------------------------------------------------------------------
+      Number of Scan Cells                       6
+      Number of Patterns                         0-67
+      Cycles Per Load                            6
+      Average Shift Switching                    2.97 49.43%
+      Average Capture Switching                  1.56 25.98%
+      Peak Shift Switching                       6 100.00% (pattern: 18 cycle: 4)
+      Peak Capture Switching                     6 100.00% (pattern: 63)
+write_patterns tmax/pat/s510.stil -format stil -replace
+ Patterns written reference 273 V statements, generating 618 test cycles
+ End writing file 's510.stil' with 68 patterns, File_size = 16810, CPU_time = 0.0 sec.
+exit

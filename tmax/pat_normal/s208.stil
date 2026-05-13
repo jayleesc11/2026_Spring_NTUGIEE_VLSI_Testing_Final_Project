@@ -1,0 +1,255 @@
+STIL 1.0 { Design 2005; }
+Header {
+   Title "  TetraMAX(R)  X-2025.06-i20250527_200836 STIL output";
+   Date "Wed May 13 11:27:52 2026";
+   History {
+      Ann {*     Uncollapsed Stuck Fault Summary Report *}
+      Ann {* ----------------------------------------------- *}
+      Ann {* fault class                     code   #faults *}
+      Ann {* ------------------------------  ----  --------- *}
+      Ann {* Detected                         DT        606 *}
+      Ann {* Possibly detected                PT          0 *}
+      Ann {* Undetectable                     UD          0 *}
+      Ann {* ATPG untestable                  AU          0 *}
+      Ann {* Not detected                     ND          0 *}
+      Ann {* ----------------------------------------------- *}
+      Ann {* total faults                               606 *}
+      Ann {* test coverage                           100.00% *}
+      Ann {* ----------------------------------------------- *}
+      Ann {*  *}
+      Ann {*            Pattern Summary Report *}
+      Ann {* ----------------------------------------------- *}
+      Ann {* #internal patterns                          29 *}
+      Ann {*     #basic_scan patterns                    29 *}
+      Ann {* ----------------------------------------------- *}
+      Ann {*  *}
+      Ann {* rule  severity  #fails  description *}
+      Ann {* ----  --------  ------  --------------------------------- *}
+      Ann {* N21   warning        1  unsupported UDP entry *}
+      Ann {* B10   warning        4  unconnected module internal net *}
+      Ann {*  *}
+      Ann {* clock_name        off  usage *}
+      Ann {* ----------------  ---  -------------------------- *}
+      Ann {* CK                 0   shift_clock master shift  *}
+      Ann {*  *}
+      Ann {* There are no constraint ports *}
+      Ann {* There are no equivalent pins *}
+      Ann {* There are no net connections *}
+      Ann {* top_module_name = s208 *}
+      Ann {* Unified STIL Flow *}
+      Ann {* serial_flag = 0 *}
+      Ann {* PSDF = NO_PSD_FILE *}
+      Ann {* PSDS = 0 *}
+      Ann {* PSDA = #29#1#8/0 *}
+      Ann {* internal_clock = CK *}
+   }
+}
+Signals {
+   "CK" In; "X" In; "Clear" In; "C_8" In; "C_7" In; "C_6" In; "C_5" In; "C_4" In;
+   "C_3" In; "C_2" In; "C_1" In; "C_0" In; "test_se" In; "test_si" In { ScanIn; }
+   "W" Out; "Z" Out; "test_so" Out { ScanOut; }
+}
+SignalGroups {
+   "_pi" = '"CK" + "X" + "Clear" + "C_8" + "C_7" + "C_6" + "C_5" + "C_4" + "C_3" + "C_2"
+   + "C_1" + "C_0" + "test_se" + "test_si"'; // #signals=14
+   "_in" = '"CK" + "X" + "Clear" + "C_8" + "C_7" + "C_6" + "C_5" + "C_4" + "C_3" + "C_2"
+   + "C_1" + "C_0" + "test_se" + "test_si"'; // #signals=14
+   "_so" = '"test_so"' { ScanOut; } // #signals=1
+   "_po" = '"W" + "Z" + "test_so"'; // #signals=3
+   "_out" = '"W" + "Z" + "test_so"'; // #signals=3
+   "_default_In_Timing_" = '"CK" + "X" + "Clear" + "C_8" + "C_7" + "C_6" + "C_5" + "C_4"
+   + "C_3" + "C_2" + "C_1" + "C_0" + "test_se" + "test_si"'; // #signals=14
+   "_default_Out_Timing_" = '"W" + "Z" + "test_so"'; // #signals=3
+   "_si" = '"test_si"' { ScanIn; } // #signals=1
+   "_default_Clk0_Timing_" = '"CK"'; // #signals=1
+}
+Timing {
+   WaveformTable "_default_WFT_" {
+      Period '100ns';
+      Waveforms {
+         "_default_In_Timing_" { 0 { '0ns' D; } }
+         "_default_In_Timing_" { 1 { '0ns' U; } }
+         "_default_In_Timing_" { Z { '0ns' Z; } }
+         "_default_In_Timing_" { N { '0ns' N; } }
+         "_default_Clk0_Timing_" { P { '0ns' D; '50ns' U; '80ns' D; } }
+         "_default_Out_Timing_" { X { '0ns' X; } }
+         "_default_Out_Timing_" { H { '0ns' X; '40ns' H; } }
+         "_default_Out_Timing_" { T { '0ns' X; '40ns' T; } }
+         "_default_Out_Timing_" { L { '0ns' X; '40ns' L; } }
+      }
+   }
+}
+ScanStructures {
+   ScanChain "chain1" {
+      ScanLength 8;
+      ScanIn "test_si";
+      ScanOut "test_so";
+      ScanInversion 0;
+      ScanCellType  { CellIn "SI"; CellOut "Q"; }
+      ScanCells { "s208.U_Y_4" ; "s208.U_Y_3" ; "s208.U_Y_2" ; "s208.U_Y_1" ; "s208.U_Y_8"
+      ; "s208.U_Y_7" ; "s208.U_Y_6" ; "s208.U_Y_5" ; }
+      ScanMasterClock "CK" ;
+   }
+}
+PatternBurst "_burst_" {
+   PatList { "_pattern_" {
+   }
+}}
+PatternExec {
+   PatternBurst "_burst_";
+}
+Procedures {
+   "load_unload" {
+      W "_default_WFT_";
+      C { "test_so"=X; "test_si"=0; "CK"=0; "test_se"=1; }
+      Shift {          W "_default_WFT_";
+         V { "_si"=#; "_so"=#; "CK"=P; }
+      }
+   }
+   "capture_CK" {
+      W "_default_WFT_";
+      C { "_po"=XXX; }
+      "forcePI": V { "_pi"=\r14 # ; }
+      "measurePO": V { "_po"=###; }
+      C { "_po"=XXX; }
+      "pulse": V { "CK"=P; }
+   }
+   "capture" {
+      W "_default_WFT_";
+      C { "_po"=XXX; }
+      "forcePI": V { "_pi"=\r14 # ; }
+      "measurePO": V { "_po"=###; }
+   }
+}
+MacroDefs {
+   "test_setup" {
+      W "_default_WFT_";
+      V { "CK"=0; }
+   }
+}
+Pattern "_pattern_" {
+   W "_default_WFT_";
+   "precondition all Signals": C { "_pi"=\r14 0 ; "_po"=XXX; }
+   Macro "test_setup";
+   Ann {* chain_test *}
+   "pattern 0": Call "load_unload" { 
+      "test_si"=00110011; }
+   Call "capture" { 
+      "_pi"=01101111101011; "_po"=LHL; }
+   "pattern 1": Call "load_unload" { 
+      "test_so"=LLHHLLHH; "test_si"=00010000; }
+   Call "capture_CK" { 
+      "_pi"=01010111110000; "_po"=LHL; }
+   "pattern 2": Call "load_unload" { 
+      "test_so"=LLLLHLLL; "test_si"=00000000; }
+   Call "capture_CK" { 
+      "_pi"=01111111111001; "_po"=LLL; }
+   "pattern 3": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=11011011; }
+   Call "capture_CK" { 
+      "_pi"=00010111101100; "_po"=LLH; }
+   "pattern 4": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=00001110; }
+   Call "capture_CK" { 
+      "_pi"=01000100000101; "_po"=LHL; }
+   "pattern 5": Call "load_unload" { 
+      "test_so"=LLLLLLLH; "test_si"=11110001; }
+   Call "capture_CK" { 
+      "_pi"=01001011101000; "_po"=HHH; }
+   "pattern 6": Call "load_unload" { 
+      "test_so"=LLLLHLLH; "test_si"=00111101; }
+   Call "capture_CK" { 
+      "_pi"=01011011110001; "_po"=LLL; }
+   "pattern 7": Call "load_unload" { 
+      "test_so"=LLLLLLHH; "test_si"=11100010; }
+   Call "capture_CK" { 
+      "_pi"=01001101111001; "_po"=LHH; }
+   "pattern 8": Call "load_unload" { 
+      "test_so"=LLLLHLHL; "test_si"=01110000; }
+   Call "capture_CK" { 
+      "_pi"=01011001000010; "_po"=LLL; }
+   "pattern 9": Call "load_unload" { 
+      "test_so"=HHHLLLLL; "test_si"=01011111; }
+   Call "capture_CK" { 
+      "_pi"=01001100101001; "_po"=LHL; }
+   "pattern 10": Call "load_unload" { 
+      "test_so"=HHLHLLLL; "test_si"=10111100; }
+   Call "capture_CK" { 
+      "_pi"=01010110010001; "_po"=LLH; }
+   "pattern 11": Call "load_unload" { 
+      "test_so"=LLLLLLHL; "test_si"=00001111; }
+   Call "capture_CK" { 
+      "_pi"=00100100100001; "_po"=LLL; }
+   "pattern 12": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=11101111; }
+   Call "capture_CK" { 
+      "_pi"=01011101111001; "_po"=LHH; }
+   "pattern 13": Call "load_unload" { 
+      "test_so"=LLLHLLLL; "test_si"=10001111; }
+   Call "capture_CK" { 
+      "_pi"=00011110111100; "_po"=LLH; }
+   "pattern 14": Call "load_unload" { 
+      "test_so"=LHLLLLLL; "test_si"=11001111; }
+   Call "capture_CK" { 
+      "_pi"=01010000110101; "_po"=LHH; }
+   "pattern 15": Call "load_unload" { 
+      "test_so"=LLHLLLLL; "test_si"=00101111; }
+   Call "capture_CK" { 
+      "_pi"=01011000011001; "_po"=LHL; }
+   "pattern 16": Call "load_unload" { 
+      "test_so"=HLHLLLLL; "test_si"=01000111; }
+   Call "capture_CK" { 
+      "_pi"=01010011100000; "_po"=LLL; }
+   "pattern 17": Call "load_unload" { 
+      "test_so"=LLLLHHHH; "test_si"=00000110; }
+   Call "capture_CK" { 
+      "_pi"=00000110011001; "_po"=LLL; }
+   "pattern 18": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=10000001; }
+   Call "capture_CK" { 
+      "_pi"=01000010001001; "_po"=LLH; }
+   "pattern 19": Call "load_unload" { 
+      "test_so"=LLLLHLLH; "test_si"=11000000; }
+   Call "capture_CK" { 
+      "_pi"=01000101100010; "_po"=LLH; }
+   "pattern 20": Call "load_unload" { 
+      "test_so"=HLLLLLLL; "test_si"=00110000; }
+   Call "capture_CK" { 
+      "_pi"=01010000110011; "_po"=LLL; }
+   "pattern 21": Call "load_unload" { 
+      "test_so"=LHHLLLLH; "test_si"=00000100; }
+   Call "capture_CK" { 
+      "_pi"=01000000011001; "_po"=LHL; }
+   "pattern 22": Call "load_unload" { 
+      "test_so"=LLLLHHLL; "test_si"=00000011; }
+   Call "capture_CK" { 
+      "_pi"=01101111000001; "_po"=LLL; }
+   "pattern 23": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=10000000; }
+   Call "capture_CK" { 
+      "_pi"=01110011110010; "_po"=LHH; }
+   "pattern 24": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=01000000; }
+   Call "capture_CK" { 
+      "_pi"=01010111010000; "_po"=LHL; }
+   "pattern 25": Call "load_unload" { 
+      "test_so"=LLLLHLLL; "test_si"=00100000; }
+   Call "capture_CK" { 
+      "_pi"=01101011101000; "_po"=LHL; }
+   "pattern 26": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=00010000; }
+   Call "capture_CK" { 
+      "_pi"=01101010011001; "_po"=LLL; }
+   "pattern 27": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=11111111; }
+   Call "capture_CK" { 
+      "_pi"=01011101001100; "_po"=HHH; }
+   "pattern 28": Call "load_unload" { 
+      "test_so"=LLLLLLLL; "test_si"=00001010; }
+   Call "capture_CK" { 
+      "_pi"=01011110100101; "_po"=LHL; }
+   "end 28 unload": Call "load_unload" { 
+      "test_so"=LLLLLHHL; }
+}
+
+// Patterns reference 117 V statements, generating 327 test cycles

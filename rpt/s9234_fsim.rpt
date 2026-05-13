@@ -1,10 +1,10 @@
 #                 Statistics Report
-#  Circuit name                               s9234f
+#  Circuit name                                s9234
 #  Fault model                                   SAF
 #  Pattern type                                BASIC
 #  -------------------------------------------------
 #  Fault classes                             #faults
-#  ----------------------------  -------------------
+#    --------------------------  -------------------
 #    FU (full)                                 16476
 #    FU (collapsed)                            11493
 #    --------------------------  -------------------
@@ -23,7 +23,26 @@
 #    fault coverage                           94.14%
 #    atpg effectiveness                       94.14%
 #  -------------------------------------------------
-#  #Patterns                                     155
+#  #Patterns                                     156
 #  -------------------------------------------------
-#  ATPG runtime                            0.05463 s
+#  Power metric
+#    -----------------------------------------------
+#    scan flip-flops                             211
+#    shift FFTC
+#      ---------------------------------------------
+#      shift operations                          156
+#      shift cycles evaluated                  32916
+#      total FFTC                            3539659
+#      average FFTC/cycle                      107.5
+#      maximum FFTC/cycle                        129
+#      unknown transitions                         0
+#    -----------------------------------------------
+#    capture FFTC
+#      ---------------------------------------------
+#      total FFTC                              12146
+#      average FFTC/pattern                    77.86
+#      maximum FFTC/pattern                      107
+#      unknown transitions                         0
+#  -------------------------------------------------
+#  ATPG runtime                            0.07395 s
 #  -------------------------------------------------

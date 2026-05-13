@@ -1,0 +1,213 @@
+read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
+ Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
+ End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.02 sec, Memory=0MB
+read_netlist mod_netlist/s35932.v -format verilog
+ Begin reading netlist ( mod_netlist/s35932.v )...
+ End parsing Verilog file mod_netlist/s35932.v with 0 errors.
+ End reading netlist: #modules=1, top=s35932, #lines=60162, CPU_time=0.09 sec, Memory=6MB
+run_build_model s35932
+ ------------------------------------------------------------------------------
+ Begin build model for topcut = s35932 ...
+ ------------------------------------------------------------------------------
+ There were 26227 primitives and 1728 faultable pins removed during model optimizations
+ Warning: Rule B10 (unconnected module internal net) was violated 4 times.
+ Warning: Rule N21 (unsupported UDP entry) was violated 1 times.
+ End build model: #primitives=18921, CPU_time=0.05 sec, Memory=9MB
+ ------------------------------------------------------------------------------
+ Begin learning analyses...
+ End learning analyses, total learning CPU time=0.02 sec.
+ ------------------------------------------------------------------------------
+add_clocks 0 CK -shift
+add_scan_enables 1 test_se
+add_scan_chains chain1 test_si test_so
+run_drc
+ ------------------------------------------------------------------------------
+ Begin scan design rules checking...
+ ------------------------------------------------------------------------------
+ Begin simulating test protocol procedures...
+ Test protocol simulation completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin scan chain operation checking...
+ Chain chain1 successfully traced with 1728 scan_cells.
+ Scan chain operation checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin clock rules checking...
+ Clock rules checking completed, CPU time=0.00 sec.
+ Performing clock grouping analysis for 1 clock.
+ Clock grouping results: #pairs=0, #groups=0, #serial_pairs=0, #disturbed_pairs=0, CPU time=0.01 sec.
+ ------------------------------------------------------------------------------
+ Begin tracing connection cones...
+ Tracing connection cones completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin nonscan rules checking...
+ Nonscan cell summary: #DFF=0  #DLAT=0  #RAM_outs=0  tla_usage_type=none
+ Nonscan rules checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin DRC dependent learning...
+ Fast-sequential depth results: control=0(0), observe=0(0), detect=0(0), CPU time=0.00 sec
+ DRC dependent learning completed, CPU time=0.02 sec.
+ ------------------------------------------------------------------------------
+ Begin set operation for load unload constant latches...
+ Set operation for load unload constant latches completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ DRC Summary Report
+ ------------------------------------------------------------------------------
+ No violations occurred during DRC process.
+ Design rules checking was successful, total CPU time=0.03 sec.
+ ------------------------------------------------------------------------------
+puts "ATPG mode: normal"
+ATPG mode: normal
+set_atpg -fill 0
+add_faults -all
+ 96562 faults were added to fault list.
+run_atpg -auto_compression
+ 
+ ATPG performed for stuck fault model using internal pattern source.
+ ----------------------------------------------------------
+ #patterns     #faults     #ATPG faults  test      process
+ stored     detect/active  red/au/abort  coverage  CPU time
+ ---------  -------------  ------------  --------  --------
+ Begin deterministic ATPG: #uncollapsed_faults=84459, abort_limit=10...
+ 22          75491      0      3970/0/0   100.00%      0.23
+ 
+     Uncollapsed Stuck Fault Summary Report
+ -----------------------------------------------
+ fault class                     code   #faults
+ ------------------------------  ----  ---------
+ Detected                         DT      87594
+ Possibly detected                PT          0
+ Undetectable                     UD       8968
+ ATPG untestable                  AU          0
+ Not detected                     ND          0
+ -----------------------------------------------
+ total faults                             96562
+ test coverage                           100.00%
+ -----------------------------------------------
+            Pattern Summary Report
+ -----------------------------------------------
+ #internal patterns                          22
+     #basic_scan patterns                    22
+ -----------------------------------------------
+            CPU Usage Summary Report
+ -----------------------------------------------
+ Total CPU time                            0.24
+ -----------------------------------------------
+report_power -per_pattern -percentage
+ ------------------------------------------------------------------------------
+                                Power Analysis: Per Pattern
+ ------------------------------------------------------------------------------
+ 
+     Shift Results:
+      Peak
+        pattern    load cycle   shift cycle     switching    percentage
+              0             0          1726           863        49.94%
+              1             0            67           868        50.23%
+              2             0           193           732        42.36%
+              3             0          1727           825        47.74%
+              4             0           134           852        49.31%
+              5             0          1487           836        48.38%
+              6             0             0           815        47.16%
+              7             0          1725           708        40.97%
+              8             0           319           757        43.81%
+              9             0            14           826        47.80%
+             10             0             0           751        43.46%
+             11             0           137           777        44.97%
+             12             0             3           704        40.74%
+             13             0            30           701        40.57%
+             14             0          1498           488        28.24%
+             15             0             0           557        32.23%
+             16             0             0           409        23.67%
+             17             0          1589           210        12.15%
+             18             0             0           233        13.48%
+             19             0             0           245        14.18%
+             20             0          1688            60         3.47%
+             21             0             0            95         5.50%
+      Average
+        pattern           average switching    percentage
+              0                      431.50        24.97%
+              1                      811.94        46.99%
+              2                      702.98        40.68%
+              3                      413.38        23.92%
+              4                      770.80        44.61%
+              5                      771.43        44.64%
+              6                      668.98        38.71%
+              7                      355.83        20.59%
+              8                      722.65        41.82%
+              9                      758.98        43.92%
+             10                      671.06        38.83%
+             11                      743.70        43.04%
+             12                      620.46        35.91%
+             13                      445.48        25.78%
+             14                      356.43        20.63%
+             15                      431.65        24.98%
+             16                      208.31        12.06%
+             17                      158.13         9.15%
+             18                      206.72        11.96%
+             19                      123.57         7.15%
+             20                       12.55         0.73%
+             21                       64.63         3.74%
+ 
+     Capture Results:
+      Peak
+        pattern capture cycle     switching    percentage
+              0             0             0         0.00%
+              1             0           713        41.26%
+              2             0          1069        61.86%
+              3             0           819        47.40%
+              4             0           772        44.68%
+              5             0           848        49.07%
+              6             0           537        31.08%
+              7             0           618        35.76%
+              8             0           821        47.51%
+              9             0           728        42.13%
+             10             0           772        44.68%
+             11             0           688        39.81%
+             12             0           705        40.80%
+             13             0           324        18.75%
+             14             0           546        31.60%
+             15             0           596        34.49%
+             16             0           449        25.98%
+             17             0           347        20.08%
+             18             0           533        30.84%
+             19             0            40         2.31%
+             20             0           311        18.00%
+             21             0           296        17.13%
+      Average
+        pattern           average switching    percentage
+              0                        0.00         0.00%
+              1                      713.00        41.26%
+              2                     1069.00        61.86%
+              3                      819.00        47.40%
+              4                      772.00        44.68%
+              5                      848.00        49.07%
+              6                      537.00        31.08%
+              7                      618.00        35.76%
+              8                      821.00        47.51%
+              9                      728.00        42.13%
+             10                      772.00        44.68%
+             11                      688.00        39.81%
+             12                      705.00        40.80%
+             13                      324.00        18.75%
+             14                      546.00        31.60%
+             15                      596.00        34.49%
+             16                      449.00        25.98%
+             17                      347.00        20.08%
+             18                      533.00        30.84%
+             19                       40.00         2.31%
+             20                      311.00        18.00%
+             21                      296.00        17.13%
+ ------------------------------------------------------------------------------
+                                Power Analysis Summary
+ ------------------------------------------------------------------------------
+      Number of Scan Cells                       1728
+      Number of Patterns                         0-21
+      Cycles Per Load                            1728
+      Average Shift Switching                    475.05 27.49%
+      Average Capture Switching                  569.64 32.97%
+      Peak Shift Switching                       868 50.23% (pattern: 1 cycle: 67)
+      Peak Capture Switching                     1069 61.86% (pattern: 2)
+write_patterns tmax/pat/s35932.stil -format stil -replace
+ Patterns written reference 89 V statements, generating 39810 test cycles
+ End writing file 's35932.stil' with 22 patterns, File_size = 155123, CPU_time = 0.0 sec.
+exit

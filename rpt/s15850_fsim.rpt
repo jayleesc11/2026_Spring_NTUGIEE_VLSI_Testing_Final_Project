@@ -4,7 +4,7 @@
 #  Pattern type                                BASIC
 #  -------------------------------------------------
 #  Fault classes                             #faults
-#  ----------------------------  -------------------
+#    --------------------------  -------------------
 #    FU (full)                                 31456
 #    FU (collapsed)                            22524
 #    --------------------------  -------------------
@@ -23,7 +23,26 @@
 #    fault coverage                           94.62%
 #    atpg effectiveness                       94.62%
 #  -------------------------------------------------
-#  #Patterns                                     104
+#  #Patterns                                     133
 #  -------------------------------------------------
-#  ATPG runtime                               0.18 s
+#  Power metric
+#    -----------------------------------------------
+#    scan flip-flops                             534
+#    shift FFTC
+#      ---------------------------------------------
+#      shift operations                          133
+#      shift cycles evaluated                  71022
+#      total FFTC                           17928805
+#      average FFTC/cycle                      252.4
+#      maximum FFTC/cycle                        298
+#      unknown transitions                         0
+#    -----------------------------------------------
+#    capture FFTC
+#      ---------------------------------------------
+#      total FFTC                              21453
+#      average FFTC/pattern                    161.3
+#      maximum FFTC/pattern                      223
+#      unknown transitions                         0
+#  -------------------------------------------------
+#  ATPG runtime                             0.2705 s
 #  -------------------------------------------------

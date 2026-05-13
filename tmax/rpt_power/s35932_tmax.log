@@ -1,0 +1,304 @@
+read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
+ Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
+ End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.02 sec, Memory=0MB
+read_netlist mod_netlist/s35932.v -format verilog
+ Begin reading netlist ( mod_netlist/s35932.v )...
+ End parsing Verilog file mod_netlist/s35932.v with 0 errors.
+ End reading netlist: #modules=1, top=s35932, #lines=60162, CPU_time=0.09 sec, Memory=6MB
+run_build_model s35932
+ ------------------------------------------------------------------------------
+ Begin build model for topcut = s35932 ...
+ ------------------------------------------------------------------------------
+ There were 26227 primitives and 1728 faultable pins removed during model optimizations
+ Warning: Rule B10 (unconnected module internal net) was violated 4 times.
+ Warning: Rule N21 (unsupported UDP entry) was violated 1 times.
+ End build model: #primitives=18921, CPU_time=0.05 sec, Memory=9MB
+ ------------------------------------------------------------------------------
+ Begin learning analyses...
+ End learning analyses, total learning CPU time=0.02 sec.
+ ------------------------------------------------------------------------------
+add_clocks 0 CK -shift
+add_scan_enables 1 test_se
+add_scan_chains chain1 test_si test_so
+run_drc
+ ------------------------------------------------------------------------------
+ Begin scan design rules checking...
+ ------------------------------------------------------------------------------
+ Begin simulating test protocol procedures...
+ Test protocol simulation completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin scan chain operation checking...
+ Chain chain1 successfully traced with 1728 scan_cells.
+ Scan chain operation checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin clock rules checking...
+ Clock rules checking completed, CPU time=0.00 sec.
+ Performing clock grouping analysis for 1 clock.
+ Clock grouping results: #pairs=0, #groups=0, #serial_pairs=0, #disturbed_pairs=0, CPU time=0.01 sec.
+ ------------------------------------------------------------------------------
+ Begin tracing connection cones...
+ Tracing connection cones completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin nonscan rules checking...
+ Nonscan cell summary: #DFF=0  #DLAT=0  #RAM_outs=0  tla_usage_type=none
+ Nonscan rules checking completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ Begin DRC dependent learning...
+ Fast-sequential depth results: control=0(0), observe=0(0), detect=0(0), CPU time=0.00 sec
+ DRC dependent learning completed, CPU time=0.02 sec.
+ ------------------------------------------------------------------------------
+ Begin set operation for load unload constant latches...
+ Set operation for load unload constant latches completed, CPU time=0.00 sec.
+ ------------------------------------------------------------------------------
+ DRC Summary Report
+ ------------------------------------------------------------------------------
+ No violations occurred during DRC process.
+ Design rules checking was successful, total CPU time=0.03 sec.
+ ------------------------------------------------------------------------------
+puts "ATPG mode: power-aware"
+ATPG mode: power-aware
+set_atpg -fill adjacent
+set_atpg -shift_power_effort high -shift_power_budget 100
+add_faults -all
+ 96562 faults were added to fault list.
+run_atpg -auto_compression
+ 
+ ATPG performed for stuck fault model using internal pattern source.
+ ----------------------------------------------------------
+ #patterns     #faults     #ATPG faults  test      process
+ stored     detect/active  red/au/abort  coverage  CPU time
+ ---------  -------------  ------------  --------  --------
+ Begin deterministic ATPG: #uncollapsed_faults=84459, abort_limit=10...
+ 32          74712   9740         4/0/0    89.91%      0.11
+ Local redundancy analysis results: #redundant_faults=449, CPU_time=0.01 sec
+ 44            779      0      3521/0/0   100.00%      0.18
+ 
+     Uncollapsed Stuck Fault Summary Report
+ -----------------------------------------------
+ fault class                     code   #faults
+ ------------------------------  ----  ---------
+ Detected                         DT      87594
+ Possibly detected                PT          0
+ Undetectable                     UD       8968
+ ATPG untestable                  AU          0
+ Not detected                     ND          0
+ -----------------------------------------------
+ total faults                             96562
+ test coverage                           100.00%
+ -----------------------------------------------
+            Pattern Summary Report
+ -----------------------------------------------
+ #internal patterns                          44
+     #basic_scan patterns                    44
+ -----------------------------------------------
+            CPU Usage Summary Report
+ -----------------------------------------------
+ Total CPU time                            0.19
+ -----------------------------------------------
+report_power -per_pattern -percentage
+ ------------------------------------------------------------------------------
+                                Power Analysis: Per Pattern
+ ------------------------------------------------------------------------------
+ 
+     Shift Results:
+      Peak
+        pattern    load cycle   shift cycle     switching    percentage
+              0             0          1726           863        49.94%
+              1             0             0           864        50.00%
+              2             0             0           183        10.59%
+              3             0          1725            80         4.63%
+              4             0             0           154         8.91%
+              5             0             9           154         8.91%
+              6             0             0           154         8.91%
+              7             0          1693            88         5.09%
+              8             0             0           173        10.01%
+              9             0             0           120         6.94%
+             10             0          1720            84         4.86%
+             11             0             0           136         7.87%
+             12             0          1679            77         4.46%
+             13             0           122           166         9.61%
+             14             0             0           127         7.35%
+             15             0             0           143         8.28%
+             16             0          1711            71         4.11%
+             17             0             0           161         9.32%
+             18             0            57           186        10.76%
+             19             0             0           166         9.61%
+             20             0           149           175        10.13%
+             21             0           134           171         9.90%
+             22             0             0           162         9.38%
+             23             0             0           179        10.36%
+             24             0             0           152         8.80%
+             25             0             0           155         8.97%
+             26             0             0           164         9.49%
+             27             0           116           183        10.59%
+             28             0             0           178        10.30%
+             29             0             0           168         9.72%
+             30             0             0           172         9.95%
+             31             0           105           173        10.01%
+             32             0             0           177        10.24%
+             33             0             0           112         6.48%
+             34             0           960           128         7.41%
+             35             0             0           111         6.42%
+             36             0             0           137         7.93%
+             37             0             0           124         7.18%
+             38             0             0           164         9.49%
+             39             0             0           149         8.62%
+             40             0             0            67         3.88%
+             41             0             0            64         3.70%
+             42             0             0            92         5.32%
+             43             0           769             2         0.12%
+      Average
+        pattern           average switching    percentage
+              0                      431.50        24.97%
+              1                      479.06        27.72%
+              2                      101.88         5.90%
+              3                       36.57         2.12%
+              4                      109.33         6.33%
+              5                      118.47         6.86%
+              6                       90.62         5.24%
+              7                       43.90         2.54%
+              8                      121.80         7.05%
+              9                       68.98         3.99%
+             10                       39.79         2.30%
+             11                       74.79         4.33%
+             12                       40.53         2.35%
+             13                      114.40         6.62%
+             14                      110.34         6.39%
+             15                       64.25         3.72%
+             16                       32.08         1.86%
+             17                      135.91         7.87%
+             18                      139.25         8.06%
+             19                      131.44         7.61%
+             20                      133.19         7.71%
+             21                      133.06         7.70%
+             22                      118.30         6.85%
+             23                      122.55         7.09%
+             24                      112.35         6.50%
+             25                      114.68         6.64%
+             26                      120.00         6.94%
+             27                      131.34         7.60%
+             28                      124.74         7.22%
+             29                      106.67         6.17%
+             30                      134.12         7.76%
+             31                      131.07         7.58%
+             32                      117.10         6.78%
+             33                       85.36         4.94%
+             34                      106.17         6.14%
+             35                       86.79         5.02%
+             36                      101.18         5.86%
+             37                      105.76         6.12%
+             38                      107.04         6.19%
+             39                       84.97         4.92%
+             40                       38.42         2.22%
+             41                       32.35         1.87%
+             42                       55.10         3.19%
+             43                        1.55         0.09%
+ 
+     Capture Results:
+      Peak
+        pattern capture cycle     switching    percentage
+              0             0             0         0.00%
+              1             0           751        43.46%
+              2             0          1521        88.02%
+              3             0           799        46.24%
+              4             0           638        36.92%
+              5             0           698        40.39%
+              6             0          1641        94.97%
+              7             0           655        37.91%
+              8             0           656        37.96%
+              9             0          1509        87.33%
+             10             0           727        42.07%
+             11             0          1546        89.47%
+             12             0           626        36.23%
+             13             0           714        41.32%
+             14             0           774        44.79%
+             15             0          1611        93.23%
+             16             0           805        46.59%
+             17             0           667        38.60%
+             18             0           779        45.08%
+             19             0           779        45.08%
+             20             0           704        40.74%
+             21             0           697        40.34%
+             22             0           769        44.50%
+             23             0           696        40.28%
+             24             0           722        41.78%
+             25             0           665        38.48%
+             26             0           741        42.88%
+             27             0           614        35.53%
+             28             0           748        43.29%
+             29             0           634        36.69%
+             30             0           742        42.94%
+             31             0           676        39.12%
+             32             0           712        41.20%
+             33             0           595        34.43%
+             34             0           532        30.79%
+             35             0           670        38.77%
+             36             0           618        35.76%
+             37             0           650        37.62%
+             38             0           778        45.02%
+             39             0           531        30.73%
+             40             0           421        24.36%
+             41             0           347        20.08%
+             42             0           660        38.19%
+             43             0           177        10.24%
+      Average
+        pattern           average switching    percentage
+              0                        0.00         0.00%
+              1                      751.00        43.46%
+              2                     1521.00        88.02%
+              3                      799.00        46.24%
+              4                      638.00        36.92%
+              5                      698.00        40.39%
+              6                     1641.00        94.97%
+              7                      655.00        37.91%
+              8                      656.00        37.96%
+              9                     1509.00        87.33%
+             10                      727.00        42.07%
+             11                     1546.00        89.47%
+             12                      626.00        36.23%
+             13                      714.00        41.32%
+             14                      774.00        44.79%
+             15                     1611.00        93.23%
+             16                      805.00        46.59%
+             17                      667.00        38.60%
+             18                      779.00        45.08%
+             19                      779.00        45.08%
+             20                      704.00        40.74%
+             21                      697.00        40.34%
+             22                      769.00        44.50%
+             23                      696.00        40.28%
+             24                      722.00        41.78%
+             25                      665.00        38.48%
+             26                      741.00        42.88%
+             27                      614.00        35.53%
+             28                      748.00        43.29%
+             29                      634.00        36.69%
+             30                      742.00        42.94%
+             31                      676.00        39.12%
+             32                      712.00        41.20%
+             33                      595.00        34.43%
+             34                      532.00        30.79%
+             35                      670.00        38.77%
+             36                      618.00        35.76%
+             37                      650.00        37.62%
+             38                      778.00        45.02%
+             39                      531.00        30.73%
+             40                      421.00        24.36%
+             41                      347.00        20.08%
+             42                      660.00        38.19%
+             43                      177.00        10.24%
+ ------------------------------------------------------------------------------
+                                Power Analysis Summary
+ ------------------------------------------------------------------------------
+      Number of Scan Cells                       1728
+      Number of Patterns                         0-43
+      Cycles Per Load                            1728
+      Average Shift Switching                    111.11 6.43%
+      Average Capture Switching                  749.89 43.40%
+      Peak Shift Switching                       864 50.00% (pattern: 1 cycle: 0)
+      Peak Capture Switching                     1641 94.97% (pattern: 6)
+write_patterns tmax/pat/s35932.stil -format stil -replace
+ Patterns written reference 177 V statements, generating 77892 test cycles
+ End writing file 's35932.stil' with 44 patterns, File_size = 241958, CPU_time = 0.0 sec.
+exit

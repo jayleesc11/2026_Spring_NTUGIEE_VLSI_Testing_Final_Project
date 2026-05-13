@@ -1,0 +1,1114 @@
+STIL 1.0 { Design 2005; }
+Header {
+   Title "  TetraMAX(R)  X-2025.06-i20250527_200836 STIL output";
+   Date "Wed May 13 11:28:01 2026";
+   History {
+      Ann {*     Uncollapsed Stuck Fault Summary Report *}
+      Ann {* ----------------------------------------------- *}
+      Ann {* fault class                     code   #faults *}
+      Ann {* ------------------------------  ----  --------- *}
+      Ann {* Detected                         DT      87594 *}
+      Ann {* Possibly detected                PT          0 *}
+      Ann {* Undetectable                     UD       8968 *}
+      Ann {* ATPG untestable                  AU          0 *}
+      Ann {* Not detected                     ND          0 *}
+      Ann {* ----------------------------------------------- *}
+      Ann {* total faults                             96562 *}
+      Ann {* test coverage                           100.00% *}
+      Ann {* ----------------------------------------------- *}
+      Ann {*  *}
+      Ann {*            Pattern Summary Report *}
+      Ann {* ----------------------------------------------- *}
+      Ann {* #internal patterns                          22 *}
+      Ann {*     #basic_scan patterns                    22 *}
+      Ann {* ----------------------------------------------- *}
+      Ann {*  *}
+      Ann {* rule  severity  #fails  description *}
+      Ann {* ----  --------  ------  --------------------------------- *}
+      Ann {* N21   warning        1  unsupported UDP entry *}
+      Ann {* B10   warning        4  unconnected module internal net *}
+      Ann {*  *}
+      Ann {* clock_name        off  usage *}
+      Ann {* ----------------  ---  -------------------------- *}
+      Ann {* CK                 0   shift_clock master shift  *}
+      Ann {*  *}
+      Ann {* There are no constraint ports *}
+      Ann {* There are no equivalent pins *}
+      Ann {* There are no net connections *}
+      Ann {* top_module_name = s35932 *}
+      Ann {* Unified STIL Flow *}
+      Ann {* serial_flag = 0 *}
+      Ann {* PSDF = NO_PSD_FILE *}
+      Ann {* PSDS = 0 *}
+      Ann {* PSDA = #22#1#1728/0 *}
+      Ann {* internal_clock = CK *}
+   }
+}
+Signals {
+   "test_si" In { ScanIn; } "test_se" In; "CK" In; "DATA_0_31" In; "DATA_0_30" In;
+   "DATA_0_29" In; "DATA_0_28" In; "DATA_0_27" In; "DATA_0_26" In; "DATA_0_25" In;
+   "DATA_0_24" In; "DATA_0_23" In; "DATA_0_22" In; "DATA_0_21" In; "DATA_0_20" In;
+   "DATA_0_19" In; "DATA_0_18" In; "DATA_0_17" In; "DATA_0_16" In; "DATA_0_15" In;
+   "DATA_0_14" In; "DATA_0_13" In; "DATA_0_12" In; "DATA_0_11" In; "DATA_0_10" In;
+   "DATA_0_9" In; "DATA_0_8" In; "DATA_0_7" In; "DATA_0_6" In; "DATA_0_5" In; "DATA_0_4" In;
+   "DATA_0_3" In; "DATA_0_2" In; "DATA_0_1" In; "DATA_0_0" In; "RESET" In; "TM1" In;
+   "TM0" In; "test_so" Out { ScanOut; } "DATA_9_31" Out; "DATA_9_30" Out; "DATA_9_29" Out;
+   "DATA_9_28" Out; "DATA_9_27" Out; "DATA_9_26" Out; "DATA_9_25" Out; "DATA_9_24" Out;
+   "DATA_9_23" Out; "DATA_9_22" Out; "DATA_9_21" Out; "DATA_9_20" Out; "DATA_9_19" Out;
+   "DATA_9_18" Out; "DATA_9_17" Out; "DATA_9_16" Out; "DATA_9_15" Out; "DATA_9_14" Out;
+   "DATA_9_13" Out; "DATA_9_12" Out; "DATA_9_11" Out; "DATA_9_10" Out; "DATA_9_9" Out;
+   "DATA_9_8" Out; "DATA_9_7" Out; "DATA_9_6" Out; "DATA_9_5" Out; "DATA_9_4" Out;
+   "DATA_9_3" Out; "DATA_9_2" Out; "DATA_9_1" Out; "DATA_9_0" Out; "CRC_OUT_9_0" Out;
+   "CRC_OUT_9_1" Out; "CRC_OUT_9_2" Out; "CRC_OUT_9_3" Out; "CRC_OUT_9_4" Out; "CRC_OUT_9_5" Out;
+   "CRC_OUT_9_6" Out; "CRC_OUT_9_7" Out; "CRC_OUT_9_8" Out; "CRC_OUT_9_9" Out; "CRC_OUT_9_10" Out;
+   "CRC_OUT_9_11" Out; "CRC_OUT_9_12" Out; "CRC_OUT_9_13" Out; "CRC_OUT_9_14" Out;
+   "CRC_OUT_9_15" Out; "CRC_OUT_9_16" Out; "CRC_OUT_9_17" Out; "CRC_OUT_9_18" Out;
+   "CRC_OUT_9_19" Out; "CRC_OUT_9_20" Out; "CRC_OUT_9_21" Out; "CRC_OUT_9_22" Out;
+   "CRC_OUT_9_23" Out; "CRC_OUT_9_24" Out; "CRC_OUT_9_25" Out; "CRC_OUT_9_26" Out;
+   "CRC_OUT_9_27" Out; "CRC_OUT_9_28" Out; "CRC_OUT_9_29" Out; "CRC_OUT_9_30" Out;
+   "CRC_OUT_9_31" Out; "CRC_OUT_8_0" Out; "CRC_OUT_8_1" Out; "CRC_OUT_8_2" Out; "CRC_OUT_8_3" Out;
+   "CRC_OUT_8_4" Out; "CRC_OUT_8_5" Out; "CRC_OUT_8_6" Out; "CRC_OUT_8_7" Out; "CRC_OUT_8_8" Out;
+   "CRC_OUT_8_9" Out; "CRC_OUT_8_10" Out; "CRC_OUT_8_11" Out; "CRC_OUT_8_12" Out;
+   "CRC_OUT_8_13" Out; "CRC_OUT_8_14" Out; "CRC_OUT_8_15" Out; "CRC_OUT_8_16" Out;
+   "CRC_OUT_8_17" Out; "CRC_OUT_8_18" Out; "CRC_OUT_8_19" Out; "CRC_OUT_8_20" Out;
+   "CRC_OUT_8_21" Out; "CRC_OUT_8_22" Out; "CRC_OUT_8_23" Out; "CRC_OUT_8_24" Out;
+   "CRC_OUT_8_25" Out; "CRC_OUT_8_26" Out; "CRC_OUT_8_27" Out; "CRC_OUT_8_28" Out;
+   "CRC_OUT_8_29" Out; "CRC_OUT_8_30" Out; "CRC_OUT_8_31" Out; "CRC_OUT_7_0" Out;
+   "CRC_OUT_7_1" Out; "CRC_OUT_7_2" Out; "CRC_OUT_7_3" Out; "CRC_OUT_7_4" Out; "CRC_OUT_7_5" Out;
+   "CRC_OUT_7_6" Out; "CRC_OUT_7_7" Out; "CRC_OUT_7_8" Out; "CRC_OUT_7_9" Out; "CRC_OUT_7_10" Out;
+   "CRC_OUT_7_11" Out; "CRC_OUT_7_12" Out; "CRC_OUT_7_13" Out; "CRC_OUT_7_14" Out;
+   "CRC_OUT_7_15" Out; "CRC_OUT_7_16" Out; "CRC_OUT_7_17" Out; "CRC_OUT_7_18" Out;
+   "CRC_OUT_7_19" Out; "CRC_OUT_7_20" Out; "CRC_OUT_7_21" Out; "CRC_OUT_7_22" Out;
+   "CRC_OUT_7_23" Out; "CRC_OUT_7_24" Out; "CRC_OUT_7_25" Out; "CRC_OUT_7_26" Out;
+   "CRC_OUT_7_27" Out; "CRC_OUT_7_28" Out; "CRC_OUT_7_29" Out; "CRC_OUT_7_30" Out;
+   "CRC_OUT_7_31" Out; "CRC_OUT_6_0" Out; "CRC_OUT_6_1" Out; "CRC_OUT_6_2" Out; "CRC_OUT_6_3" Out;
+   "CRC_OUT_6_4" Out; "CRC_OUT_6_5" Out; "CRC_OUT_6_6" Out; "CRC_OUT_6_7" Out; "CRC_OUT_6_8" Out;
+   "CRC_OUT_6_9" Out; "CRC_OUT_6_10" Out; "CRC_OUT_6_11" Out; "CRC_OUT_6_12" Out;
+   "CRC_OUT_6_13" Out; "CRC_OUT_6_14" Out; "CRC_OUT_6_15" Out; "CRC_OUT_6_16" Out;
+   "CRC_OUT_6_17" Out; "CRC_OUT_6_18" Out; "CRC_OUT_6_19" Out; "CRC_OUT_6_20" Out;
+   "CRC_OUT_6_21" Out; "CRC_OUT_6_22" Out; "CRC_OUT_6_23" Out; "CRC_OUT_6_24" Out;
+   "CRC_OUT_6_25" Out; "CRC_OUT_6_26" Out; "CRC_OUT_6_27" Out; "CRC_OUT_6_28" Out;
+   "CRC_OUT_6_29" Out; "CRC_OUT_6_30" Out; "CRC_OUT_6_31" Out; "CRC_OUT_5_0" Out;
+   "CRC_OUT_5_1" Out; "CRC_OUT_5_2" Out; "CRC_OUT_5_3" Out; "CRC_OUT_5_4" Out; "CRC_OUT_5_5" Out;
+   "CRC_OUT_5_6" Out; "CRC_OUT_5_7" Out; "CRC_OUT_5_8" Out; "CRC_OUT_5_9" Out; "CRC_OUT_5_10" Out;
+   "CRC_OUT_5_11" Out; "CRC_OUT_5_12" Out; "CRC_OUT_5_13" Out; "CRC_OUT_5_14" Out;
+   "CRC_OUT_5_15" Out; "CRC_OUT_5_16" Out; "CRC_OUT_5_17" Out; "CRC_OUT_5_18" Out;
+   "CRC_OUT_5_19" Out; "CRC_OUT_5_20" Out; "CRC_OUT_5_21" Out; "CRC_OUT_5_22" Out;
+   "CRC_OUT_5_23" Out; "CRC_OUT_5_24" Out; "CRC_OUT_5_25" Out; "CRC_OUT_5_26" Out;
+   "CRC_OUT_5_27" Out; "CRC_OUT_5_28" Out; "CRC_OUT_5_29" Out; "CRC_OUT_5_30" Out;
+   "CRC_OUT_5_31" Out; "CRC_OUT_4_0" Out; "CRC_OUT_4_1" Out; "CRC_OUT_4_2" Out; "CRC_OUT_4_3" Out;
+   "CRC_OUT_4_4" Out; "CRC_OUT_4_5" Out; "CRC_OUT_4_6" Out; "CRC_OUT_4_7" Out; "CRC_OUT_4_8" Out;
+   "CRC_OUT_4_9" Out; "CRC_OUT_4_10" Out; "CRC_OUT_4_11" Out; "CRC_OUT_4_12" Out;
+   "CRC_OUT_4_13" Out; "CRC_OUT_4_14" Out; "CRC_OUT_4_15" Out; "CRC_OUT_4_16" Out;
+   "CRC_OUT_4_17" Out; "CRC_OUT_4_18" Out; "CRC_OUT_4_19" Out; "CRC_OUT_4_20" Out;
+   "CRC_OUT_4_21" Out; "CRC_OUT_4_22" Out; "CRC_OUT_4_23" Out; "CRC_OUT_4_24" Out;
+   "CRC_OUT_4_25" Out; "CRC_OUT_4_26" Out; "CRC_OUT_4_27" Out; "CRC_OUT_4_28" Out;
+   "CRC_OUT_4_29" Out; "CRC_OUT_4_30" Out; "CRC_OUT_4_31" Out; "CRC_OUT_3_0" Out;
+   "CRC_OUT_3_1" Out; "CRC_OUT_3_2" Out; "CRC_OUT_3_3" Out; "CRC_OUT_3_4" Out; "CRC_OUT_3_5" Out;
+   "CRC_OUT_3_6" Out; "CRC_OUT_3_7" Out; "CRC_OUT_3_8" Out; "CRC_OUT_3_9" Out; "CRC_OUT_3_10" Out;
+   "CRC_OUT_3_11" Out; "CRC_OUT_3_12" Out; "CRC_OUT_3_13" Out; "CRC_OUT_3_14" Out;
+   "CRC_OUT_3_15" Out; "CRC_OUT_3_16" Out; "CRC_OUT_3_17" Out; "CRC_OUT_3_18" Out;
+   "CRC_OUT_3_19" Out; "CRC_OUT_3_20" Out; "CRC_OUT_3_21" Out; "CRC_OUT_3_22" Out;
+   "CRC_OUT_3_23" Out; "CRC_OUT_3_24" Out; "CRC_OUT_3_25" Out; "CRC_OUT_3_26" Out;
+   "CRC_OUT_3_27" Out; "CRC_OUT_3_28" Out; "CRC_OUT_3_29" Out; "CRC_OUT_3_30" Out;
+   "CRC_OUT_3_31" Out; "CRC_OUT_2_0" Out; "CRC_OUT_2_1" Out; "CRC_OUT_2_2" Out; "CRC_OUT_2_3" Out;
+   "CRC_OUT_2_4" Out; "CRC_OUT_2_5" Out; "CRC_OUT_2_6" Out; "CRC_OUT_2_7" Out; "CRC_OUT_2_8" Out;
+   "CRC_OUT_2_9" Out; "CRC_OUT_2_10" Out; "CRC_OUT_2_11" Out; "CRC_OUT_2_12" Out;
+   "CRC_OUT_2_13" Out; "CRC_OUT_2_14" Out; "CRC_OUT_2_15" Out; "CRC_OUT_2_16" Out;
+   "CRC_OUT_2_17" Out; "CRC_OUT_2_18" Out; "CRC_OUT_2_19" Out; "CRC_OUT_2_20" Out;
+   "CRC_OUT_2_21" Out; "CRC_OUT_2_22" Out; "CRC_OUT_2_23" Out; "CRC_OUT_2_24" Out;
+   "CRC_OUT_2_25" Out; "CRC_OUT_2_26" Out; "CRC_OUT_2_27" Out; "CRC_OUT_2_28" Out;
+   "CRC_OUT_2_29" Out; "CRC_OUT_2_30" Out; "CRC_OUT_2_31" Out; "CRC_OUT_1_0" Out;
+   "CRC_OUT_1_1" Out; "CRC_OUT_1_2" Out; "CRC_OUT_1_3" Out; "CRC_OUT_1_4" Out; "CRC_OUT_1_5" Out;
+   "CRC_OUT_1_6" Out; "CRC_OUT_1_7" Out; "CRC_OUT_1_8" Out; "CRC_OUT_1_9" Out; "CRC_OUT_1_10" Out;
+   "CRC_OUT_1_11" Out; "CRC_OUT_1_12" Out; "CRC_OUT_1_13" Out; "CRC_OUT_1_14" Out;
+   "CRC_OUT_1_15" Out; "CRC_OUT_1_16" Out; "CRC_OUT_1_17" Out; "CRC_OUT_1_18" Out;
+   "CRC_OUT_1_19" Out; "CRC_OUT_1_20" Out; "CRC_OUT_1_21" Out; "CRC_OUT_1_22" Out;
+   "CRC_OUT_1_23" Out; "CRC_OUT_1_24" Out; "CRC_OUT_1_25" Out; "CRC_OUT_1_26" Out;
+   "CRC_OUT_1_27" Out; "CRC_OUT_1_28" Out; "CRC_OUT_1_29" Out; "CRC_OUT_1_30" Out;
+   "CRC_OUT_1_31" Out;
+}
+SignalGroups {
+   "_pi" = '"test_si" + "test_se" + "CK" + "DATA_0_31" + "DATA_0_30" + "DATA_0_29"
+   + "DATA_0_28" + "DATA_0_27" + "DATA_0_26" + "DATA_0_25" + "DATA_0_24" + "DATA_0_23"
+   + "DATA_0_22" + "DATA_0_21" + "DATA_0_20" + "DATA_0_19" + "DATA_0_18" + "DATA_0_17"
+   + "DATA_0_16" + "DATA_0_15" + "DATA_0_14" + "DATA_0_13" + "DATA_0_12" + "DATA_0_11"
+   + "DATA_0_10" + "DATA_0_9" + "DATA_0_8" + "DATA_0_7" + "DATA_0_6" + "DATA_0_5"
+   + "DATA_0_4" + "DATA_0_3" + "DATA_0_2" + "DATA_0_1" + "DATA_0_0" + "RESET" + "TM1"
+   + "TM0"'; // #signals=38
+   "_in" = '"test_si" + "test_se" + "CK" + "DATA_0_31" + "DATA_0_30" + "DATA_0_29"
+   + "DATA_0_28" + "DATA_0_27" + "DATA_0_26" + "DATA_0_25" + "DATA_0_24" + "DATA_0_23"
+   + "DATA_0_22" + "DATA_0_21" + "DATA_0_20" + "DATA_0_19" + "DATA_0_18" + "DATA_0_17"
+   + "DATA_0_16" + "DATA_0_15" + "DATA_0_14" + "DATA_0_13" + "DATA_0_12" + "DATA_0_11"
+   + "DATA_0_10" + "DATA_0_9" + "DATA_0_8" + "DATA_0_7" + "DATA_0_6" + "DATA_0_5"
+   + "DATA_0_4" + "DATA_0_3" + "DATA_0_2" + "DATA_0_1" + "DATA_0_0" + "RESET" + "TM1"
+   + "TM0"'; // #signals=38
+   "_so" = '"test_so"' { ScanOut; } // #signals=1
+   "_po" = '"test_so" + "DATA_9_31" + "DATA_9_30" + "DATA_9_29" + "DATA_9_28" + "DATA_9_27"
+   + "DATA_9_26" + "DATA_9_25" + "DATA_9_24" + "DATA_9_23" + "DATA_9_22" + "DATA_9_21"
+   + "DATA_9_20" + "DATA_9_19" + "DATA_9_18" + "DATA_9_17" + "DATA_9_16" + "DATA_9_15"
+   + "DATA_9_14" + "DATA_9_13" + "DATA_9_12" + "DATA_9_11" + "DATA_9_10" + "DATA_9_9"
+   + "DATA_9_8" + "DATA_9_7" + "DATA_9_6" + "DATA_9_5" + "DATA_9_4" + "DATA_9_3" + "DATA_9_2"
+   + "DATA_9_1" + "DATA_9_0" + "CRC_OUT_9_0" + "CRC_OUT_9_1" + "CRC_OUT_9_2" + "CRC_OUT_9_3"
+   + "CRC_OUT_9_4" + "CRC_OUT_9_5" + "CRC_OUT_9_6" + "CRC_OUT_9_7" + "CRC_OUT_9_8"
+   + "CRC_OUT_9_9" + "CRC_OUT_9_10" + "CRC_OUT_9_11" + "CRC_OUT_9_12" + "CRC_OUT_9_13"
+   + "CRC_OUT_9_14" + "CRC_OUT_9_15" + "CRC_OUT_9_16" + "CRC_OUT_9_17" + "CRC_OUT_9_18"
+   + "CRC_OUT_9_19" + "CRC_OUT_9_20" + "CRC_OUT_9_21" + "CRC_OUT_9_22" + "CRC_OUT_9_23"
+   + "CRC_OUT_9_24" + "CRC_OUT_9_25" + "CRC_OUT_9_26" + "CRC_OUT_9_27" + "CRC_OUT_9_28"
+   + "CRC_OUT_9_29" + "CRC_OUT_9_30" + "CRC_OUT_9_31" + "CRC_OUT_8_0" + "CRC_OUT_8_1"
+   + "CRC_OUT_8_2" + "CRC_OUT_8_3" + "CRC_OUT_8_4" + "CRC_OUT_8_5" + "CRC_OUT_8_6"
+   + "CRC_OUT_8_7" + "CRC_OUT_8_8" + "CRC_OUT_8_9" + "CRC_OUT_8_10" + "CRC_OUT_8_11"
+   + "CRC_OUT_8_12" + "CRC_OUT_8_13" + "CRC_OUT_8_14" + "CRC_OUT_8_15" + "CRC_OUT_8_16"
+   + "CRC_OUT_8_17" + "CRC_OUT_8_18" + "CRC_OUT_8_19" + "CRC_OUT_8_20" + "CRC_OUT_8_21"
+   + "CRC_OUT_8_22" + "CRC_OUT_8_23" + "CRC_OUT_8_24" + "CRC_OUT_8_25" + "CRC_OUT_8_26"
+   + "CRC_OUT_8_27" + "CRC_OUT_8_28" + "CRC_OUT_8_29" + "CRC_OUT_8_30" + "CRC_OUT_8_31"
+   + "CRC_OUT_7_0" + "CRC_OUT_7_1" + "CRC_OUT_7_2" + "CRC_OUT_7_3" + "CRC_OUT_7_4"
+   + "CRC_OUT_7_5" + "CRC_OUT_7_6" + "CRC_OUT_7_7" + "CRC_OUT_7_8" + "CRC_OUT_7_9"
+   + "CRC_OUT_7_10" + "CRC_OUT_7_11" + "CRC_OUT_7_12" + "CRC_OUT_7_13" + "CRC_OUT_7_14"
+   + "CRC_OUT_7_15" + "CRC_OUT_7_16" + "CRC_OUT_7_17" + "CRC_OUT_7_18" + "CRC_OUT_7_19"
+   + "CRC_OUT_7_20" + "CRC_OUT_7_21" + "CRC_OUT_7_22" + "CRC_OUT_7_23" + "CRC_OUT_7_24"
+   + "CRC_OUT_7_25" + "CRC_OUT_7_26" + "CRC_OUT_7_27" + "CRC_OUT_7_28" + "CRC_OUT_7_29"
+   + "CRC_OUT_7_30" + "CRC_OUT_7_31" + "CRC_OUT_6_0" + "CRC_OUT_6_1" + "CRC_OUT_6_2"
+   + "CRC_OUT_6_3" + "CRC_OUT_6_4" + "CRC_OUT_6_5" + "CRC_OUT_6_6" + "CRC_OUT_6_7"
+   + "CRC_OUT_6_8" + "CRC_OUT_6_9" + "CRC_OUT_6_10" + "CRC_OUT_6_11" + "CRC_OUT_6_12"
+   + "CRC_OUT_6_13" + "CRC_OUT_6_14" + "CRC_OUT_6_15" + "CRC_OUT_6_16" + "CRC_OUT_6_17"
+   + "CRC_OUT_6_18" + "CRC_OUT_6_19" + "CRC_OUT_6_20" + "CRC_OUT_6_21" + "CRC_OUT_6_22"
+   + "CRC_OUT_6_23" + "CRC_OUT_6_24" + "CRC_OUT_6_25" + "CRC_OUT_6_26" + "CRC_OUT_6_27"
+   + "CRC_OUT_6_28" + "CRC_OUT_6_29" + "CRC_OUT_6_30" + "CRC_OUT_6_31" + "CRC_OUT_5_0"
+   + "CRC_OUT_5_1" + "CRC_OUT_5_2" + "CRC_OUT_5_3" + "CRC_OUT_5_4" + "CRC_OUT_5_5"
+   + "CRC_OUT_5_6" + "CRC_OUT_5_7" + "CRC_OUT_5_8" + "CRC_OUT_5_9" + "CRC_OUT_5_10"
+   + "CRC_OUT_5_11" + "CRC_OUT_5_12" + "CRC_OUT_5_13" + "CRC_OUT_5_14" + "CRC_OUT_5_15"
+   + "CRC_OUT_5_16" + "CRC_OUT_5_17" + "CRC_OUT_5_18" + "CRC_OUT_5_19" + "CRC_OUT_5_20"
+   + "CRC_OUT_5_21" + "CRC_OUT_5_22" + "CRC_OUT_5_23" + "CRC_OUT_5_24" + "CRC_OUT_5_25"
+   + "CRC_OUT_5_26" + "CRC_OUT_5_27" + "CRC_OUT_5_28" + "CRC_OUT_5_29" + "CRC_OUT_5_30"
+   + "CRC_OUT_5_31" + "CRC_OUT_4_0" + "CRC_OUT_4_1" + "CRC_OUT_4_2" + "CRC_OUT_4_3"
+   + "CRC_OUT_4_4" + "CRC_OUT_4_5" + "CRC_OUT_4_6" + "CRC_OUT_4_7" + "CRC_OUT_4_8"
+   + "CRC_OUT_4_9" + "CRC_OUT_4_10" + "CRC_OUT_4_11" + "CRC_OUT_4_12" + "CRC_OUT_4_13"
+   + "CRC_OUT_4_14" + "CRC_OUT_4_15" + "CRC_OUT_4_16" + "CRC_OUT_4_17" + "CRC_OUT_4_18"
+   + "CRC_OUT_4_19" + "CRC_OUT_4_20" + "CRC_OUT_4_21" + "CRC_OUT_4_22" + "CRC_OUT_4_23"
+   + "CRC_OUT_4_24" + "CRC_OUT_4_25" + "CRC_OUT_4_26" + "CRC_OUT_4_27" + "CRC_OUT_4_28"
+   + "CRC_OUT_4_29" + "CRC_OUT_4_30" + "CRC_OUT_4_31" + "CRC_OUT_3_0" + "CRC_OUT_3_1"
+   + "CRC_OUT_3_2" + "CRC_OUT_3_3" + "CRC_OUT_3_4" + "CRC_OUT_3_5" + "CRC_OUT_3_6"
+   + "CRC_OUT_3_7" + "CRC_OUT_3_8" + "CRC_OUT_3_9" + "CRC_OUT_3_10" + "CRC_OUT_3_11"
+   + "CRC_OUT_3_12" + "CRC_OUT_3_13" + "CRC_OUT_3_14" + "CRC_OUT_3_15" + "CRC_OUT_3_16"
+   + "CRC_OUT_3_17" + "CRC_OUT_3_18" + "CRC_OUT_3_19" + "CRC_OUT_3_20" + "CRC_OUT_3_21"
+   + "CRC_OUT_3_22" + "CRC_OUT_3_23" + "CRC_OUT_3_24" + "CRC_OUT_3_25" + "CRC_OUT_3_26"
+   + "CRC_OUT_3_27" + "CRC_OUT_3_28" + "CRC_OUT_3_29" + "CRC_OUT_3_30" + "CRC_OUT_3_31"
+   + "CRC_OUT_2_0" + "CRC_OUT_2_1" + "CRC_OUT_2_2" + "CRC_OUT_2_3" + "CRC_OUT_2_4"
+   + "CRC_OUT_2_5" + "CRC_OUT_2_6" + "CRC_OUT_2_7" + "CRC_OUT_2_8" + "CRC_OUT_2_9"
+   + "CRC_OUT_2_10" + "CRC_OUT_2_11" + "CRC_OUT_2_12" + "CRC_OUT_2_13" + "CRC_OUT_2_14"
+   + "CRC_OUT_2_15" + "CRC_OUT_2_16" + "CRC_OUT_2_17" + "CRC_OUT_2_18" + "CRC_OUT_2_19"
+   + "CRC_OUT_2_20" + "CRC_OUT_2_21" + "CRC_OUT_2_22" + "CRC_OUT_2_23" + "CRC_OUT_2_24"
+   + "CRC_OUT_2_25" + "CRC_OUT_2_26" + "CRC_OUT_2_27" + "CRC_OUT_2_28" + "CRC_OUT_2_29"
+   + "CRC_OUT_2_30" + "CRC_OUT_2_31" + "CRC_OUT_1_0" + "CRC_OUT_1_1" + "CRC_OUT_1_2"
+   + "CRC_OUT_1_3" + "CRC_OUT_1_4" + "CRC_OUT_1_5" + "CRC_OUT_1_6" + "CRC_OUT_1_7"
+   + "CRC_OUT_1_8" + "CRC_OUT_1_9" + "CRC_OUT_1_10" + "CRC_OUT_1_11" + "CRC_OUT_1_12"
+   + "CRC_OUT_1_13" + "CRC_OUT_1_14" + "CRC_OUT_1_15" + "CRC_OUT_1_16" + "CRC_OUT_1_17"
+   + "CRC_OUT_1_18" + "CRC_OUT_1_19" + "CRC_OUT_1_20" + "CRC_OUT_1_21" + "CRC_OUT_1_22"
+   + "CRC_OUT_1_23" + "CRC_OUT_1_24" + "CRC_OUT_1_25" + "CRC_OUT_1_26" + "CRC_OUT_1_27"
+   + "CRC_OUT_1_28" + "CRC_OUT_1_29" + "CRC_OUT_1_30" + "CRC_OUT_1_31"'; // #signals=321
+   "_out" = '"test_so" + "DATA_9_31" + "DATA_9_30" + "DATA_9_29" + "DATA_9_28" + "DATA_9_27"
+   + "DATA_9_26" + "DATA_9_25" + "DATA_9_24" + "DATA_9_23" + "DATA_9_22" + "DATA_9_21"
+   + "DATA_9_20" + "DATA_9_19" + "DATA_9_18" + "DATA_9_17" + "DATA_9_16" + "DATA_9_15"
+   + "DATA_9_14" + "DATA_9_13" + "DATA_9_12" + "DATA_9_11" + "DATA_9_10" + "DATA_9_9"
+   + "DATA_9_8" + "DATA_9_7" + "DATA_9_6" + "DATA_9_5" + "DATA_9_4" + "DATA_9_3" + "DATA_9_2"
+   + "DATA_9_1" + "DATA_9_0" + "CRC_OUT_9_0" + "CRC_OUT_9_1" + "CRC_OUT_9_2" + "CRC_OUT_9_3"
+   + "CRC_OUT_9_4" + "CRC_OUT_9_5" + "CRC_OUT_9_6" + "CRC_OUT_9_7" + "CRC_OUT_9_8"
+   + "CRC_OUT_9_9" + "CRC_OUT_9_10" + "CRC_OUT_9_11" + "CRC_OUT_9_12" + "CRC_OUT_9_13"
+   + "CRC_OUT_9_14" + "CRC_OUT_9_15" + "CRC_OUT_9_16" + "CRC_OUT_9_17" + "CRC_OUT_9_18"
+   + "CRC_OUT_9_19" + "CRC_OUT_9_20" + "CRC_OUT_9_21" + "CRC_OUT_9_22" + "CRC_OUT_9_23"
+   + "CRC_OUT_9_24" + "CRC_OUT_9_25" + "CRC_OUT_9_26" + "CRC_OUT_9_27" + "CRC_OUT_9_28"
+   + "CRC_OUT_9_29" + "CRC_OUT_9_30" + "CRC_OUT_9_31" + "CRC_OUT_8_0" + "CRC_OUT_8_1"
+   + "CRC_OUT_8_2" + "CRC_OUT_8_3" + "CRC_OUT_8_4" + "CRC_OUT_8_5" + "CRC_OUT_8_6"
+   + "CRC_OUT_8_7" + "CRC_OUT_8_8" + "CRC_OUT_8_9" + "CRC_OUT_8_10" + "CRC_OUT_8_11"
+   + "CRC_OUT_8_12" + "CRC_OUT_8_13" + "CRC_OUT_8_14" + "CRC_OUT_8_15" + "CRC_OUT_8_16"
+   + "CRC_OUT_8_17" + "CRC_OUT_8_18" + "CRC_OUT_8_19" + "CRC_OUT_8_20" + "CRC_OUT_8_21"
+   + "CRC_OUT_8_22" + "CRC_OUT_8_23" + "CRC_OUT_8_24" + "CRC_OUT_8_25" + "CRC_OUT_8_26"
+   + "CRC_OUT_8_27" + "CRC_OUT_8_28" + "CRC_OUT_8_29" + "CRC_OUT_8_30" + "CRC_OUT_8_31"
+   + "CRC_OUT_7_0" + "CRC_OUT_7_1" + "CRC_OUT_7_2" + "CRC_OUT_7_3" + "CRC_OUT_7_4"
+   + "CRC_OUT_7_5" + "CRC_OUT_7_6" + "CRC_OUT_7_7" + "CRC_OUT_7_8" + "CRC_OUT_7_9"
+   + "CRC_OUT_7_10" + "CRC_OUT_7_11" + "CRC_OUT_7_12" + "CRC_OUT_7_13" + "CRC_OUT_7_14"
+   + "CRC_OUT_7_15" + "CRC_OUT_7_16" + "CRC_OUT_7_17" + "CRC_OUT_7_18" + "CRC_OUT_7_19"
+   + "CRC_OUT_7_20" + "CRC_OUT_7_21" + "CRC_OUT_7_22" + "CRC_OUT_7_23" + "CRC_OUT_7_24"
+   + "CRC_OUT_7_25" + "CRC_OUT_7_26" + "CRC_OUT_7_27" + "CRC_OUT_7_28" + "CRC_OUT_7_29"
+   + "CRC_OUT_7_30" + "CRC_OUT_7_31" + "CRC_OUT_6_0" + "CRC_OUT_6_1" + "CRC_OUT_6_2"
+   + "CRC_OUT_6_3" + "CRC_OUT_6_4" + "CRC_OUT_6_5" + "CRC_OUT_6_6" + "CRC_OUT_6_7"
+   + "CRC_OUT_6_8" + "CRC_OUT_6_9" + "CRC_OUT_6_10" + "CRC_OUT_6_11" + "CRC_OUT_6_12"
+   + "CRC_OUT_6_13" + "CRC_OUT_6_14" + "CRC_OUT_6_15" + "CRC_OUT_6_16" + "CRC_OUT_6_17"
+   + "CRC_OUT_6_18" + "CRC_OUT_6_19" + "CRC_OUT_6_20" + "CRC_OUT_6_21" + "CRC_OUT_6_22"
+   + "CRC_OUT_6_23" + "CRC_OUT_6_24" + "CRC_OUT_6_25" + "CRC_OUT_6_26" + "CRC_OUT_6_27"
+   + "CRC_OUT_6_28" + "CRC_OUT_6_29" + "CRC_OUT_6_30" + "CRC_OUT_6_31" + "CRC_OUT_5_0"
+   + "CRC_OUT_5_1" + "CRC_OUT_5_2" + "CRC_OUT_5_3" + "CRC_OUT_5_4" + "CRC_OUT_5_5"
+   + "CRC_OUT_5_6" + "CRC_OUT_5_7" + "CRC_OUT_5_8" + "CRC_OUT_5_9" + "CRC_OUT_5_10"
+   + "CRC_OUT_5_11" + "CRC_OUT_5_12" + "CRC_OUT_5_13" + "CRC_OUT_5_14" + "CRC_OUT_5_15"
+   + "CRC_OUT_5_16" + "CRC_OUT_5_17" + "CRC_OUT_5_18" + "CRC_OUT_5_19" + "CRC_OUT_5_20"
+   + "CRC_OUT_5_21" + "CRC_OUT_5_22" + "CRC_OUT_5_23" + "CRC_OUT_5_24" + "CRC_OUT_5_25"
+   + "CRC_OUT_5_26" + "CRC_OUT_5_27" + "CRC_OUT_5_28" + "CRC_OUT_5_29" + "CRC_OUT_5_30"
+   + "CRC_OUT_5_31" + "CRC_OUT_4_0" + "CRC_OUT_4_1" + "CRC_OUT_4_2" + "CRC_OUT_4_3"
+   + "CRC_OUT_4_4" + "CRC_OUT_4_5" + "CRC_OUT_4_6" + "CRC_OUT_4_7" + "CRC_OUT_4_8"
+   + "CRC_OUT_4_9" + "CRC_OUT_4_10" + "CRC_OUT_4_11" + "CRC_OUT_4_12" + "CRC_OUT_4_13"
+   + "CRC_OUT_4_14" + "CRC_OUT_4_15" + "CRC_OUT_4_16" + "CRC_OUT_4_17" + "CRC_OUT_4_18"
+   + "CRC_OUT_4_19" + "CRC_OUT_4_20" + "CRC_OUT_4_21" + "CRC_OUT_4_22" + "CRC_OUT_4_23"
+   + "CRC_OUT_4_24" + "CRC_OUT_4_25" + "CRC_OUT_4_26" + "CRC_OUT_4_27" + "CRC_OUT_4_28"
+   + "CRC_OUT_4_29" + "CRC_OUT_4_30" + "CRC_OUT_4_31" + "CRC_OUT_3_0" + "CRC_OUT_3_1"
+   + "CRC_OUT_3_2" + "CRC_OUT_3_3" + "CRC_OUT_3_4" + "CRC_OUT_3_5" + "CRC_OUT_3_6"
+   + "CRC_OUT_3_7" + "CRC_OUT_3_8" + "CRC_OUT_3_9" + "CRC_OUT_3_10" + "CRC_OUT_3_11"
+   + "CRC_OUT_3_12" + "CRC_OUT_3_13" + "CRC_OUT_3_14" + "CRC_OUT_3_15" + "CRC_OUT_3_16"
+   + "CRC_OUT_3_17" + "CRC_OUT_3_18" + "CRC_OUT_3_19" + "CRC_OUT_3_20" + "CRC_OUT_3_21"
+   + "CRC_OUT_3_22" + "CRC_OUT_3_23" + "CRC_OUT_3_24" + "CRC_OUT_3_25" + "CRC_OUT_3_26"
+   + "CRC_OUT_3_27" + "CRC_OUT_3_28" + "CRC_OUT_3_29" + "CRC_OUT_3_30" + "CRC_OUT_3_31"
+   + "CRC_OUT_2_0" + "CRC_OUT_2_1" + "CRC_OUT_2_2" + "CRC_OUT_2_3" + "CRC_OUT_2_4"
+   + "CRC_OUT_2_5" + "CRC_OUT_2_6" + "CRC_OUT_2_7" + "CRC_OUT_2_8" + "CRC_OUT_2_9"
+   + "CRC_OUT_2_10" + "CRC_OUT_2_11" + "CRC_OUT_2_12" + "CRC_OUT_2_13" + "CRC_OUT_2_14"
+   + "CRC_OUT_2_15" + "CRC_OUT_2_16" + "CRC_OUT_2_17" + "CRC_OUT_2_18" + "CRC_OUT_2_19"
+   + "CRC_OUT_2_20" + "CRC_OUT_2_21" + "CRC_OUT_2_22" + "CRC_OUT_2_23" + "CRC_OUT_2_24"
+   + "CRC_OUT_2_25" + "CRC_OUT_2_26" + "CRC_OUT_2_27" + "CRC_OUT_2_28" + "CRC_OUT_2_29"
+   + "CRC_OUT_2_30" + "CRC_OUT_2_31" + "CRC_OUT_1_0" + "CRC_OUT_1_1" + "CRC_OUT_1_2"
+   + "CRC_OUT_1_3" + "CRC_OUT_1_4" + "CRC_OUT_1_5" + "CRC_OUT_1_6" + "CRC_OUT_1_7"
+   + "CRC_OUT_1_8" + "CRC_OUT_1_9" + "CRC_OUT_1_10" + "CRC_OUT_1_11" + "CRC_OUT_1_12"
+   + "CRC_OUT_1_13" + "CRC_OUT_1_14" + "CRC_OUT_1_15" + "CRC_OUT_1_16" + "CRC_OUT_1_17"
+   + "CRC_OUT_1_18" + "CRC_OUT_1_19" + "CRC_OUT_1_20" + "CRC_OUT_1_21" + "CRC_OUT_1_22"
+   + "CRC_OUT_1_23" + "CRC_OUT_1_24" + "CRC_OUT_1_25" + "CRC_OUT_1_26" + "CRC_OUT_1_27"
+   + "CRC_OUT_1_28" + "CRC_OUT_1_29" + "CRC_OUT_1_30" + "CRC_OUT_1_31"'; // #signals=321
+   "_default_In_Timing_" = '"test_si" + "test_se" + "CK" + "DATA_0_31" + "DATA_0_30"
+   + "DATA_0_29" + "DATA_0_28" + "DATA_0_27" + "DATA_0_26" + "DATA_0_25" + "DATA_0_24"
+   + "DATA_0_23" + "DATA_0_22" + "DATA_0_21" + "DATA_0_20" + "DATA_0_19" + "DATA_0_18"
+   + "DATA_0_17" + "DATA_0_16" + "DATA_0_15" + "DATA_0_14" + "DATA_0_13" + "DATA_0_12"
+   + "DATA_0_11" + "DATA_0_10" + "DATA_0_9" + "DATA_0_8" + "DATA_0_7" + "DATA_0_6"
+   + "DATA_0_5" + "DATA_0_4" + "DATA_0_3" + "DATA_0_2" + "DATA_0_1" + "DATA_0_0" + "RESET"
+   + "TM1" + "TM0"'; // #signals=38
+   "_default_Out_Timing_" = '"test_so" + "DATA_9_31" + "DATA_9_30" + "DATA_9_29" + "DATA_9_28"
+   + "DATA_9_27" + "DATA_9_26" + "DATA_9_25" + "DATA_9_24" + "DATA_9_23" + "DATA_9_22"
+   + "DATA_9_21" + "DATA_9_20" + "DATA_9_19" + "DATA_9_18" + "DATA_9_17" + "DATA_9_16"
+   + "DATA_9_15" + "DATA_9_14" + "DATA_9_13" + "DATA_9_12" + "DATA_9_11" + "DATA_9_10"
+   + "DATA_9_9" + "DATA_9_8" + "DATA_9_7" + "DATA_9_6" + "DATA_9_5" + "DATA_9_4" + "DATA_9_3"
+   + "DATA_9_2" + "DATA_9_1" + "DATA_9_0" + "CRC_OUT_9_0" + "CRC_OUT_9_1" + "CRC_OUT_9_2"
+   + "CRC_OUT_9_3" + "CRC_OUT_9_4" + "CRC_OUT_9_5" + "CRC_OUT_9_6" + "CRC_OUT_9_7"
+   + "CRC_OUT_9_8" + "CRC_OUT_9_9" + "CRC_OUT_9_10" + "CRC_OUT_9_11" + "CRC_OUT_9_12"
+   + "CRC_OUT_9_13" + "CRC_OUT_9_14" + "CRC_OUT_9_15" + "CRC_OUT_9_16" + "CRC_OUT_9_17"
+   + "CRC_OUT_9_18" + "CRC_OUT_9_19" + "CRC_OUT_9_20" + "CRC_OUT_9_21" + "CRC_OUT_9_22"
+   + "CRC_OUT_9_23" + "CRC_OUT_9_24" + "CRC_OUT_9_25" + "CRC_OUT_9_26" + "CRC_OUT_9_27"
+   + "CRC_OUT_9_28" + "CRC_OUT_9_29" + "CRC_OUT_9_30" + "CRC_OUT_9_31" + "CRC_OUT_8_0"
+   + "CRC_OUT_8_1" + "CRC_OUT_8_2" + "CRC_OUT_8_3" + "CRC_OUT_8_4" + "CRC_OUT_8_5"
+   + "CRC_OUT_8_6" + "CRC_OUT_8_7" + "CRC_OUT_8_8" + "CRC_OUT_8_9" + "CRC_OUT_8_10"
+   + "CRC_OUT_8_11" + "CRC_OUT_8_12" + "CRC_OUT_8_13" + "CRC_OUT_8_14" + "CRC_OUT_8_15"
+   + "CRC_OUT_8_16" + "CRC_OUT_8_17" + "CRC_OUT_8_18" + "CRC_OUT_8_19" + "CRC_OUT_8_20"
+   + "CRC_OUT_8_21" + "CRC_OUT_8_22" + "CRC_OUT_8_23" + "CRC_OUT_8_24" + "CRC_OUT_8_25"
+   + "CRC_OUT_8_26" + "CRC_OUT_8_27" + "CRC_OUT_8_28" + "CRC_OUT_8_29" + "CRC_OUT_8_30"
+   + "CRC_OUT_8_31" + "CRC_OUT_7_0" + "CRC_OUT_7_1" + "CRC_OUT_7_2" + "CRC_OUT_7_3"
+   + "CRC_OUT_7_4" + "CRC_OUT_7_5" + "CRC_OUT_7_6" + "CRC_OUT_7_7" + "CRC_OUT_7_8"
+   + "CRC_OUT_7_9" + "CRC_OUT_7_10" + "CRC_OUT_7_11" + "CRC_OUT_7_12" + "CRC_OUT_7_13"
+   + "CRC_OUT_7_14" + "CRC_OUT_7_15" + "CRC_OUT_7_16" + "CRC_OUT_7_17" + "CRC_OUT_7_18"
+   + "CRC_OUT_7_19" + "CRC_OUT_7_20" + "CRC_OUT_7_21" + "CRC_OUT_7_22" + "CRC_OUT_7_23"
+   + "CRC_OUT_7_24" + "CRC_OUT_7_25" + "CRC_OUT_7_26" + "CRC_OUT_7_27" + "CRC_OUT_7_28"
+   + "CRC_OUT_7_29" + "CRC_OUT_7_30" + "CRC_OUT_7_31" + "CRC_OUT_6_0" + "CRC_OUT_6_1"
+   + "CRC_OUT_6_2" + "CRC_OUT_6_3" + "CRC_OUT_6_4" + "CRC_OUT_6_5" + "CRC_OUT_6_6"
+   + "CRC_OUT_6_7" + "CRC_OUT_6_8" + "CRC_OUT_6_9" + "CRC_OUT_6_10" + "CRC_OUT_6_11"
+   + "CRC_OUT_6_12" + "CRC_OUT_6_13" + "CRC_OUT_6_14" + "CRC_OUT_6_15" + "CRC_OUT_6_16"
+   + "CRC_OUT_6_17" + "CRC_OUT_6_18" + "CRC_OUT_6_19" + "CRC_OUT_6_20" + "CRC_OUT_6_21"
+   + "CRC_OUT_6_22" + "CRC_OUT_6_23" + "CRC_OUT_6_24" + "CRC_OUT_6_25" + "CRC_OUT_6_26"
+   + "CRC_OUT_6_27" + "CRC_OUT_6_28" + "CRC_OUT_6_29" + "CRC_OUT_6_30" + "CRC_OUT_6_31"
+   + "CRC_OUT_5_0" + "CRC_OUT_5_1" + "CRC_OUT_5_2" + "CRC_OUT_5_3" + "CRC_OUT_5_4"
+   + "CRC_OUT_5_5" + "CRC_OUT_5_6" + "CRC_OUT_5_7" + "CRC_OUT_5_8" + "CRC_OUT_5_9"
+   + "CRC_OUT_5_10" + "CRC_OUT_5_11" + "CRC_OUT_5_12" + "CRC_OUT_5_13" + "CRC_OUT_5_14"
+   + "CRC_OUT_5_15" + "CRC_OUT_5_16" + "CRC_OUT_5_17" + "CRC_OUT_5_18" + "CRC_OUT_5_19"
+   + "CRC_OUT_5_20" + "CRC_OUT_5_21" + "CRC_OUT_5_22" + "CRC_OUT_5_23" + "CRC_OUT_5_24"
+   + "CRC_OUT_5_25" + "CRC_OUT_5_26" + "CRC_OUT_5_27" + "CRC_OUT_5_28" + "CRC_OUT_5_29"
+   + "CRC_OUT_5_30" + "CRC_OUT_5_31" + "CRC_OUT_4_0" + "CRC_OUT_4_1" + "CRC_OUT_4_2"
+   + "CRC_OUT_4_3" + "CRC_OUT_4_4" + "CRC_OUT_4_5" + "CRC_OUT_4_6" + "CRC_OUT_4_7"
+   + "CRC_OUT_4_8" + "CRC_OUT_4_9" + "CRC_OUT_4_10" + "CRC_OUT_4_11" + "CRC_OUT_4_12"
+   + "CRC_OUT_4_13" + "CRC_OUT_4_14" + "CRC_OUT_4_15" + "CRC_OUT_4_16" + "CRC_OUT_4_17"
+   + "CRC_OUT_4_18" + "CRC_OUT_4_19" + "CRC_OUT_4_20" + "CRC_OUT_4_21" + "CRC_OUT_4_22"
+   + "CRC_OUT_4_23" + "CRC_OUT_4_24" + "CRC_OUT_4_25" + "CRC_OUT_4_26" + "CRC_OUT_4_27"
+   + "CRC_OUT_4_28" + "CRC_OUT_4_29" + "CRC_OUT_4_30" + "CRC_OUT_4_31" + "CRC_OUT_3_0"
+   + "CRC_OUT_3_1" + "CRC_OUT_3_2" + "CRC_OUT_3_3" + "CRC_OUT_3_4" + "CRC_OUT_3_5"
+   + "CRC_OUT_3_6" + "CRC_OUT_3_7" + "CRC_OUT_3_8" + "CRC_OUT_3_9" + "CRC_OUT_3_10"
+   + "CRC_OUT_3_11" + "CRC_OUT_3_12" + "CRC_OUT_3_13" + "CRC_OUT_3_14" + "CRC_OUT_3_15"
+   + "CRC_OUT_3_16" + "CRC_OUT_3_17" + "CRC_OUT_3_18" + "CRC_OUT_3_19" + "CRC_OUT_3_20"
+   + "CRC_OUT_3_21" + "CRC_OUT_3_22" + "CRC_OUT_3_23" + "CRC_OUT_3_24" + "CRC_OUT_3_25"
+   + "CRC_OUT_3_26" + "CRC_OUT_3_27" + "CRC_OUT_3_28" + "CRC_OUT_3_29" + "CRC_OUT_3_30"
+   + "CRC_OUT_3_31" + "CRC_OUT_2_0" + "CRC_OUT_2_1" + "CRC_OUT_2_2" + "CRC_OUT_2_3"
+   + "CRC_OUT_2_4" + "CRC_OUT_2_5" + "CRC_OUT_2_6" + "CRC_OUT_2_7" + "CRC_OUT_2_8"
+   + "CRC_OUT_2_9" + "CRC_OUT_2_10" + "CRC_OUT_2_11" + "CRC_OUT_2_12" + "CRC_OUT_2_13"
+   + "CRC_OUT_2_14" + "CRC_OUT_2_15" + "CRC_OUT_2_16" + "CRC_OUT_2_17" + "CRC_OUT_2_18"
+   + "CRC_OUT_2_19" + "CRC_OUT_2_20" + "CRC_OUT_2_21" + "CRC_OUT_2_22" + "CRC_OUT_2_23"
+   + "CRC_OUT_2_24" + "CRC_OUT_2_25" + "CRC_OUT_2_26" + "CRC_OUT_2_27" + "CRC_OUT_2_28"
+   + "CRC_OUT_2_29" + "CRC_OUT_2_30" + "CRC_OUT_2_31" + "CRC_OUT_1_0" + "CRC_OUT_1_1"
+   + "CRC_OUT_1_2" + "CRC_OUT_1_3" + "CRC_OUT_1_4" + "CRC_OUT_1_5" + "CRC_OUT_1_6"
+   + "CRC_OUT_1_7" + "CRC_OUT_1_8" + "CRC_OUT_1_9" + "CRC_OUT_1_10" + "CRC_OUT_1_11"
+   + "CRC_OUT_1_12" + "CRC_OUT_1_13" + "CRC_OUT_1_14" + "CRC_OUT_1_15" + "CRC_OUT_1_16"
+   + "CRC_OUT_1_17" + "CRC_OUT_1_18" + "CRC_OUT_1_19" + "CRC_OUT_1_20" + "CRC_OUT_1_21"
+   + "CRC_OUT_1_22" + "CRC_OUT_1_23" + "CRC_OUT_1_24" + "CRC_OUT_1_25" + "CRC_OUT_1_26"
+   + "CRC_OUT_1_27" + "CRC_OUT_1_28" + "CRC_OUT_1_29" + "CRC_OUT_1_30" + "CRC_OUT_1_31"';
+   // #signals=321
+   "_si" = '"test_si"' { ScanIn; } // #signals=1
+   "_default_Clk0_Timing_" = '"CK"'; // #signals=1
+}
+Timing {
+   WaveformTable "_default_WFT_" {
+      Period '100ns';
+      Waveforms {
+         "_default_In_Timing_" { 0 { '0ns' D; } }
+         "_default_In_Timing_" { 1 { '0ns' U; } }
+         "_default_In_Timing_" { Z { '0ns' Z; } }
+         "_default_In_Timing_" { N { '0ns' N; } }
+         "_default_Clk0_Timing_" { P { '0ns' D; '50ns' U; '80ns' D; } }
+         "_default_Out_Timing_" { X { '0ns' X; } }
+         "_default_Out_Timing_" { H { '0ns' X; '40ns' H; } }
+         "_default_Out_Timing_" { T { '0ns' X; '40ns' T; } }
+         "_default_Out_Timing_" { L { '0ns' X; '40ns' L; } }
+      }
+   }
+}
+ScanStructures {
+   ScanChain "chain1" {
+      ScanLength 1728;
+      ScanIn "test_si";
+      ScanOut "test_so";
+      ScanInversion 0;
+      ScanCellType  { CellIn "SI"; CellOut "Q"; }
+      ScanCells { "s35932.U_WX485" ; "s35932.U_WX487" ; "s35932.U_WX489" ; "s35932.U_WX491"
+      ; "s35932.U_WX493" ; "s35932.U_WX495" ; "s35932.U_WX497" ; "s35932.U_WX499"
+      ; "s35932.U_WX501" ; "s35932.U_WX503" ; "s35932.U_WX505" ; "s35932.U_WX507"
+      ; "s35932.U_WX509" ; "s35932.U_WX511" ; "s35932.U_WX513" ; "s35932.U_WX515"
+      ; "s35932.U_WX517" ; "s35932.U_WX519" ; "s35932.U_WX521" ; "s35932.U_WX523"
+      ; "s35932.U_WX525" ; "s35932.U_WX527" ; "s35932.U_WX529" ; "s35932.U_WX531"
+      ; "s35932.U_WX533" ; "s35932.U_WX535" ; "s35932.U_WX537" ; "s35932.U_WX539"
+      ; "s35932.U_WX541" ; "s35932.U_WX543" ; "s35932.U_WX545" ; "s35932.U_WX547"
+      ; "s35932.U_WX645" ; "s35932.U_WX647" ; "s35932.U_WX649" ; "s35932.U_WX651"
+      ; "s35932.U_WX653" ; "s35932.U_WX655" ; "s35932.U_WX657" ; "s35932.U_WX659"
+      ; "s35932.U_WX661" ; "s35932.U_WX663" ; "s35932.U_WX665" ; "s35932.U_WX667"
+      ; "s35932.U_WX669" ; "s35932.U_WX671" ; "s35932.U_WX673" ; "s35932.U_WX675"
+      ; "s35932.U_WX677" ; "s35932.U_WX679" ; "s35932.U_WX681" ; "s35932.U_WX683"
+      ; "s35932.U_WX685" ; "s35932.U_WX687" ; "s35932.U_WX689" ; "s35932.U_WX691"
+      ; "s35932.U_WX693" ; "s35932.U_WX695" ; "s35932.U_WX697" ; "s35932.U_WX699"
+      ; "s35932.U_WX701" ; "s35932.U_WX703" ; "s35932.U_WX705" ; "s35932.U_WX707"
+      ; "s35932.U_WX709" ; "s35932.U_WX711" ; "s35932.U_WX713" ; "s35932.U_WX715"
+      ; "s35932.U_WX717" ; "s35932.U_WX719" ; "s35932.U_WX721" ; "s35932.U_WX723"
+      ; "s35932.U_WX725" ; "s35932.U_WX727" ; "s35932.U_WX729" ; "s35932.U_WX731"
+      ; "s35932.U_WX733" ; "s35932.U_WX735" ; "s35932.U_WX737" ; "s35932.U_WX739"
+      ; "s35932.U_WX741" ; "s35932.U_WX743" ; "s35932.U_WX745" ; "s35932.U_WX747"
+      ; "s35932.U_WX749" ; "s35932.U_WX751" ; "s35932.U_WX753" ; "s35932.U_WX755"
+      ; "s35932.U_WX757" ; "s35932.U_WX759" ; "s35932.U_WX761" ; "s35932.U_WX763"
+      ; "s35932.U_WX765" ; "s35932.U_WX767" ; "s35932.U_WX769" ; "s35932.U_WX771"
+      ; "s35932.U_WX773" ; "s35932.U_WX775" ; "s35932.U_WX777" ; "s35932.U_WX779"
+      ; "s35932.U_WX781" ; "s35932.U_WX783" ; "s35932.U_WX785" ; "s35932.U_WX787"
+      ; "s35932.U_WX789" ; "s35932.U_WX791" ; "s35932.U_WX793" ; "s35932.U_WX795"
+      ; "s35932.U_WX797" ; "s35932.U_WX799" ; "s35932.U_WX801" ; "s35932.U_WX803"
+      ; "s35932.U_WX805" ; "s35932.U_WX807" ; "s35932.U_WX809" ; "s35932.U_WX811"
+      ; "s35932.U_WX813" ; "s35932.U_WX815" ; "s35932.U_WX817" ; "s35932.U_WX819"
+      ; "s35932.U_WX821" ; "s35932.U_WX823" ; "s35932.U_WX825" ; "s35932.U_WX827"
+      ; "s35932.U_WX829" ; "s35932.U_WX831" ; "s35932.U_WX833" ; "s35932.U_WX835"
+      ; "s35932.U_WX837" ; "s35932.U_WX839" ; "s35932.U_WX841" ; "s35932.U_WX843"
+      ; "s35932.U_WX845" ; "s35932.U_WX847" ; "s35932.U_WX849" ; "s35932.U_WX851"
+      ; "s35932.U_WX853" ; "s35932.U_WX855" ; "s35932.U_WX857" ; "s35932.U_WX859"
+      ; "s35932.U_WX861" ; "s35932.U_WX863" ; "s35932.U_WX865" ; "s35932.U_WX867"
+      ; "s35932.U_WX869" ; "s35932.U_WX871" ; "s35932.U_WX873" ; "s35932.U_WX875"
+      ; "s35932.U_WX877" ; "s35932.U_WX879" ; "s35932.U_WX881" ; "s35932.U_WX883"
+      ; "s35932.U_WX885" ; "s35932.U_WX887" ; "s35932.U_WX889" ; "s35932.U_WX891"
+      ; "s35932.U_WX893" ; "s35932.U_WX895" ; "s35932.U_WX897" ; "s35932.U_WX899"
+      ; "s35932.U_CRC_OUT_9_0" ; "s35932.U_CRC_OUT_9_1" ; "s35932.U_CRC_OUT_9_2" ; 
+      "s35932.U_CRC_OUT_9_3" ; "s35932.U_CRC_OUT_9_4" ; "s35932.U_CRC_OUT_9_5" ; 
+      "s35932.U_CRC_OUT_9_6" ; "s35932.U_CRC_OUT_9_7" ; "s35932.U_CRC_OUT_9_8" ; 
+      "s35932.U_CRC_OUT_9_9" ; "s35932.U_CRC_OUT_9_10" ; "s35932.U_CRC_OUT_9_11" ; 
+      "s35932.U_CRC_OUT_9_12" ; "s35932.U_CRC_OUT_9_13" ; "s35932.U_CRC_OUT_9_14"
+      ; "s35932.U_CRC_OUT_9_15" ; "s35932.U_CRC_OUT_9_16" ; "s35932.U_CRC_OUT_9_17"
+      ; "s35932.U_CRC_OUT_9_18" ; "s35932.U_CRC_OUT_9_19" ; "s35932.U_CRC_OUT_9_20"
+      ; "s35932.U_CRC_OUT_9_21" ; "s35932.U_CRC_OUT_9_22" ; "s35932.U_CRC_OUT_9_23"
+      ; "s35932.U_CRC_OUT_9_24" ; "s35932.U_CRC_OUT_9_25" ; "s35932.U_CRC_OUT_9_26"
+      ; "s35932.U_CRC_OUT_9_27" ; "s35932.U_CRC_OUT_9_28" ; "s35932.U_CRC_OUT_9_29"
+      ; "s35932.U_CRC_OUT_9_30" ; "s35932.U_CRC_OUT_9_31" ; "s35932.U_WX1778" ; "s35932.U_WX1780"
+      ; "s35932.U_WX1782" ; "s35932.U_WX1784" ; "s35932.U_WX1786" ; "s35932.U_WX1788"
+      ; "s35932.U_WX1790" ; "s35932.U_WX1792" ; "s35932.U_WX1794" ; "s35932.U_WX1796"
+      ; "s35932.U_WX1798" ; "s35932.U_WX1800" ; "s35932.U_WX1802" ; "s35932.U_WX1804"
+      ; "s35932.U_WX1806" ; "s35932.U_WX1808" ; "s35932.U_WX1810" ; "s35932.U_WX1812"
+      ; "s35932.U_WX1814" ; "s35932.U_WX1816" ; "s35932.U_WX1818" ; "s35932.U_WX1820"
+      ; "s35932.U_WX1822" ; "s35932.U_WX1824" ; "s35932.U_WX1826" ; "s35932.U_WX1828"
+      ; "s35932.U_WX1830" ; "s35932.U_WX1832" ; "s35932.U_WX1834" ; "s35932.U_WX1836"
+      ; "s35932.U_WX1838" ; "s35932.U_WX1840" ; "s35932.U_WX1938" ; "s35932.U_WX1940"
+      ; "s35932.U_WX1942" ; "s35932.U_WX1944" ; "s35932.U_WX1946" ; "s35932.U_WX1948"
+      ; "s35932.U_WX1950" ; "s35932.U_WX1952" ; "s35932.U_WX1954" ; "s35932.U_WX1956"
+      ; "s35932.U_WX1958" ; "s35932.U_WX1960" ; "s35932.U_WX1962" ; "s35932.U_WX1964"
+      ; "s35932.U_WX1966" ; "s35932.U_WX1968" ; "s35932.U_WX1970" ; "s35932.U_WX1972"
+      ; "s35932.U_WX1974" ; "s35932.U_WX1976" ; "s35932.U_WX1978" ; "s35932.U_WX1980"
+      ; "s35932.U_WX1982" ; "s35932.U_WX1984" ; "s35932.U_WX1986" ; "s35932.U_WX1988"
+      ; "s35932.U_WX1990" ; "s35932.U_WX1992" ; "s35932.U_WX1994" ; "s35932.U_WX1996"
+      ; "s35932.U_WX1998" ; "s35932.U_WX2000" ; "s35932.U_WX2002" ; "s35932.U_WX2004"
+      ; "s35932.U_WX2006" ; "s35932.U_WX2008" ; "s35932.U_WX2010" ; "s35932.U_WX2012"
+      ; "s35932.U_WX2014" ; "s35932.U_WX2016" ; "s35932.U_WX2018" ; "s35932.U_WX2020"
+      ; "s35932.U_WX2022" ; "s35932.U_WX2024" ; "s35932.U_WX2026" ; "s35932.U_WX2028"
+      ; "s35932.U_WX2030" ; "s35932.U_WX2032" ; "s35932.U_WX2034" ; "s35932.U_WX2036"
+      ; "s35932.U_WX2038" ; "s35932.U_WX2040" ; "s35932.U_WX2042" ; "s35932.U_WX2044"
+      ; "s35932.U_WX2046" ; "s35932.U_WX2048" ; "s35932.U_WX2050" ; "s35932.U_WX2052"
+      ; "s35932.U_WX2054" ; "s35932.U_WX2056" ; "s35932.U_WX2058" ; "s35932.U_WX2060"
+      ; "s35932.U_WX2062" ; "s35932.U_WX2064" ; "s35932.U_WX2066" ; "s35932.U_WX2068"
+      ; "s35932.U_WX2070" ; "s35932.U_WX2072" ; "s35932.U_WX2074" ; "s35932.U_WX2076"
+      ; "s35932.U_WX2078" ; "s35932.U_WX2080" ; "s35932.U_WX2082" ; "s35932.U_WX2084"
+      ; "s35932.U_WX2086" ; "s35932.U_WX2088" ; "s35932.U_WX2090" ; "s35932.U_WX2092"
+      ; "s35932.U_WX2094" ; "s35932.U_WX2096" ; "s35932.U_WX2098" ; "s35932.U_WX2100"
+      ; "s35932.U_WX2102" ; "s35932.U_WX2104" ; "s35932.U_WX2106" ; "s35932.U_WX2108"
+      ; "s35932.U_WX2110" ; "s35932.U_WX2112" ; "s35932.U_WX2114" ; "s35932.U_WX2116"
+      ; "s35932.U_WX2118" ; "s35932.U_WX2120" ; "s35932.U_WX2122" ; "s35932.U_WX2124"
+      ; "s35932.U_WX2126" ; "s35932.U_WX2128" ; "s35932.U_WX2130" ; "s35932.U_WX2132"
+      ; "s35932.U_WX2134" ; "s35932.U_WX2136" ; "s35932.U_WX2138" ; "s35932.U_WX2140"
+      ; "s35932.U_WX2142" ; "s35932.U_WX2144" ; "s35932.U_WX2146" ; "s35932.U_WX2148"
+      ; "s35932.U_WX2150" ; "s35932.U_WX2152" ; "s35932.U_WX2154" ; "s35932.U_WX2156"
+      ; "s35932.U_WX2158" ; "s35932.U_WX2160" ; "s35932.U_WX2162" ; "s35932.U_WX2164"
+      ; "s35932.U_WX2166" ; "s35932.U_WX2168" ; "s35932.U_WX2170" ; "s35932.U_WX2172"
+      ; "s35932.U_WX2174" ; "s35932.U_WX2176" ; "s35932.U_WX2178" ; "s35932.U_WX2180"
+      ; "s35932.U_WX2182" ; "s35932.U_WX2184" ; "s35932.U_WX2186" ; "s35932.U_WX2188"
+      ; "s35932.U_WX2190" ; "s35932.U_WX2192" ; "s35932.U_CRC_OUT_8_0" ; "s35932.U_CRC_OUT_8_1"
+      ; "s35932.U_CRC_OUT_8_2" ; "s35932.U_CRC_OUT_8_3" ; "s35932.U_CRC_OUT_8_4" ; 
+      "s35932.U_CRC_OUT_8_5" ; "s35932.U_CRC_OUT_8_6" ; "s35932.U_CRC_OUT_8_7" ; 
+      "s35932.U_CRC_OUT_8_8" ; "s35932.U_CRC_OUT_8_9" ; "s35932.U_CRC_OUT_8_10" ; 
+      "s35932.U_CRC_OUT_8_11" ; "s35932.U_CRC_OUT_8_12" ; "s35932.U_CRC_OUT_8_13"
+      ; "s35932.U_CRC_OUT_8_14" ; "s35932.U_CRC_OUT_8_15" ; "s35932.U_CRC_OUT_8_16"
+      ; "s35932.U_CRC_OUT_8_17" ; "s35932.U_CRC_OUT_8_18" ; "s35932.U_CRC_OUT_8_19"
+      ; "s35932.U_CRC_OUT_8_20" ; "s35932.U_CRC_OUT_8_21" ; "s35932.U_CRC_OUT_8_22"
+      ; "s35932.U_CRC_OUT_8_23" ; "s35932.U_CRC_OUT_8_24" ; "s35932.U_CRC_OUT_8_25"
+      ; "s35932.U_CRC_OUT_8_26" ; "s35932.U_CRC_OUT_8_27" ; "s35932.U_CRC_OUT_8_28"
+      ; "s35932.U_CRC_OUT_8_29" ; "s35932.U_CRC_OUT_8_30" ; "s35932.U_CRC_OUT_8_31"
+      ; "s35932.U_WX3071" ; "s35932.U_WX3073" ; "s35932.U_WX3075" ; "s35932.U_WX3077"
+      ; "s35932.U_WX3079" ; "s35932.U_WX3081" ; "s35932.U_WX3083" ; "s35932.U_WX3085"
+      ; "s35932.U_WX3087" ; "s35932.U_WX3089" ; "s35932.U_WX3091" ; "s35932.U_WX3093"
+      ; "s35932.U_WX3095" ; "s35932.U_WX3097" ; "s35932.U_WX3099" ; "s35932.U_WX3101"
+      ; "s35932.U_WX3103" ; "s35932.U_WX3105" ; "s35932.U_WX3107" ; "s35932.U_WX3109"
+      ; "s35932.U_WX3111" ; "s35932.U_WX3113" ; "s35932.U_WX3115" ; "s35932.U_WX3117"
+      ; "s35932.U_WX3119" ; "s35932.U_WX3121" ; "s35932.U_WX3123" ; "s35932.U_WX3125"
+      ; "s35932.U_WX3127" ; "s35932.U_WX3129" ; "s35932.U_WX3131" ; "s35932.U_WX3133"
+      ; "s35932.U_WX3231" ; "s35932.U_WX3233" ; "s35932.U_WX3235" ; "s35932.U_WX3237"
+      ; "s35932.U_WX3239" ; "s35932.U_WX3241" ; "s35932.U_WX3243" ; "s35932.U_WX3245"
+      ; "s35932.U_WX3247" ; "s35932.U_WX3249" ; "s35932.U_WX3251" ; "s35932.U_WX3253"
+      ; "s35932.U_WX3255" ; "s35932.U_WX3257" ; "s35932.U_WX3259" ; "s35932.U_WX3261"
+      ; "s35932.U_WX3263" ; "s35932.U_WX3265" ; "s35932.U_WX3267" ; "s35932.U_WX3269"
+      ; "s35932.U_WX3271" ; "s35932.U_WX3273" ; "s35932.U_WX3275" ; "s35932.U_WX3277"
+      ; "s35932.U_WX3279" ; "s35932.U_WX3281" ; "s35932.U_WX3283" ; "s35932.U_WX3285"
+      ; "s35932.U_WX3287" ; "s35932.U_WX3289" ; "s35932.U_WX3291" ; "s35932.U_WX3293"
+      ; "s35932.U_WX3295" ; "s35932.U_WX3297" ; "s35932.U_WX3299" ; "s35932.U_WX3301"
+      ; "s35932.U_WX3303" ; "s35932.U_WX3305" ; "s35932.U_WX3307" ; "s35932.U_WX3309"
+      ; "s35932.U_WX3311" ; "s35932.U_WX3313" ; "s35932.U_WX3315" ; "s35932.U_WX3317"
+      ; "s35932.U_WX3319" ; "s35932.U_WX3321" ; "s35932.U_WX3323" ; "s35932.U_WX3325"
+      ; "s35932.U_WX3327" ; "s35932.U_WX3329" ; "s35932.U_WX3331" ; "s35932.U_WX3333"
+      ; "s35932.U_WX3335" ; "s35932.U_WX3337" ; "s35932.U_WX3339" ; "s35932.U_WX3341"
+      ; "s35932.U_WX3343" ; "s35932.U_WX3345" ; "s35932.U_WX3347" ; "s35932.U_WX3349"
+      ; "s35932.U_WX3351" ; "s35932.U_WX3353" ; "s35932.U_WX3355" ; "s35932.U_WX3357"
+      ; "s35932.U_WX3359" ; "s35932.U_WX3361" ; "s35932.U_WX3363" ; "s35932.U_WX3365"
+      ; "s35932.U_WX3367" ; "s35932.U_WX3369" ; "s35932.U_WX3371" ; "s35932.U_WX3373"
+      ; "s35932.U_WX3375" ; "s35932.U_WX3377" ; "s35932.U_WX3379" ; "s35932.U_WX3381"
+      ; "s35932.U_WX3383" ; "s35932.U_WX3385" ; "s35932.U_WX3387" ; "s35932.U_WX3389"
+      ; "s35932.U_WX3391" ; "s35932.U_WX3393" ; "s35932.U_WX3395" ; "s35932.U_WX3397"
+      ; "s35932.U_WX3399" ; "s35932.U_WX3401" ; "s35932.U_WX3403" ; "s35932.U_WX3405"
+      ; "s35932.U_WX3407" ; "s35932.U_WX3409" ; "s35932.U_WX3411" ; "s35932.U_WX3413"
+      ; "s35932.U_WX3415" ; "s35932.U_WX3417" ; "s35932.U_WX3419" ; "s35932.U_WX3421"
+      ; "s35932.U_WX3423" ; "s35932.U_WX3425" ; "s35932.U_WX3427" ; "s35932.U_WX3429"
+      ; "s35932.U_WX3431" ; "s35932.U_WX3433" ; "s35932.U_WX3435" ; "s35932.U_WX3437"
+      ; "s35932.U_WX3439" ; "s35932.U_WX3441" ; "s35932.U_WX3443" ; "s35932.U_WX3445"
+      ; "s35932.U_WX3447" ; "s35932.U_WX3449" ; "s35932.U_WX3451" ; "s35932.U_WX3453"
+      ; "s35932.U_WX3455" ; "s35932.U_WX3457" ; "s35932.U_WX3459" ; "s35932.U_WX3461"
+      ; "s35932.U_WX3463" ; "s35932.U_WX3465" ; "s35932.U_WX3467" ; "s35932.U_WX3469"
+      ; "s35932.U_WX3471" ; "s35932.U_WX3473" ; "s35932.U_WX3475" ; "s35932.U_WX3477"
+      ; "s35932.U_WX3479" ; "s35932.U_WX3481" ; "s35932.U_WX3483" ; "s35932.U_WX3485"
+      ; "s35932.U_CRC_OUT_7_0" ; "s35932.U_CRC_OUT_7_1" ; "s35932.U_CRC_OUT_7_2" ; 
+      "s35932.U_CRC_OUT_7_3" ; "s35932.U_CRC_OUT_7_4" ; "s35932.U_CRC_OUT_7_5" ; 
+      "s35932.U_CRC_OUT_7_6" ; "s35932.U_CRC_OUT_7_7" ; "s35932.U_CRC_OUT_7_8" ; 
+      "s35932.U_CRC_OUT_7_9" ; "s35932.U_CRC_OUT_7_10" ; "s35932.U_CRC_OUT_7_11" ; 
+      "s35932.U_CRC_OUT_7_12" ; "s35932.U_CRC_OUT_7_13" ; "s35932.U_CRC_OUT_7_14"
+      ; "s35932.U_CRC_OUT_7_15" ; "s35932.U_CRC_OUT_7_16" ; "s35932.U_CRC_OUT_7_17"
+      ; "s35932.U_CRC_OUT_7_18" ; "s35932.U_CRC_OUT_7_19" ; "s35932.U_CRC_OUT_7_20"
+      ; "s35932.U_CRC_OUT_7_21" ; "s35932.U_CRC_OUT_7_22" ; "s35932.U_CRC_OUT_7_23"
+      ; "s35932.U_CRC_OUT_7_24" ; "s35932.U_CRC_OUT_7_25" ; "s35932.U_CRC_OUT_7_26"
+      ; "s35932.U_CRC_OUT_7_27" ; "s35932.U_CRC_OUT_7_28" ; "s35932.U_CRC_OUT_7_29"
+      ; "s35932.U_CRC_OUT_7_30" ; "s35932.U_CRC_OUT_7_31" ; "s35932.U_WX4364" ; "s35932.U_WX4366"
+      ; "s35932.U_WX4368" ; "s35932.U_WX4370" ; "s35932.U_WX4372" ; "s35932.U_WX4374"
+      ; "s35932.U_WX4376" ; "s35932.U_WX4378" ; "s35932.U_WX4380" ; "s35932.U_WX4382"
+      ; "s35932.U_WX4384" ; "s35932.U_WX4386" ; "s35932.U_WX4388" ; "s35932.U_WX4390"
+      ; "s35932.U_WX4392" ; "s35932.U_WX4394" ; "s35932.U_WX4396" ; "s35932.U_WX4398"
+      ; "s35932.U_WX4400" ; "s35932.U_WX4402" ; "s35932.U_WX4404" ; "s35932.U_WX4406"
+      ; "s35932.U_WX4408" ; "s35932.U_WX4410" ; "s35932.U_WX4412" ; "s35932.U_WX4414"
+      ; "s35932.U_WX4416" ; "s35932.U_WX4418" ; "s35932.U_WX4420" ; "s35932.U_WX4422"
+      ; "s35932.U_WX4424" ; "s35932.U_WX4426" ; "s35932.U_WX4524" ; "s35932.U_WX4526"
+      ; "s35932.U_WX4528" ; "s35932.U_WX4530" ; "s35932.U_WX4532" ; "s35932.U_WX4534"
+      ; "s35932.U_WX4536" ; "s35932.U_WX4538" ; "s35932.U_WX4540" ; "s35932.U_WX4542"
+      ; "s35932.U_WX4544" ; "s35932.U_WX4546" ; "s35932.U_WX4548" ; "s35932.U_WX4550"
+      ; "s35932.U_WX4552" ; "s35932.U_WX4554" ; "s35932.U_WX4556" ; "s35932.U_WX4558"
+      ; "s35932.U_WX4560" ; "s35932.U_WX4562" ; "s35932.U_WX4564" ; "s35932.U_WX4566"
+      ; "s35932.U_WX4568" ; "s35932.U_WX4570" ; "s35932.U_WX4572" ; "s35932.U_WX4574"
+      ; "s35932.U_WX4576" ; "s35932.U_WX4578" ; "s35932.U_WX4580" ; "s35932.U_WX4582"
+      ; "s35932.U_WX4584" ; "s35932.U_WX4586" ; "s35932.U_WX4588" ; "s35932.U_WX4590"
+      ; "s35932.U_WX4592" ; "s35932.U_WX4594" ; "s35932.U_WX4596" ; "s35932.U_WX4598"
+      ; "s35932.U_WX4600" ; "s35932.U_WX4602" ; "s35932.U_WX4604" ; "s35932.U_WX4606"
+      ; "s35932.U_WX4608" ; "s35932.U_WX4610" ; "s35932.U_WX4612" ; "s35932.U_WX4614"
+      ; "s35932.U_WX4616" ; "s35932.U_WX4618" ; "s35932.U_WX4620" ; "s35932.U_WX4622"
+      ; "s35932.U_WX4624" ; "s35932.U_WX4626" ; "s35932.U_WX4628" ; "s35932.U_WX4630"
+      ; "s35932.U_WX4632" ; "s35932.U_WX4634" ; "s35932.U_WX4636" ; "s35932.U_WX4638"
+      ; "s35932.U_WX4640" ; "s35932.U_WX4642" ; "s35932.U_WX4644" ; "s35932.U_WX4646"
+      ; "s35932.U_WX4648" ; "s35932.U_WX4650" ; "s35932.U_WX4652" ; "s35932.U_WX4654"
+      ; "s35932.U_WX4656" ; "s35932.U_WX4658" ; "s35932.U_WX4660" ; "s35932.U_WX4662"
+      ; "s35932.U_WX4664" ; "s35932.U_WX4666" ; "s35932.U_WX4668" ; "s35932.U_WX4670"
+      ; "s35932.U_WX4672" ; "s35932.U_WX4674" ; "s35932.U_WX4676" ; "s35932.U_WX4678"
+      ; "s35932.U_WX4680" ; "s35932.U_WX4682" ; "s35932.U_WX4684" ; "s35932.U_WX4686"
+      ; "s35932.U_WX4688" ; "s35932.U_WX4690" ; "s35932.U_WX4692" ; "s35932.U_WX4694"
+      ; "s35932.U_WX4696" ; "s35932.U_WX4698" ; "s35932.U_WX4700" ; "s35932.U_WX4702"
+      ; "s35932.U_WX4704" ; "s35932.U_WX4706" ; "s35932.U_WX4708" ; "s35932.U_WX4710"
+      ; "s35932.U_WX4712" ; "s35932.U_WX4714" ; "s35932.U_WX4716" ; "s35932.U_WX4718"
+      ; "s35932.U_WX4720" ; "s35932.U_WX4722" ; "s35932.U_WX4724" ; "s35932.U_WX4726"
+      ; "s35932.U_WX4728" ; "s35932.U_WX4730" ; "s35932.U_WX4732" ; "s35932.U_WX4734"
+      ; "s35932.U_WX4736" ; "s35932.U_WX4738" ; "s35932.U_WX4740" ; "s35932.U_WX4742"
+      ; "s35932.U_WX4744" ; "s35932.U_WX4746" ; "s35932.U_WX4748" ; "s35932.U_WX4750"
+      ; "s35932.U_WX4752" ; "s35932.U_WX4754" ; "s35932.U_WX4756" ; "s35932.U_WX4758"
+      ; "s35932.U_WX4760" ; "s35932.U_WX4762" ; "s35932.U_WX4764" ; "s35932.U_WX4766"
+      ; "s35932.U_WX4768" ; "s35932.U_WX4770" ; "s35932.U_WX4772" ; "s35932.U_WX4774"
+      ; "s35932.U_WX4776" ; "s35932.U_WX4778" ; "s35932.U_CRC_OUT_6_0" ; "s35932.U_CRC_OUT_6_1"
+      ; "s35932.U_CRC_OUT_6_2" ; "s35932.U_CRC_OUT_6_3" ; "s35932.U_CRC_OUT_6_4" ; 
+      "s35932.U_CRC_OUT_6_5" ; "s35932.U_CRC_OUT_6_6" ; "s35932.U_CRC_OUT_6_7" ; 
+      "s35932.U_CRC_OUT_6_8" ; "s35932.U_CRC_OUT_6_9" ; "s35932.U_CRC_OUT_6_10" ; 
+      "s35932.U_CRC_OUT_6_11" ; "s35932.U_CRC_OUT_6_12" ; "s35932.U_CRC_OUT_6_13"
+      ; "s35932.U_CRC_OUT_6_14" ; "s35932.U_CRC_OUT_6_15" ; "s35932.U_CRC_OUT_6_16"
+      ; "s35932.U_CRC_OUT_6_17" ; "s35932.U_CRC_OUT_6_18" ; "s35932.U_CRC_OUT_6_19"
+      ; "s35932.U_CRC_OUT_6_20" ; "s35932.U_CRC_OUT_6_21" ; "s35932.U_CRC_OUT_6_22"
+      ; "s35932.U_CRC_OUT_6_23" ; "s35932.U_CRC_OUT_6_24" ; "s35932.U_CRC_OUT_6_25"
+      ; "s35932.U_CRC_OUT_6_26" ; "s35932.U_CRC_OUT_6_27" ; "s35932.U_CRC_OUT_6_28"
+      ; "s35932.U_CRC_OUT_6_29" ; "s35932.U_CRC_OUT_6_30" ; "s35932.U_CRC_OUT_6_31"
+      ; "s35932.U_WX5657" ; "s35932.U_WX5659" ; "s35932.U_WX5661" ; "s35932.U_WX5663"
+      ; "s35932.U_WX5665" ; "s35932.U_WX5667" ; "s35932.U_WX5669" ; "s35932.U_WX5671"
+      ; "s35932.U_WX5673" ; "s35932.U_WX5675" ; "s35932.U_WX5677" ; "s35932.U_WX5679"
+      ; "s35932.U_WX5681" ; "s35932.U_WX5683" ; "s35932.U_WX5685" ; "s35932.U_WX5687"
+      ; "s35932.U_WX5689" ; "s35932.U_WX5691" ; "s35932.U_WX5693" ; "s35932.U_WX5695"
+      ; "s35932.U_WX5697" ; "s35932.U_WX5699" ; "s35932.U_WX5701" ; "s35932.U_WX5703"
+      ; "s35932.U_WX5705" ; "s35932.U_WX5707" ; "s35932.U_WX5709" ; "s35932.U_WX5711"
+      ; "s35932.U_WX5713" ; "s35932.U_WX5715" ; "s35932.U_WX5717" ; "s35932.U_WX5719"
+      ; "s35932.U_WX5817" ; "s35932.U_WX5819" ; "s35932.U_WX5821" ; "s35932.U_WX5823"
+      ; "s35932.U_WX5825" ; "s35932.U_WX5827" ; "s35932.U_WX5829" ; "s35932.U_WX5831"
+      ; "s35932.U_WX5833" ; "s35932.U_WX5835" ; "s35932.U_WX5837" ; "s35932.U_WX5839"
+      ; "s35932.U_WX5841" ; "s35932.U_WX5843" ; "s35932.U_WX5845" ; "s35932.U_WX5847"
+      ; "s35932.U_WX5849" ; "s35932.U_WX5851" ; "s35932.U_WX5853" ; "s35932.U_WX5855"
+      ; "s35932.U_WX5857" ; "s35932.U_WX5859" ; "s35932.U_WX5861" ; "s35932.U_WX5863"
+      ; "s35932.U_WX5865" ; "s35932.U_WX5867" ; "s35932.U_WX5869" ; "s35932.U_WX5871"
+      ; "s35932.U_WX5873" ; "s35932.U_WX5875" ; "s35932.U_WX5877" ; "s35932.U_WX5879"
+      ; "s35932.U_WX5881" ; "s35932.U_WX5883" ; "s35932.U_WX5885" ; "s35932.U_WX5887"
+      ; "s35932.U_WX5889" ; "s35932.U_WX5891" ; "s35932.U_WX5893" ; "s35932.U_WX5895"
+      ; "s35932.U_WX5897" ; "s35932.U_WX5899" ; "s35932.U_WX5901" ; "s35932.U_WX5903"
+      ; "s35932.U_WX5905" ; "s35932.U_WX5907" ; "s35932.U_WX5909" ; "s35932.U_WX5911"
+      ; "s35932.U_WX5913" ; "s35932.U_WX5915" ; "s35932.U_WX5917" ; "s35932.U_WX5919"
+      ; "s35932.U_WX5921" ; "s35932.U_WX5923" ; "s35932.U_WX5925" ; "s35932.U_WX5927"
+      ; "s35932.U_WX5929" ; "s35932.U_WX5931" ; "s35932.U_WX5933" ; "s35932.U_WX5935"
+      ; "s35932.U_WX5937" ; "s35932.U_WX5939" ; "s35932.U_WX5941" ; "s35932.U_WX5943"
+      ; "s35932.U_WX5945" ; "s35932.U_WX5947" ; "s35932.U_WX5949" ; "s35932.U_WX5951"
+      ; "s35932.U_WX5953" ; "s35932.U_WX5955" ; "s35932.U_WX5957" ; "s35932.U_WX5959"
+      ; "s35932.U_WX5961" ; "s35932.U_WX5963" ; "s35932.U_WX5965" ; "s35932.U_WX5967"
+      ; "s35932.U_WX5969" ; "s35932.U_WX5971" ; "s35932.U_WX5973" ; "s35932.U_WX5975"
+      ; "s35932.U_WX5977" ; "s35932.U_WX5979" ; "s35932.U_WX5981" ; "s35932.U_WX5983"
+      ; "s35932.U_WX5985" ; "s35932.U_WX5987" ; "s35932.U_WX5989" ; "s35932.U_WX5991"
+      ; "s35932.U_WX5993" ; "s35932.U_WX5995" ; "s35932.U_WX5997" ; "s35932.U_WX5999"
+      ; "s35932.U_WX6001" ; "s35932.U_WX6003" ; "s35932.U_WX6005" ; "s35932.U_WX6007"
+      ; "s35932.U_WX6009" ; "s35932.U_WX6011" ; "s35932.U_WX6013" ; "s35932.U_WX6015"
+      ; "s35932.U_WX6017" ; "s35932.U_WX6019" ; "s35932.U_WX6021" ; "s35932.U_WX6023"
+      ; "s35932.U_WX6025" ; "s35932.U_WX6027" ; "s35932.U_WX6029" ; "s35932.U_WX6031"
+      ; "s35932.U_WX6033" ; "s35932.U_WX6035" ; "s35932.U_WX6037" ; "s35932.U_WX6039"
+      ; "s35932.U_WX6041" ; "s35932.U_WX6043" ; "s35932.U_WX6045" ; "s35932.U_WX6047"
+      ; "s35932.U_WX6049" ; "s35932.U_WX6051" ; "s35932.U_WX6053" ; "s35932.U_WX6055"
+      ; "s35932.U_WX6057" ; "s35932.U_WX6059" ; "s35932.U_WX6061" ; "s35932.U_WX6063"
+      ; "s35932.U_WX6065" ; "s35932.U_WX6067" ; "s35932.U_WX6069" ; "s35932.U_WX6071"
+      ; "s35932.U_CRC_OUT_5_0" ; "s35932.U_CRC_OUT_5_1" ; "s35932.U_CRC_OUT_5_2" ; 
+      "s35932.U_CRC_OUT_5_3" ; "s35932.U_CRC_OUT_5_4" ; "s35932.U_CRC_OUT_5_5" ; 
+      "s35932.U_CRC_OUT_5_6" ; "s35932.U_CRC_OUT_5_7" ; "s35932.U_CRC_OUT_5_8" ; 
+      "s35932.U_CRC_OUT_5_9" ; "s35932.U_CRC_OUT_5_10" ; "s35932.U_CRC_OUT_5_11" ; 
+      "s35932.U_CRC_OUT_5_12" ; "s35932.U_CRC_OUT_5_13" ; "s35932.U_CRC_OUT_5_14"
+      ; "s35932.U_CRC_OUT_5_15" ; "s35932.U_CRC_OUT_5_16" ; "s35932.U_CRC_OUT_5_17"
+      ; "s35932.U_CRC_OUT_5_18" ; "s35932.U_CRC_OUT_5_19" ; "s35932.U_CRC_OUT_5_20"
+      ; "s35932.U_CRC_OUT_5_21" ; "s35932.U_CRC_OUT_5_22" ; "s35932.U_CRC_OUT_5_23"
+      ; "s35932.U_CRC_OUT_5_24" ; "s35932.U_CRC_OUT_5_25" ; "s35932.U_CRC_OUT_5_26"
+      ; "s35932.U_CRC_OUT_5_27" ; "s35932.U_CRC_OUT_5_28" ; "s35932.U_CRC_OUT_5_29"
+      ; "s35932.U_CRC_OUT_5_30" ; "s35932.U_CRC_OUT_5_31" ; "s35932.U_WX6950" ; "s35932.U_WX6952"
+      ; "s35932.U_WX6954" ; "s35932.U_WX6956" ; "s35932.U_WX6958" ; "s35932.U_WX6960"
+      ; "s35932.U_WX6962" ; "s35932.U_WX6964" ; "s35932.U_WX6966" ; "s35932.U_WX6968"
+      ; "s35932.U_WX6970" ; "s35932.U_WX6972" ; "s35932.U_WX6974" ; "s35932.U_WX6976"
+      ; "s35932.U_WX6978" ; "s35932.U_WX6980" ; "s35932.U_WX6982" ; "s35932.U_WX6984"
+      ; "s35932.U_WX6986" ; "s35932.U_WX6988" ; "s35932.U_WX6990" ; "s35932.U_WX6992"
+      ; "s35932.U_WX6994" ; "s35932.U_WX6996" ; "s35932.U_WX6998" ; "s35932.U_WX7000"
+      ; "s35932.U_WX7002" ; "s35932.U_WX7004" ; "s35932.U_WX7006" ; "s35932.U_WX7008"
+      ; "s35932.U_WX7010" ; "s35932.U_WX7012" ; "s35932.U_WX7110" ; "s35932.U_WX7112"
+      ; "s35932.U_WX7114" ; "s35932.U_WX7116" ; "s35932.U_WX7118" ; "s35932.U_WX7120"
+      ; "s35932.U_WX7122" ; "s35932.U_WX7124" ; "s35932.U_WX7126" ; "s35932.U_WX7128"
+      ; "s35932.U_WX7130" ; "s35932.U_WX7132" ; "s35932.U_WX7134" ; "s35932.U_WX7136"
+      ; "s35932.U_WX7138" ; "s35932.U_WX7140" ; "s35932.U_WX7142" ; "s35932.U_WX7144"
+      ; "s35932.U_WX7146" ; "s35932.U_WX7148" ; "s35932.U_WX7150" ; "s35932.U_WX7152"
+      ; "s35932.U_WX7154" ; "s35932.U_WX7156" ; "s35932.U_WX7158" ; "s35932.U_WX7160"
+      ; "s35932.U_WX7162" ; "s35932.U_WX7164" ; "s35932.U_WX7166" ; "s35932.U_WX7168"
+      ; "s35932.U_WX7170" ; "s35932.U_WX7172" ; "s35932.U_WX7174" ; "s35932.U_WX7176"
+      ; "s35932.U_WX7178" ; "s35932.U_WX7180" ; "s35932.U_WX7182" ; "s35932.U_WX7184"
+      ; "s35932.U_WX7186" ; "s35932.U_WX7188" ; "s35932.U_WX7190" ; "s35932.U_WX7192"
+      ; "s35932.U_WX7194" ; "s35932.U_WX7196" ; "s35932.U_WX7198" ; "s35932.U_WX7200"
+      ; "s35932.U_WX7202" ; "s35932.U_WX7204" ; "s35932.U_WX7206" ; "s35932.U_WX7208"
+      ; "s35932.U_WX7210" ; "s35932.U_WX7212" ; "s35932.U_WX7214" ; "s35932.U_WX7216"
+      ; "s35932.U_WX7218" ; "s35932.U_WX7220" ; "s35932.U_WX7222" ; "s35932.U_WX7224"
+      ; "s35932.U_WX7226" ; "s35932.U_WX7228" ; "s35932.U_WX7230" ; "s35932.U_WX7232"
+      ; "s35932.U_WX7234" ; "s35932.U_WX7236" ; "s35932.U_WX7238" ; "s35932.U_WX7240"
+      ; "s35932.U_WX7242" ; "s35932.U_WX7244" ; "s35932.U_WX7246" ; "s35932.U_WX7248"
+      ; "s35932.U_WX7250" ; "s35932.U_WX7252" ; "s35932.U_WX7254" ; "s35932.U_WX7256"
+      ; "s35932.U_WX7258" ; "s35932.U_WX7260" ; "s35932.U_WX7262" ; "s35932.U_WX7264"
+      ; "s35932.U_WX7266" ; "s35932.U_WX7268" ; "s35932.U_WX7270" ; "s35932.U_WX7272"
+      ; "s35932.U_WX7274" ; "s35932.U_WX7276" ; "s35932.U_WX7278" ; "s35932.U_WX7280"
+      ; "s35932.U_WX7282" ; "s35932.U_WX7284" ; "s35932.U_WX7286" ; "s35932.U_WX7288"
+      ; "s35932.U_WX7290" ; "s35932.U_WX7292" ; "s35932.U_WX7294" ; "s35932.U_WX7296"
+      ; "s35932.U_WX7298" ; "s35932.U_WX7300" ; "s35932.U_WX7302" ; "s35932.U_WX7304"
+      ; "s35932.U_WX7306" ; "s35932.U_WX7308" ; "s35932.U_WX7310" ; "s35932.U_WX7312"
+      ; "s35932.U_WX7314" ; "s35932.U_WX7316" ; "s35932.U_WX7318" ; "s35932.U_WX7320"
+      ; "s35932.U_WX7322" ; "s35932.U_WX7324" ; "s35932.U_WX7326" ; "s35932.U_WX7328"
+      ; "s35932.U_WX7330" ; "s35932.U_WX7332" ; "s35932.U_WX7334" ; "s35932.U_WX7336"
+      ; "s35932.U_WX7338" ; "s35932.U_WX7340" ; "s35932.U_WX7342" ; "s35932.U_WX7344"
+      ; "s35932.U_WX7346" ; "s35932.U_WX7348" ; "s35932.U_WX7350" ; "s35932.U_WX7352"
+      ; "s35932.U_WX7354" ; "s35932.U_WX7356" ; "s35932.U_WX7358" ; "s35932.U_WX7360"
+      ; "s35932.U_WX7362" ; "s35932.U_WX7364" ; "s35932.U_CRC_OUT_4_0" ; "s35932.U_CRC_OUT_4_1"
+      ; "s35932.U_CRC_OUT_4_2" ; "s35932.U_CRC_OUT_4_3" ; "s35932.U_CRC_OUT_4_4" ; 
+      "s35932.U_CRC_OUT_4_5" ; "s35932.U_CRC_OUT_4_6" ; "s35932.U_CRC_OUT_4_7" ; 
+      "s35932.U_CRC_OUT_4_8" ; "s35932.U_CRC_OUT_4_9" ; "s35932.U_CRC_OUT_4_10" ; 
+      "s35932.U_CRC_OUT_4_11" ; "s35932.U_CRC_OUT_4_12" ; "s35932.U_CRC_OUT_4_13"
+      ; "s35932.U_CRC_OUT_4_14" ; "s35932.U_CRC_OUT_4_15" ; "s35932.U_CRC_OUT_4_16"
+      ; "s35932.U_CRC_OUT_4_17" ; "s35932.U_CRC_OUT_4_18" ; "s35932.U_CRC_OUT_4_19"
+      ; "s35932.U_CRC_OUT_4_20" ; "s35932.U_CRC_OUT_4_21" ; "s35932.U_CRC_OUT_4_22"
+      ; "s35932.U_CRC_OUT_4_23" ; "s35932.U_CRC_OUT_4_24" ; "s35932.U_CRC_OUT_4_25"
+      ; "s35932.U_CRC_OUT_4_26" ; "s35932.U_CRC_OUT_4_27" ; "s35932.U_CRC_OUT_4_28"
+      ; "s35932.U_CRC_OUT_4_29" ; "s35932.U_CRC_OUT_4_30" ; "s35932.U_CRC_OUT_4_31"
+      ; "s35932.U_WX8243" ; "s35932.U_WX8245" ; "s35932.U_WX8247" ; "s35932.U_WX8249"
+      ; "s35932.U_WX8251" ; "s35932.U_WX8253" ; "s35932.U_WX8255" ; "s35932.U_WX8257"
+      ; "s35932.U_WX8259" ; "s35932.U_WX8261" ; "s35932.U_WX8263" ; "s35932.U_WX8265"
+      ; "s35932.U_WX8267" ; "s35932.U_WX8269" ; "s35932.U_WX8271" ; "s35932.U_WX8273"
+      ; "s35932.U_WX8275" ; "s35932.U_WX8277" ; "s35932.U_WX8279" ; "s35932.U_WX8281"
+      ; "s35932.U_WX8283" ; "s35932.U_WX8285" ; "s35932.U_WX8287" ; "s35932.U_WX8289"
+      ; "s35932.U_WX8291" ; "s35932.U_WX8293" ; "s35932.U_WX8295" ; "s35932.U_WX8297"
+      ; "s35932.U_WX8299" ; "s35932.U_WX8301" ; "s35932.U_WX8303" ; "s35932.U_WX8305"
+      ; "s35932.U_WX8403" ; "s35932.U_WX8405" ; "s35932.U_WX8407" ; "s35932.U_WX8409"
+      ; "s35932.U_WX8411" ; "s35932.U_WX8413" ; "s35932.U_WX8415" ; "s35932.U_WX8417"
+      ; "s35932.U_WX8419" ; "s35932.U_WX8421" ; "s35932.U_WX8423" ; "s35932.U_WX8425"
+      ; "s35932.U_WX8427" ; "s35932.U_WX8429" ; "s35932.U_WX8431" ; "s35932.U_WX8433"
+      ; "s35932.U_WX8435" ; "s35932.U_WX8437" ; "s35932.U_WX8439" ; "s35932.U_WX8441"
+      ; "s35932.U_WX8443" ; "s35932.U_WX8445" ; "s35932.U_WX8447" ; "s35932.U_WX8449"
+      ; "s35932.U_WX8451" ; "s35932.U_WX8453" ; "s35932.U_WX8455" ; "s35932.U_WX8457"
+      ; "s35932.U_WX8459" ; "s35932.U_WX8461" ; "s35932.U_WX8463" ; "s35932.U_WX8465"
+      ; "s35932.U_WX8467" ; "s35932.U_WX8469" ; "s35932.U_WX8471" ; "s35932.U_WX8473"
+      ; "s35932.U_WX8475" ; "s35932.U_WX8477" ; "s35932.U_WX8479" ; "s35932.U_WX8481"
+      ; "s35932.U_WX8483" ; "s35932.U_WX8485" ; "s35932.U_WX8487" ; "s35932.U_WX8489"
+      ; "s35932.U_WX8491" ; "s35932.U_WX8493" ; "s35932.U_WX8495" ; "s35932.U_WX8497"
+      ; "s35932.U_WX8499" ; "s35932.U_WX8501" ; "s35932.U_WX8503" ; "s35932.U_WX8505"
+      ; "s35932.U_WX8507" ; "s35932.U_WX8509" ; "s35932.U_WX8511" ; "s35932.U_WX8513"
+      ; "s35932.U_WX8515" ; "s35932.U_WX8517" ; "s35932.U_WX8519" ; "s35932.U_WX8521"
+      ; "s35932.U_WX8523" ; "s35932.U_WX8525" ; "s35932.U_WX8527" ; "s35932.U_WX8529"
+      ; "s35932.U_WX8531" ; "s35932.U_WX8533" ; "s35932.U_WX8535" ; "s35932.U_WX8537"
+      ; "s35932.U_WX8539" ; "s35932.U_WX8541" ; "s35932.U_WX8543" ; "s35932.U_WX8545"
+      ; "s35932.U_WX8547" ; "s35932.U_WX8549" ; "s35932.U_WX8551" ; "s35932.U_WX8553"
+      ; "s35932.U_WX8555" ; "s35932.U_WX8557" ; "s35932.U_WX8559" ; "s35932.U_WX8561"
+      ; "s35932.U_WX8563" ; "s35932.U_WX8565" ; "s35932.U_WX8567" ; "s35932.U_WX8569"
+      ; "s35932.U_WX8571" ; "s35932.U_WX8573" ; "s35932.U_WX8575" ; "s35932.U_WX8577"
+      ; "s35932.U_WX8579" ; "s35932.U_WX8581" ; "s35932.U_WX8583" ; "s35932.U_WX8585"
+      ; "s35932.U_WX8587" ; "s35932.U_WX8589" ; "s35932.U_WX8591" ; "s35932.U_WX8593"
+      ; "s35932.U_WX8595" ; "s35932.U_WX8597" ; "s35932.U_WX8599" ; "s35932.U_WX8601"
+      ; "s35932.U_WX8603" ; "s35932.U_WX8605" ; "s35932.U_WX8607" ; "s35932.U_WX8609"
+      ; "s35932.U_WX8611" ; "s35932.U_WX8613" ; "s35932.U_WX8615" ; "s35932.U_WX8617"
+      ; "s35932.U_WX8619" ; "s35932.U_WX8621" ; "s35932.U_WX8623" ; "s35932.U_WX8625"
+      ; "s35932.U_WX8627" ; "s35932.U_WX8629" ; "s35932.U_WX8631" ; "s35932.U_WX8633"
+      ; "s35932.U_WX8635" ; "s35932.U_WX8637" ; "s35932.U_WX8639" ; "s35932.U_WX8641"
+      ; "s35932.U_WX8643" ; "s35932.U_WX8645" ; "s35932.U_WX8647" ; "s35932.U_WX8649"
+      ; "s35932.U_WX8651" ; "s35932.U_WX8653" ; "s35932.U_WX8655" ; "s35932.U_WX8657"
+      ; "s35932.U_CRC_OUT_3_0" ; "s35932.U_CRC_OUT_3_1" ; "s35932.U_CRC_OUT_3_2" ; 
+      "s35932.U_CRC_OUT_3_3" ; "s35932.U_CRC_OUT_3_4" ; "s35932.U_CRC_OUT_3_5" ; 
+      "s35932.U_CRC_OUT_3_6" ; "s35932.U_CRC_OUT_3_7" ; "s35932.U_CRC_OUT_3_8" ; 
+      "s35932.U_CRC_OUT_3_9" ; "s35932.U_CRC_OUT_3_10" ; "s35932.U_CRC_OUT_3_11" ; 
+      "s35932.U_CRC_OUT_3_12" ; "s35932.U_CRC_OUT_3_13" ; "s35932.U_CRC_OUT_3_14"
+      ; "s35932.U_CRC_OUT_3_15" ; "s35932.U_CRC_OUT_3_16" ; "s35932.U_CRC_OUT_3_17"
+      ; "s35932.U_CRC_OUT_3_18" ; "s35932.U_CRC_OUT_3_19" ; "s35932.U_CRC_OUT_3_20"
+      ; "s35932.U_CRC_OUT_3_21" ; "s35932.U_CRC_OUT_3_22" ; "s35932.U_CRC_OUT_3_23"
+      ; "s35932.U_CRC_OUT_3_24" ; "s35932.U_CRC_OUT_3_25" ; "s35932.U_CRC_OUT_3_26"
+      ; "s35932.U_CRC_OUT_3_27" ; "s35932.U_CRC_OUT_3_28" ; "s35932.U_CRC_OUT_3_29"
+      ; "s35932.U_CRC_OUT_3_30" ; "s35932.U_CRC_OUT_3_31" ; "s35932.U_WX9536" ; "s35932.U_WX9538"
+      ; "s35932.U_WX9540" ; "s35932.U_WX9542" ; "s35932.U_WX9544" ; "s35932.U_WX9546"
+      ; "s35932.U_WX9548" ; "s35932.U_WX9550" ; "s35932.U_WX9552" ; "s35932.U_WX9554"
+      ; "s35932.U_WX9556" ; "s35932.U_WX9558" ; "s35932.U_WX9560" ; "s35932.U_WX9562"
+      ; "s35932.U_WX9564" ; "s35932.U_WX9566" ; "s35932.U_WX9568" ; "s35932.U_WX9570"
+      ; "s35932.U_WX9572" ; "s35932.U_WX9574" ; "s35932.U_WX9576" ; "s35932.U_WX9578"
+      ; "s35932.U_WX9580" ; "s35932.U_WX9582" ; "s35932.U_WX9584" ; "s35932.U_WX9586"
+      ; "s35932.U_WX9588" ; "s35932.U_WX9590" ; "s35932.U_WX9592" ; "s35932.U_WX9594"
+      ; "s35932.U_WX9596" ; "s35932.U_WX9598" ; "s35932.U_WX9696" ; "s35932.U_WX9698"
+      ; "s35932.U_WX9700" ; "s35932.U_WX9702" ; "s35932.U_WX9704" ; "s35932.U_WX9706"
+      ; "s35932.U_WX9708" ; "s35932.U_WX9710" ; "s35932.U_WX9712" ; "s35932.U_WX9714"
+      ; "s35932.U_WX9716" ; "s35932.U_WX9718" ; "s35932.U_WX9720" ; "s35932.U_WX9722"
+      ; "s35932.U_WX9724" ; "s35932.U_WX9726" ; "s35932.U_WX9728" ; "s35932.U_WX9730"
+      ; "s35932.U_WX9732" ; "s35932.U_WX9734" ; "s35932.U_WX9736" ; "s35932.U_WX9738"
+      ; "s35932.U_WX9740" ; "s35932.U_WX9742" ; "s35932.U_WX9744" ; "s35932.U_WX9746"
+      ; "s35932.U_WX9748" ; "s35932.U_WX9750" ; "s35932.U_WX9752" ; "s35932.U_WX9754"
+      ; "s35932.U_WX9756" ; "s35932.U_WX9758" ; "s35932.U_WX9760" ; "s35932.U_WX9762"
+      ; "s35932.U_WX9764" ; "s35932.U_WX9766" ; "s35932.U_WX9768" ; "s35932.U_WX9770"
+      ; "s35932.U_WX9772" ; "s35932.U_WX9774" ; "s35932.U_WX9776" ; "s35932.U_WX9778"
+      ; "s35932.U_WX9780" ; "s35932.U_WX9782" ; "s35932.U_WX9784" ; "s35932.U_WX9786"
+      ; "s35932.U_WX9788" ; "s35932.U_WX9790" ; "s35932.U_WX9792" ; "s35932.U_WX9794"
+      ; "s35932.U_WX9796" ; "s35932.U_WX9798" ; "s35932.U_WX9800" ; "s35932.U_WX9802"
+      ; "s35932.U_WX9804" ; "s35932.U_WX9806" ; "s35932.U_WX9808" ; "s35932.U_WX9810"
+      ; "s35932.U_WX9812" ; "s35932.U_WX9814" ; "s35932.U_WX9816" ; "s35932.U_WX9818"
+      ; "s35932.U_WX9820" ; "s35932.U_WX9822" ; "s35932.U_WX9824" ; "s35932.U_WX9826"
+      ; "s35932.U_WX9828" ; "s35932.U_WX9830" ; "s35932.U_WX9832" ; "s35932.U_WX9834"
+      ; "s35932.U_WX9836" ; "s35932.U_WX9838" ; "s35932.U_WX9840" ; "s35932.U_WX9842"
+      ; "s35932.U_WX9844" ; "s35932.U_WX9846" ; "s35932.U_WX9848" ; "s35932.U_WX9850"
+      ; "s35932.U_WX9852" ; "s35932.U_WX9854" ; "s35932.U_WX9856" ; "s35932.U_WX9858"
+      ; "s35932.U_WX9860" ; "s35932.U_WX9862" ; "s35932.U_WX9864" ; "s35932.U_WX9866"
+      ; "s35932.U_WX9868" ; "s35932.U_WX9870" ; "s35932.U_WX9872" ; "s35932.U_WX9874"
+      ; "s35932.U_WX9876" ; "s35932.U_WX9878" ; "s35932.U_WX9880" ; "s35932.U_WX9882"
+      ; "s35932.U_WX9884" ; "s35932.U_WX9886" ; "s35932.U_WX9888" ; "s35932.U_WX9890"
+      ; "s35932.U_WX9892" ; "s35932.U_WX9894" ; "s35932.U_WX9896" ; "s35932.U_WX9898"
+      ; "s35932.U_WX9900" ; "s35932.U_WX9902" ; "s35932.U_WX9904" ; "s35932.U_WX9906"
+      ; "s35932.U_WX9908" ; "s35932.U_WX9910" ; "s35932.U_WX9912" ; "s35932.U_WX9914"
+      ; "s35932.U_WX9916" ; "s35932.U_WX9918" ; "s35932.U_WX9920" ; "s35932.U_WX9922"
+      ; "s35932.U_WX9924" ; "s35932.U_WX9926" ; "s35932.U_WX9928" ; "s35932.U_WX9930"
+      ; "s35932.U_WX9932" ; "s35932.U_WX9934" ; "s35932.U_WX9936" ; "s35932.U_WX9938"
+      ; "s35932.U_WX9940" ; "s35932.U_WX9942" ; "s35932.U_WX9944" ; "s35932.U_WX9946"
+      ; "s35932.U_WX9948" ; "s35932.U_WX9950" ; "s35932.U_CRC_OUT_2_0" ; "s35932.U_CRC_OUT_2_1"
+      ; "s35932.U_CRC_OUT_2_2" ; "s35932.U_CRC_OUT_2_3" ; "s35932.U_CRC_OUT_2_4" ; 
+      "s35932.U_CRC_OUT_2_5" ; "s35932.U_CRC_OUT_2_6" ; "s35932.U_CRC_OUT_2_7" ; 
+      "s35932.U_CRC_OUT_2_8" ; "s35932.U_CRC_OUT_2_9" ; "s35932.U_CRC_OUT_2_10" ; 
+      "s35932.U_CRC_OUT_2_11" ; "s35932.U_CRC_OUT_2_12" ; "s35932.U_CRC_OUT_2_13"
+      ; "s35932.U_CRC_OUT_2_14" ; "s35932.U_CRC_OUT_2_15" ; "s35932.U_CRC_OUT_2_16"
+      ; "s35932.U_CRC_OUT_2_17" ; "s35932.U_CRC_OUT_2_18" ; "s35932.U_CRC_OUT_2_19"
+      ; "s35932.U_CRC_OUT_2_20" ; "s35932.U_CRC_OUT_2_21" ; "s35932.U_CRC_OUT_2_22"
+      ; "s35932.U_CRC_OUT_2_23" ; "s35932.U_CRC_OUT_2_24" ; "s35932.U_CRC_OUT_2_25"
+      ; "s35932.U_CRC_OUT_2_26" ; "s35932.U_CRC_OUT_2_27" ; "s35932.U_CRC_OUT_2_28"
+      ; "s35932.U_CRC_OUT_2_29" ; "s35932.U_CRC_OUT_2_30" ; "s35932.U_CRC_OUT_2_31"
+      ; "s35932.U_WX10829" ; "s35932.U_WX10831" ; "s35932.U_WX10833" ; "s35932.U_WX10835"
+      ; "s35932.U_WX10837" ; "s35932.U_WX10839" ; "s35932.U_WX10841" ; "s35932.U_WX10843"
+      ; "s35932.U_WX10845" ; "s35932.U_WX10847" ; "s35932.U_WX10849" ; "s35932.U_WX10851"
+      ; "s35932.U_WX10853" ; "s35932.U_WX10855" ; "s35932.U_WX10857" ; "s35932.U_WX10859"
+      ; "s35932.U_WX10861" ; "s35932.U_WX10863" ; "s35932.U_WX10865" ; "s35932.U_WX10867"
+      ; "s35932.U_WX10869" ; "s35932.U_WX10871" ; "s35932.U_WX10873" ; "s35932.U_WX10875"
+      ; "s35932.U_WX10877" ; "s35932.U_WX10879" ; "s35932.U_WX10881" ; "s35932.U_WX10883"
+      ; "s35932.U_WX10885" ; "s35932.U_WX10887" ; "s35932.U_WX10889" ; "s35932.U_WX10891"
+      ; "s35932.U_WX10989" ; "s35932.U_WX10991" ; "s35932.U_WX10993" ; "s35932.U_WX10995"
+      ; "s35932.U_WX10997" ; "s35932.U_WX10999" ; "s35932.U_WX11001" ; "s35932.U_WX11003"
+      ; "s35932.U_WX11005" ; "s35932.U_WX11007" ; "s35932.U_WX11009" ; "s35932.U_WX11011"
+      ; "s35932.U_WX11013" ; "s35932.U_WX11015" ; "s35932.U_WX11017" ; "s35932.U_WX11019"
+      ; "s35932.U_WX11021" ; "s35932.U_WX11023" ; "s35932.U_WX11025" ; "s35932.U_WX11027"
+      ; "s35932.U_WX11029" ; "s35932.U_WX11031" ; "s35932.U_WX11033" ; "s35932.U_WX11035"
+      ; "s35932.U_WX11037" ; "s35932.U_WX11039" ; "s35932.U_WX11041" ; "s35932.U_WX11043"
+      ; "s35932.U_WX11045" ; "s35932.U_WX11047" ; "s35932.U_WX11049" ; "s35932.U_WX11051"
+      ; "s35932.U_WX11053" ; "s35932.U_WX11055" ; "s35932.U_WX11057" ; "s35932.U_WX11059"
+      ; "s35932.U_WX11061" ; "s35932.U_WX11063" ; "s35932.U_WX11065" ; "s35932.U_WX11067"
+      ; "s35932.U_WX11069" ; "s35932.U_WX11071" ; "s35932.U_WX11073" ; "s35932.U_WX11075"
+      ; "s35932.U_WX11077" ; "s35932.U_WX11079" ; "s35932.U_WX11081" ; "s35932.U_WX11083"
+      ; "s35932.U_WX11085" ; "s35932.U_WX11087" ; "s35932.U_WX11089" ; "s35932.U_WX11091"
+      ; "s35932.U_WX11093" ; "s35932.U_WX11095" ; "s35932.U_WX11097" ; "s35932.U_WX11099"
+      ; "s35932.U_WX11101" ; "s35932.U_WX11103" ; "s35932.U_WX11105" ; "s35932.U_WX11107"
+      ; "s35932.U_WX11109" ; "s35932.U_WX11111" ; "s35932.U_WX11113" ; "s35932.U_WX11115"
+      ; "s35932.U_WX11117" ; "s35932.U_WX11119" ; "s35932.U_WX11121" ; "s35932.U_WX11123"
+      ; "s35932.U_WX11125" ; "s35932.U_WX11127" ; "s35932.U_WX11129" ; "s35932.U_WX11131"
+      ; "s35932.U_WX11133" ; "s35932.U_WX11135" ; "s35932.U_WX11137" ; "s35932.U_WX11139"
+      ; "s35932.U_WX11141" ; "s35932.U_WX11143" ; "s35932.U_WX11145" ; "s35932.U_WX11147"
+      ; "s35932.U_WX11149" ; "s35932.U_WX11151" ; "s35932.U_WX11153" ; "s35932.U_WX11155"
+      ; "s35932.U_WX11157" ; "s35932.U_WX11159" ; "s35932.U_WX11161" ; "s35932.U_WX11163"
+      ; "s35932.U_WX11165" ; "s35932.U_WX11167" ; "s35932.U_WX11169" ; "s35932.U_WX11171"
+      ; "s35932.U_WX11173" ; "s35932.U_WX11175" ; "s35932.U_WX11177" ; "s35932.U_WX11179"
+      ; "s35932.U_WX11181" ; "s35932.U_WX11183" ; "s35932.U_WX11185" ; "s35932.U_WX11187"
+      ; "s35932.U_WX11189" ; "s35932.U_WX11191" ; "s35932.U_WX11193" ; "s35932.U_WX11195"
+      ; "s35932.U_WX11197" ; "s35932.U_WX11199" ; "s35932.U_WX11201" ; "s35932.U_WX11203"
+      ; "s35932.U_WX11205" ; "s35932.U_WX11207" ; "s35932.U_WX11209" ; "s35932.U_WX11211"
+      ; "s35932.U_WX11213" ; "s35932.U_WX11215" ; "s35932.U_WX11217" ; "s35932.U_WX11219"
+      ; "s35932.U_WX11221" ; "s35932.U_WX11223" ; "s35932.U_WX11225" ; "s35932.U_WX11227"
+      ; "s35932.U_WX11229" ; "s35932.U_WX11231" ; "s35932.U_WX11233" ; "s35932.U_WX11235"
+      ; "s35932.U_WX11237" ; "s35932.U_WX11239" ; "s35932.U_WX11241" ; "s35932.U_WX11243"
+      ; "s35932.U_CRC_OUT_1_0" ; "s35932.U_CRC_OUT_1_1" ; "s35932.U_CRC_OUT_1_2" ; 
+      "s35932.U_CRC_OUT_1_3" ; "s35932.U_CRC_OUT_1_4" ; "s35932.U_CRC_OUT_1_5" ; 
+      "s35932.U_CRC_OUT_1_6" ; "s35932.U_CRC_OUT_1_7" ; "s35932.U_CRC_OUT_1_8" ; 
+      "s35932.U_CRC_OUT_1_9" ; "s35932.U_CRC_OUT_1_10" ; "s35932.U_CRC_OUT_1_11" ; 
+      "s35932.U_CRC_OUT_1_12" ; "s35932.U_CRC_OUT_1_13" ; "s35932.U_CRC_OUT_1_14"
+      ; "s35932.U_CRC_OUT_1_15" ; "s35932.U_CRC_OUT_1_16" ; "s35932.U_CRC_OUT_1_17"
+      ; "s35932.U_CRC_OUT_1_18" ; "s35932.U_CRC_OUT_1_19" ; "s35932.U_CRC_OUT_1_20"
+      ; "s35932.U_CRC_OUT_1_21" ; "s35932.U_CRC_OUT_1_22" ; "s35932.U_CRC_OUT_1_23"
+      ; "s35932.U_CRC_OUT_1_24" ; "s35932.U_CRC_OUT_1_25" ; "s35932.U_CRC_OUT_1_26"
+      ; "s35932.U_CRC_OUT_1_27" ; "s35932.U_CRC_OUT_1_28" ; "s35932.U_CRC_OUT_1_29"
+      ; "s35932.U_CRC_OUT_1_30" ; "s35932.U_CRC_OUT_1_31" ; }
+      ScanMasterClock "CK" ;
+   }
+}
+PatternBurst "_burst_" {
+   PatList { "_pattern_" {
+   }
+}}
+PatternExec {
+   PatternBurst "_burst_";
+}
+Procedures {
+   "load_unload" {
+      W "_default_WFT_";
+      C { "test_so"=X; "test_si"=0; "CK"=0; "test_se"=1; }
+      Shift {          W "_default_WFT_";
+         V { "_si"=#; "_so"=#; "CK"=P; }
+      }
+   }
+   "capture_CK" {
+      W "_default_WFT_";
+      C { "_po"=\r321 X ; }
+      "forcePI": V { "_pi"=\r38 # ; }
+      "measurePO": V { "_po"=\r321 # ; }
+      C { "_po"=\r321 X ; }
+      "pulse": V { "CK"=P; }
+   }
+   "capture" {
+      W "_default_WFT_";
+      C { "_po"=\r321 X ; }
+      "forcePI": V { "_pi"=\r38 # ; }
+      "measurePO": V { "_po"=\r321 # ; }
+   }
+}
+MacroDefs {
+   "test_setup" {
+      W "_default_WFT_";
+      V { "CK"=0; }
+   }
+}
+Pattern "_pattern_" {
+   W "_default_WFT_";
+   "precondition all Signals": C { "_pi"=\r38 0 ; "_po"=\r321 X ; }
+   Macro "test_setup";
+   Ann {* chain_test *}
+   "pattern 0": Call "load_unload" { 
+      "test_si"=
+0011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011
+00110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011
+; }
+   Call "capture" { 
+      "_pi"=01010010011111111100001011111001111110; "_po"=LHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLL; }
+   "pattern 1": Call "load_unload" { 
+      "test_so"=
+LLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHH
+LLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHHLLHH
+; 
+      "test_si"=
+1001100011111010010000001110001110101011100101011010010110101110010110110000110111001000001111100011111111010010111010010110110110111101101011111111111100000111111111111111111101111111111111100010101111100101110100011010111000101110110101001001011111100110011011010100000100100111010111010010010011000111101011111110011110101110101000001110111001100101111111111111111111111111111111101110001011100001110111101100000000001001001001010100001110100000101011001010101101010111011011110100111111001010010111110010001111100111101101110001110101010101111111111111111111111111111111100111001000111001011001101111111000000100000010010100101000100111100011110100110101100101111010111110101100111101110000010101101011011111100000111100111101000001111110111111111111111111111111101101110000011010001010110111000010001101110000001010100010011111100111001101101111100010111101010001100101110111000001001101101100111000100101101010100001001111011111111111111111111111111111111101100011011011101110111000001101101010001010101110000100001001
+01010011001100100110101101011010010011101110100000100100100010101000101111001011111101111001000111111111111111111111111111111111100101011100111000000000011011100110001110001000000110011001010011011011101011011111110010011001011100100110001010101001011011101011000110001100100001110011000011111111111111111111111111111110101101111101011010011000011001101001101000001100001001000110011011100010101011111010100001110011111101000000010100111111011000010110100001111101101011101000110011111111111111111111111111111111111100001101011111100010001110010000010000110001110000001010000010111001101110111001100100100111010111011010000011111001011110110110110010110010001001101111111111111011111111111111111111111100
+; }
+   Call "capture_CK" { 
+      "_pi"=10011111101110111011011111110111111100; "_po"=HHHLLLLLLLHHLLLLHLLLHHLLHLLHHLLLHHLLHHHLLLHLLLHHHHHHLHLHHLLLLHHHHLHHLLHHLLLLHHLLHLHHLHLHHHHHLHHLHLHHHLHHLLLLLLLLLLHHHLLHHHLHLHLLHHHLLLLLHHHLHHHLHHHLHHLHHLLLHHLHHLLLLHHHLHHLHLHLLLHLHHLLLLLHHHLHHLHHHHHHHLHHLLHHLHLLHHHLLLHLLHHHLLLLLLLHHLHHHHLHHHLLLLHHHLHLLLHHHLHHHLHLHHLLLHLHHHLHLLHHHHHLHLHLLHHLLLHHHLLLLLLHLLHLHHHHHLLLHHLLH; }
+   "pattern 2": Call "load_unload" { 
+      "test_so"=
+HLHHHLHHHLHLHHHHHHLHHHHHHHHHHHLHLHLHHLHHLLLLHHLHHHLLHLLLLLHHHHHLLLHHHHHHHHLHLLHLHHHLHLLHLHHLHHLHHLHHHHLHHLHLHHHHHHHHHHHHLLLLLHHHHHHHHHLHHHHHHHLHHLHHHLHHHLHHHHHHHHHHHHHHHHHHHHHHHLHHHHHHHHHHHHHHHHLLHHHHHHLHHHLHLHHHLHHHHHLHLHHHLHHLHHLHLHLLLLLHLLHLLHHHLHLHHHLHLLHLLHLLHHLLLHHHHLHLHHHHHHHLLHHHHLHLHHHLHLHLLLLLHHHLHHHLLHHLLHLHLHHHLLHLHHHLLHLHLHHHHLHHHHHHHLHLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLHHHHHHHHHHHHHHHHHLHHHLHHHHHHHLHLHLHHLLHLHLHLHHLHLHLHHHLHHLHHHHLHLLHHHHHHLLHLHLLHLHHHHHLLHLLLHHHHHLLHHHHLHHLHHHLLLHHHLHLHLHLHLHHHLLHLLHHHHHLLHLHHHHLLLHLLHHHLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLHHHHHHLHLLLHLLLHLLLHHHLLLHHHHLHLLHHLHLHHLLHLHHHHLHLHHHHHLHLHHLLHHHHLHHHLLLLLHLHLHHLHLHHLHHHHHHLLLLLHHHHLLHHHHLHLLLLLHLLLLHHLHHHHHLLHHLHLHLHHLHLHHHLLHHHHHHHLHHHHHHHHHHHHHHHHHHHHHHHHHHLHHHHHLHHLHHHHHHLHLLLHLHLHHHHHHHLLHHHLLHHLHHLHHHHHLLLHLHHHHLHLHLLLHHLLHLHHHLHHHLLLLLHLLHHLHHLHHLLHHHLLLHLLHLHHLHLHLHLLLLHLLHHHHHLHHHHHHHHHHHLHLLLHLLLLHHHLHLHHHLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLHHHHLHHLLHHHLHHLHLHLLHLHHHHHLLHLHLLHHLLHHLLHLLHHLHLHHLHLHHLHL
+LHLLHHHLHHHLHLLLLLHLLHLLHLLLHLHLHLLLHLHHHHLLHLHHHHHHLHHHHLLHLLLHLLHHLLLLHHHHHLHLHHHLLHHLHHHHHHHLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLHHHHHHLHLHHHLLHHLHHHHLHLLHHLHHLHHHLHLHHLHHHHHHHLLHLLHHLLHLHHHLLHLLHHLLLHLHLHLHLLHLHHLHHHLHLHHLLLHHLLLHHLLHLLLLHHHLLHHLLLLHHHHHHLLLLHHHLHHLHLHHLLHLHLLHLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLHHLLHHHLHHHHHHHLHHHLHHHHLHHHHHLLLHLHLHLHHHHHLHLHLLLLHHHLLHHHHHHLHLLLLLLLHLHLLHHHHHHLHHLLLLHLHHLHLLLLHHHHHLHHLHLHHHLHLLLHHLLLHHHHLHHHHLLHLHHHHLLHLHHLHLHLLHHLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLHHLHHLHLHLLHLHLHHHHHHHLHHHHLLHLHHHLLHHLHHHLHHHLLHHLLHLLHLLHHHLHLHHHLHHLHLLLLLHHHHHLLHLHHHHLHHLHHLHHLLHLHHLLHLLLHLLHHLHHHHHHHHHHHLLHLLHHLHHLHHLLLHHHLHHHHHHLLLHHHHHHLHHHHHHHHHHHHHHHHHHHHHHHHL
+; 
+      "test_si"=
+0100111110000111011101010111101101001101010101100111000001110001101011001111011010110111111000111100110111111101011111111011001111000111010110100010111111111100000000000010101010100100000001100111011111111111111110111111111101010111001010110110111010010101101100101111111011111000101101111111111101111101111100011101110111110111011111111011010110111010000000000010001001001100001001001001111101111101111111111110110111010010110010100001110001011100111111111111010111111000101111101011011110111101111100011111110111111000011010111111011110111010000000000010000001101000000001101111111011110111110111110111111111110011011011000011010110011000111101111111111111111011101101101111011111100111101111101010111100101001111111000111111111111110100101001000001000010000000001001111111101101011110111011111011101111010100011010100001101110011111001111111111010111111110010101110111011011100111110110111010111001111011110011111011111111101100000000000000001000010000000001110111101100111111110100101101110000101000101010001001101110010
+10101111111111111011110111101101111110011011111111111011111111110111011000111111101111101110111000000000000000000001000000010010111111011110111101111111011111111101010001101111111000100100101110111100111111111100111111110110110011011011110111010110111111010101111101111011111111011110111100000010000000010000000000000110011101111111001110111011101111110110110011100010010000111001000111111111111101111111111110111110111110111111101011101111101111101001011111111111110100010111111101000000001000100000000000100000101101111011111111011110101111010000101010101101001101001011001001111011110011000111101101010110010110100101100111010111100001111100101101101101110001010000110010001110010101100011110010101111
+; }
+   Call "capture_CK" { 
+      "_pi"=00010110111000000011001001000111100001; "_po"=LLLLLLLHHHLLLLHHLLLHHHHHHHLLLHLLHHLHHHHLHLHHHHLHHHHHHHHLHHHHLHHLHHHHHHHLHHHLHHHLHHHLLHHHHHHHLHHHLHHHHHHHLHHHHHHHLHHHHLHHHHLHHHHHHHHLHHLHLLHLHHHHHHHHLLHHLHHHHLHHHHHHLHHHHHLHHHLHHHHLHLHHLHHHHHHHHHHHHHHHLHHHHHLHHHHHLHHHHLHHHHHHHHLHHLHHHHHHHHHHHHLHHHHHLHHHHHLLHHHHHHHHHHHLHHHHHHHHHHHHHHHHLHHHLHHLHHHHLHLHLHHHLHHHLLLLHHHHHLLHL; }
+   "pattern 3": Call "load_unload" { 
+      "test_so"=
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0010101001100100110010010000000000011110111010100111101011010011100011000111011000110111110000011000100010101101001111101011001001000010110100000000000011111000110011011000000010001000101000110011101001101011110111101010100111000000001010110100000010011101100110101011111011001001001000101101001000011000011100000001100101010000010111110011000110111010001010001100000000111001101000110111001001110001111010000100110100110110010010000011100001011011010100111001000010101000100100001011100000010101101000001111010000010000010011001100101010100010000010011000000000000001001100011110101010100011110100001010111100111010101001100111000111011000011110001111001000011010001101000001010011000010101111101100010000101000011111000011000011011111000011000111011000000000000000000101100101011100101100010110111100110010000000010111011100100000011000010010010000011100000110101111011011000000101110000010010011000111001000110001111010100000100000100110001000000010000000010111011100101100101000010011001100111011110100011000100011010101
+11011110111111001011010010101101101100010011111011011010011111010100011000011101010110010110111000010011010010010100001000010000011011110101000101100011100100010100011010000100010101111100000110100010100100100000001000100110100000110001110101010111100100011100100010110011011110001000111110111110101110000000000100000001011011010110110111111100000001000100110111110010000100010011100000000101010100000101011010100100000010111111101011000000111101101001111110000000010110000101001101011010110000000100000011000001111000000000001100010101111001001011111001111100001010000110111110111100000101011010111001110100111001001010111101011110001100001110011001001100101110100111101110010001101100100100101001011001
+; }
+   Call "capture_CK" { 
+      "_pi"=10011011101011111111101111011110011101; "_po"=LHLLHLLLLLLLHLHLLHHHLLLHHLHHHLHHLLLHLLHHHHLHLHLLLHHLLLLLLLLLLLHHHLLHLLLLLLLHHHHHHHLHHLHHLHLHHLHHLHLLLHLLHHHLLLHHLHLLLHLHLHHHHLHHLHHLLHHLLHLLLLHLHLLHHLHLLHHHLHHHLHHHHLHHLHLLLHHLHLLHHHLHLHLLHHLHLHHHHLHLHLLLLHLHHHHLLLHLHLHLHLHHHHLHHLLHLLLLHLHHHHLLLHHHLLHLLHHHLHLLHLHLHLHHHHLHHHHLHLHHLLHLHHHLLLLLLLLLLHLLHLLHHLLHLLHHLLHLHLHLL; }
+   "pattern 4": Call "load_unload" { 
+      "test_so"=
+LHHLLLLLLHHLHLLLLLHHHLHLHLLLLHHHHLLLHHLLLHHHLHHLLLHHLHHHHHLLLLLHHLLLHLLLHLHLHHLHLLHHHHHLHLHHLLHLLHLLLLHLHHLHLLLLLLLLLLLLHHHHHLLLLLLLLLLLHLLHLLHHLLHLLHHLLHLHLHLLLHHLLHHLHHLLLLLLLHLLLHLLLHLHLLLHLLHHLLHLLLHLHLHLHLLHLHHLHLHLHHHLHLLHHLHLHLHHHHHLHHLLHLLHLLHLLLHLHHLHLLHLLLLHHLLLLHHHLLLLLLLHHLLHLHLHLLLLLHLHHHHHLLHHLLLHHLHHHLHLHLLHLHLHLHHHHLHHHHLHLHHLLHLHHHLLLLLHLHLLLHHLLLLLLLLHHHLLHHLHLLLHHHLLLLLHLLLLLLLLLLHHHHLHLLLLHLLHLHLHLLHHHLLHLLLLHLHLHLLLHLLHLLLLHLHHHLLLLLLHLHLHHLHLLLLLHHHHLHLLLLLHLLLLLHLLHHLLHHLLHLHLHLHLLLHLHLHHLLHLLLLHLHHHHLLLHHHLLHLLHHHLLLLLLHLLHHLLLLLLLLLLLLLLHLLHHLLLLLHHLLLHLLHHLHHHLLHHLLHHHHHLHHLLLHHHHLLLHHHHLLHLLLLHHLHLLLHHLHLLLLLHLHLLHHLLLLHLHLHHHHHLHHLLLHLLLLHLHLLLLHHHHHLLLLHHLLLLHHLHHHHHHHHHLHLHLLLLHLHHHHLLLHLHLHLHLHHHHLLLLHHLLLHHHLHHLLLLLLLLLLLLLLLLLHLLHLLHHLHLHLLLLLLHHHLHLHHLHHLHLHHLLLLHLLHLLHLLLLLHHHLLLLLHHLHLHHHHLHHLHHLLLLLLHLHHHLLLLLHLLHLLHHLLLHHHLLHLLLHHLLLHHHHLHLHLLLLLHHHHLHHLHLLLHHLHLLHHHLHLHLLHHLHLLHLLLLLHLLHHLLLHLLLLLLLHLLLLLLLLHLHHHLHLHLHHLHHHLLHHLHHLLHLLLHLHHHLHHHHLHHHHHHLLHLHHLHLLHLHLHHLH
+HLHHLLLHLLHHHHHLHHLHHLHLLHHHHHLHLHLLLHHLLLLHHHLHLHLHHLLHLHHLHHHLHHLLHHLLHLLLLHLHLLHHLHLLHHHLHHHLHLLLHLLHHLHLLHLLHLHLLLLHLLLLHLLLHLHLLLHLHLHHLHHHLLLHHLLHHLHHHHHHHLHLLLHLHLLHLLHLLLLLLLHLLLHLLHHLHLLLLLHHLLLHHHLHLHLHLHHHHLLHLLLHHHLLHLLLHLHHLLHHLHHHHLLLHLLLHHHHHLLLHLLHHHLLLHHLHLLLHLHLHHHHLHHLLHLHHHHHLHLHHHLLLLLLLLLLHLLLLLLLLLHHHLLHHLHLHHLLLHLLHLLLLHLLLHLHLLLLLHLHLHLHLLLLLHLHLHHLHLHLLHLLLLLLHLHHHHHHHLHLHHLLLLLLHHHHLHHLHLLHHHHHHLLLLLLLLHLHHLLLLHLHLLHHLLHLLLLLLLHHHHHHHLHHLHHLHLHHLHHLLLHLHHLHLHHLLLLLLLHLLLLLLHHLLLLLHHLLHLLHHHHLHHLLHHHLLLHLLHLHHLHHHLHHHHLLLLLHLHLHHLHLHHHLLHHHLHLLHHHLLHLLHLHLHHHHLHLHHHHLLLHHLLLLHHHLLHHLLHLLHHLLHLHHHLHLLHHHHLHHLLHLLHHHHLHLHLLLHHLLLLLLLLLLLHHHLHLLHLLLHHLHHLLHLLHLLHLHLLHLHHLL
+; 
+      "test_si"=
+1111011111011001001110110101111001001000010000000001101000101000001001001000100110010110100010001110000000001001100000101000001010000100110000000000011000000010000110100011011001100001000101001100000110011100001010110000111110000101000001010110101100101010001001000000000000010000110000000001100100100000000000000000000000110001000000000000000101000000100010111011101111111110101111110000110111101111101110110011011011001001100100111010010000101111000000000100010010000000100000000000000000100001000000000001100000001000000100000010010010011000111101111110111000111001010011110001100101001110011111010101100001111001010100101000011010100010100000000001010010000000000000001000000000001000000000010010000100000000000011000000000100100000011111011100000111101111111111111010011011000111110011101001011001000011111111100000111011001100001000100100000000000001110000010000000001101010010000111100000101100000010010000100000111010000100111111000110011111100000111101100110111010011011110100100011001000100010101001001011010100010
+10100000000000010000000000000001100000010100000100000001000000000011000100100100000000101010000101111110101110100011110101011110111101000111100110111110010100111001100000110011101000100000101000001100010100000000101101101000000011001000000000011000000011000000111001100000000100000110110000010111100010111110010111010010100110100011001100100111110110110111001100011101110010101101001100011000010000001010000100001001000000100110000010100000000010010000000000100010100000010110000111101101100111110101101110111110100110101100010000101000000000101110000111000111100101100001110100100110101100011010011001001001000000010100011100100010011110010011111110111011111101111011000010110110010010011001110110011110
+; }
+   Call "capture_CK" { 
+      "_pi"=00011110111110000010111100010100111111; "_po"=HLLHHHHHHHHHLLLLHLLHHHHLLLLLLHHLHLHLLLLLLLLLHLHLLLLHLLLHHLHLHHLLHHHLHHLHHHHHLLHLLHHLLHHLLLHLHHLLHHHLLHLHLLHHHHHLHHLLHHHHLLLHLHHHHLHHLLLHLLHLHHHHLHHLLHLHHHLHHLLHHLHHLHLLHLHHHLLHHHHHLLLHHLHHLLHLHLLLHHLHLHLHHHHHLLHHHLLHLHLLHHLLLLHHLHHLLHHLHHHLHHHHHLHHHHLHHLLLLHHHHLLLLHHLHLHLLLLHHHLLHHLLLLLHHLHHHHLHLHHLHHHLLHLLHHLHHHHHLHHHH; }
+   "pattern 5": Call "load_unload" { 
+      "test_so"=
+LLLLLHLLLLLHLHLLHLLLLLHHLHLLLLLLLLHLLHLLHLLLHLLHHLLHLHHLHLLLHLLLHHHLLLLLLLLLHLLHHLLLLLHLHLLLLLHLHLLLLHLLHHLLLLLLLLLLLHHLLLLLLLHLLLLHHLHLLLHHLHHLLHHLLLLHLLLHLHLLHLLLHHLHLLLHHLHHLLHHLLLLHLLLHLHLLLHLHLLLLLLHLLLLLLLLLLLHLHLHLLLHLLHLLHLLLLLLLLLLLLLHLLLLHHLLLLLLLLLHHLLHLLHLLLLLLLLLLLLLLLLLLLLLLLHHLLLHLLLLLLLLLLLLLLLHLHLLLLLLHLLLHLHHHLHHHLHHHHHHHHHLHLHHHHHHLHLLLHLHHHLHHHLHHHHHHHHHLHLHHHHHLLLHLLLLLLLLLHLHLHLLLLLLLLLLLLLLLLLLLLLLLHLLLHLLHLLLLLLLHLLLLLLLLLLLLLLLLLHLLLLHLLLLLLLLLLLHHLLLLLLLHLLLLLLHLLLLLLHLLHLLHLLHHLLLHHHHLHHHHHHLHHHLLLHHHLLHLHLLHHHHLHHHHLHHHHHHLHHHLLLHHHLLHLHLLHHHHLLLHLLLLLLLLLHLLHLLHHHHHHLHLLLHHLLLLLLLLLLHLHLLHLLLLLLLLLLLLLLLHLLLLLLLLLLLHLLLLLLLLLLHLLHLLLLHLLLLLLLLLLLLHHLLLLLLLLLHLLHLLLLLLHHHHHLHHHLLLLLHHHHLHHHHHHHHHHHHLLHHHHHLHHHLLLLLHHHHLHHHHHHHHHHHHLLLLLLHLLLLLLLHLLLHLHLHLLLLLLLLLLHLLLHLLHLLLLLLLLLLLLLHHHLLLLLHLLLLLLLLLHHLHLHLLHLLLLHHHHLLLLLHLHHLLLLLLHLLHLLLLHLLLLLHHHLHLLLLHLLHHHHHHLLLHHLLHHHHHHLLLLLHHHHLHHLLHHHHHHLLLHHLLHHHHHHLLLLLHHHHLLHLLLLHLLHHLLLHLLHLHLLHLHLLLLLLHLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLH
+HLLLLLLHLHLLLLLHLLLLLLLHLLLLLLLLLLHHLLLHLLHLLHLLLLLLLLHLHLHLLLLHLHHHHHHLHLHHHLHLLLHHHHLHLHLHHHHLHLHHHHHHLHLHHHLHLLLHHHHLHLHLHHHHLHLLLHHHLHLLHLLLLHLLLHHHLHLHLLLHLLLLHHLLLHLHLLLLLLLLHLHHLHHLHLLLLLLLHHLLHLLLLLLLLLLHHLLLLLLLHHLLLLLLHHHLLHHLLLLLLLLHLLLLLHHLHHLLLLLHLHHHHLLLHLHHHHHLLHLHHHLHLLHLHLLLHLHHHHLLLHLHHHHHLLHLHHHLHLLHLLLLLLLLHHLLHLHHLLLLLLLLHLLHLHHLLLLHHLLLLHLLLLLLHLHLLLLHLLLLHLLHLLLLLLHLLHHLLLLLHLHLLLLLLLLLHLLHLLLLLLLLLLHLLLHLHLLLLLLHLHHLLLLHHHHLHHLHHLLHHHHHLHLHHLHHHLHHHHHLHHHHLHHLHHLLHHHHHLHLHHLHHHLHHHHHLHHHLLHLLLLHHHHHLHLLLHLLLHHLHHLHLLHLLHHLHLHHLLLHHLHLLHHLLHLLHLLHLLLLLLLHLHLLLHHHLLHLLLHLLHHHHLLHLLHHHHHHHLHHHLHHHHHHLHHHHLHHLLLLHLHHLHHLLHLLHLLHHLLHHHLHHLLHHHHLHHLHHLHHLLHLLHLLHHLLHHHLHHLLHHHH
+; 
+      "test_si"=
+0100010100000110101001111001000010100110001010101000000101010101010001110101110011100110101010100001111111111010110001000100001101100010100111111101011000111111010000110110010000100101000000011000010000000010101000000101000011110001000101111011100000010110110000011111100100110110111101100011100000100100110110111101100101111111011011001000111100110100100010000101100101001000000011000000110100011110000001011001000101000101110010110001110001010010010111100111111011010110011000110100101011100111001011111011010001001100010111110110010110010010110000001100000000000000000100100000010101010001000000100000000101100110111001111000111111011100010000010110001110010011001011100100110001101100010001100110111100101001111101010100100101011010100101010100001000000000110000010000000100100001001000000000100111111101101010101101000111011000110101010001000011110100010101000010000110000011001111011101001111010110100100011001000000000111000000000001010010001000000110001010000000100000010001001000110011110010111001010000111100011110
+10110001110100100110001011110000100110110000111010100011111110111001001101011100110101111001010100110100100110100000000000000000000000001000001010010100000011001011011010010100111100110010010010101001000011001001101011010010111100001000001000110000110101100100100100000110100111001110100100001001000000010100000100000001000000000000000001000101101010011000000111001011110101010011110001100010010111100010111110001011001000011011110011010000111000100100110101111101001100000110100100000000100000100001100000110100000001000110100010011011000101000010001000001011111100111000101001011000100111010100110111100110001011011110100111111110010100100010011100011100000011110101111110001110100000000000011000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=00011111011111001001011110011010011110; "_po"=LLHHHHLLHLLLLHHLHHHLLLHHLLLLLHHHLLLHLHLLLHHLHHLLHLLLHLHHLLLHLLLLLHLLHLHLHHLHLLLHLLLLLLLLLLLLLLLLLLLHHLLLLLLHLHLLHLHLLLLLHLLLLLLLLLLHHLLLHLLHLLLHLLLLLLHLLLLLLLHLHHLLHLLLLLLLLLHLLHLLLLHLLHLLLLLLLHLLLLLLLLHLLLLLLHLLLHLHLHLHLLLLLHLLLHLLHHLHLLLLLLHHHHLLLHLHHLLLLLLLLHLHLLLLLLHLHLHLLLLLLLLHLLLLHLLLLHLLHHHHLLHLHLHHLLLLLHLHLLLHL; }
+   "pattern 6": Call "load_unload" { 
+      "test_so"=
+HHLHHHHHLHHHLLHHHHHLLHLLHLHHHLHLLHLLLHHHLHLHHHLLHHHLLHHLHLHLHLHLLLLHHHHHHHHHHLHLHHLLLHLLLHLLLLHHLHHLLLHLHLLHHHHHHHLHLHHLLLHHHHHHHLLHHHLLLLLHLLHHHLLLHLHLLHHHHHLLLLHLLLLHHLHHLLHLLLLHLLHLHLLLLLLLHLLHHHHHHHHLLHHLLHLHHHHHHHLLLLLHHHLLLLLHHHHHHLLHLLHHLHHLHHHHLHHLLLHHHLLLLLHLLHLLHHLHHLHHHHLHHLLHLHHHHHHHLHHLHHLLHLLLHHHHLLHHLHLLLHHHLHHHHLHLLHHLLLHLLHLHHHHHLLHLHHLLLHLLLLHLHHLLHLHLLHLLLLLLLHHLHLHLHHHHHHHHHLHHLLHLLHHHLHHHHHHHLHLHHHHLLHHHHHHLHHLHLHHLLHHLLLHHLHLLHLHLHHHLLHHHLLHLHHHHHLHHLHLLLHLLHHLLLHLHHHHHLHHLLHLHHLLHLLHLLLLHHHLHLLLLHHLHLHHHHHHHHHHLHLLLHHHLLLLLLHHLLLLLLLLLLLLLLLLLHLLHHHLLHHHLHLHLHHLLLLLHHHLLHLLHHLHHLHLLLLLHLHHLLLHHHLLHLLHHLLHLHHHLLHLLHHLLLHHLHHLLLHLLLHHLLHHLHHHHLLHLHLLHHHHHLHLHLHLLHLLHLHLHHLHLLHLLLLHLLLLHHHLHHHHLHHLLLLHHHLLLLHLLHLHLHLHLLLLHLLLLLLLLLHHLLLLLHHHLLHHLLLHHLHHLHHHLHLHLLHLHLLHLHHLHLHLHLLLHLLLLHHHHLHLLLHLHLHLLLLHLLLLHHLLLLLHHLLHHHHLHHHLHLLHHHHLHLHHLHLLHLLLHHLLHLLLLLLLLLHHHHHLHHHHHHLHLHLLLLHHHLHHHHLHLLHHHHLLLLLLLLLLLHLHLLHLLLHLLLLLLHHLLHHLLLHHHLHLLHHHLHHLHHLLHHLHHHLLHHLHHLLLHHHLHLLHLLHHLLLHLHHHHLLLL
+HLLHHLHHLLLLHHHLHLHLLLHHHHHHHLHHHLLHLLHHLHLHHHLLHHLHLHHHHLLHLHLHLHLLHLHHLHHLLHLHHHHLLHHLLHHHHHHHHLLHHLHLLHLLHHLHLLLLLLLLLLLLLLLLHHLHHLHLLLHHLHLHHHHHHHHLHLLLHLHLHLHLHLLHLLLLHHLLHLLHHLHLHHLHLLHLHHHHLLLLHLLLLLHLLLHHLLLLHHLHLHHLLHLLHLLHLLLLLHHLHLLHHHLLHHHLHLLHHLHLLHHLLLLHHHLLLLHHHLHLLLHHLHHLLLLLLHLLHLLLLLLLHLHLLLLLHLLLLLLLHHLLLLHHLHLHLHLLHLHLLHHHLLHLHHLLLHHLLLHLLHLHHHHLLLHLHHHHHLLLHLHHLLHLLLLHHLHHHHLLHHLHLLLLHHHLLLHLLHLLHHLHLHHHHHLHLLHHLLLLLHHLHLLHHLLLHHHHLHLHLHLLHHHLLHLHHHLLLLHHHLLLLLLLLHLLLLLHLLLLHHLLLLLHHLHLHLHLLHHLHHHLLLLHLLLHHLLHHLLHLLHHLHLHHLLLHLLHHHLHLHLLHHLHHHHLLHHLLLHLHHLHHHHLHLLHHHHHHHHLLHLHLLHLLLHLLHHHLLLHHHLLLLLLHHHHLHLHHHHHLHHHLLLLLHHLLLHHHLHHLLLLHLLHHHHLHHLLLHHHLHLLLLLLLLLLLLHHLLLLLLLL
+; 
+      "test_si"=
+0000000010000000000000000000001000100000000000000000000010000000010100110000100101001000000111000011001000000010100000000100110000111000101001011101000000000011111111111101010101011011111111011000001100000000100100001000101000100000100001000000000001100000010011010000000100000111010010000000000010000010000011100010001000001000100000000100101001000101111111111101110110110011110110100000000000000000000000000000000000000000000000000000000000000000000000000000101000000111010000010100100001000010000011100000001000000111100101000000100001000101111111111101111110010111111110000111000000000000010000000001000000000100000000010000000000000111000010000000000000000100010010010000100000011000010000010101000011010110000000111000000000000001011010110111110111111111111110101001000000001010000000010000000010000000010000000010100000000100000110000000000101000000001101010001000100100011000001001000101000110000100001100000100000000010011111111111111110111101111111100000000000000010000010100000000101000000001010000010000000000000
+01010000000000000100001000010010000001100100000000000100000000001000100111000000010000010001000111111111111111111110111111101100000000001000000000000000000000000000000000000000000000001000000001000011000000000011000000001001001100100100001000101001000000101010000010000100000000100001000011111101111111101111111111111000001100010000000010000000000001000001000000000000100000000100011000000000000010000000000001000001000001000000010100010000010000010110100000000000001011101000000010111111110111011111111111011110000000010000100100000000000111001101111111011100011110000101001101000001011000000100001010001110101111010010011000000101010001111110110000101010011010110111110001101000100011011111001111100110
+; }
+   Call "capture_CK" { 
+      "_pi"=10011101110000011100100100111100110011; "_po"=LHHHHHHHHLLLHHLHLLHLLLLHHLLLHHLHLLLHHHLLLLLLLLLLLHLLHLLLLHLLLLLLLLLHLLLLLLLLLLLLHLLLLLLLLHLLLHHLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHLLLLLLLLHLHLLLLLHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHLHLLLLLLLLHLLHLLLLHLLLLLLLLLHLLLLLLLLLLLLLHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHLLLHLLLLHLLHLLLLLLLLHHLLLLLHLHLLLLLLLLLLLLLLLLLLLLLHLLLLLLLL; }
+   "pattern 7": Call "load_unload" { 
+      "test_so"=
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0101010100011011000100101011001100000001010110000100000000000100000100000001100000000000000000000001000000001000110100000000000000010000000100010100000000000100001100001111111100100111000101000101010110000100001001010101011000110100101111100000000000000000101000000000011110001100000010000011000000010101000011000100100000010010000001001000100001000000101101100100100011010110010111001000110100001110000001001011001011100100001111001000000010000000101000010000000100000000010000001111010100000001010001000100010001000001000010101000010000000000111100110101011010000100010010101000010110011100000011110101000010010100000101001101101000000011001101101001010000101000100100000000010000000100001000001001101001010000000000010001100010000010011101111000011111110100000100001010011010100011010101101001000011000000000001010000011001000011000001001000000000100000000000101110100010000000000101000110101010100000100000000011010011001010100111101001010100111000000111100000100011010000110011101100100010000001100000000110000011000011
+00001001010001000000100010000010000000000100010010000000000000000000000101000110000010000100000010101001110001100010111011111111100100000010111010011100001011100010000101010011100001100111001100000000001000001001001000110100000000000000010010110010100101100000000000101000101101001000000010101000000111111010110011100110000100101001001000000010001110010010010000000000000000100000000000100000000000000010000000000000000001000000000000000000000000010010000000000000010000000000000100100000001011111000001000010111000111110110100011101110000110110001011000110111010000101011001001010001000101110100011000001010110001100101111110010100110011100001010000010000010001011101000011100111100100010110001010011000
+; }
+   Call "capture_CK" { 
+      "_pi"=10001111111111001111110110111111111101; "_po"=LLHHHHHLLHHHLHHLHHLLLLLLLHLHHLLLHHHLHHLLLLHHHLHHHLLLHLHHLHHHHHLLLHLLHHHLLLHLLLLLLLHLLHLLHLHLLHLLLLHHHLHLLLLHHHLLHLHHHLHLLLLLLHLLHLLLHLLHHLHHHLLHHLLLLHLHHLLLHLLLLLLLLHLLHLHHLHLHLHHLLLHLHLHHLLHLHLLLLHLHLHHHHLLLLLLHHHLLHHLHLLLLHLHLLHHLHLLHLLLLLLHHHLLLLHLHHLLLHLHHLHLHLHLHLLHLLLLHLLLLHHLHLHLHLHHLLHHLHLHLLHLLLHHLHHLLLHLHLHLHL; }
+   "pattern 8": Call "load_unload" { 
+      "test_so"=
+LHHHLHLHHHLLHLHHHHLLLLLLLLLHHLLHLLLHLLLLLLLHHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHLLLHHLHLLLLLLLLLLLLLLLHLLLLLLLHLLLHLHLLLLLLLLLLLHLLHHLLHHLHLHLLHLLLHHLHHLLLHLHLHLHLHLLHHLLLLHHHHHHHHLLHLLHHHLLLHLHLLHLHLHLLHHHHLHHHHHLLHLLLLHHHHHHHHLHLLLLLLLLLLHHHHLLLHHLLLLLLHLLLLLHHLLLLLLLHLHLHLLLLHHLLLHLLHLLLLLLHLLHLLLLLLHLLHLLLHLLLLHLLLLLLLHHLHLHLHLHLLHLLLLHLLLLHHLHLHLHLHHLHHLHHLLHLLHLLLHHLHLHHLLHLHHHLHHHLLHLLHHHLLLHHHHLLLLHLHLHLHHLHHLHLLLLHLLLLLLLHLLLLLLLLLHLLLLLLHHHHLHLHLLLLLLLHLHLLLHLLLHLLLHLLLHLLLLLHLLLLHLHLHLLLLHLLLLLLLLLLLHLLHHLHLLHLLLLLLHHHLLLLHLHHLLLHHHHHHLLHHLHLHLHHLHLLLLHLLLHLLHLHLLHHLHLLHLLHHHLHHHLLLLLHLHHLLHHHLLHHLHHLHLLHLHLLLLHLHLLLHLLHLLLLLLLLLHLLLLLLLHLLLLHLLLLLHLLHHLHLLHLHLLLLLLLLLLLHLLLHHLLLHLLLLLHLLLLLHLHLHHHHLLLLLLHHHLLHHLHLLLLHHLHHHLHHHHLLLLHHHHHHHLHLLLLLHLLLLHHHLLLLHHLHHLLLHHHHHLHLHHLLHHLHLLLLLHLLHLLLLLLLLLHLLLLLLLLLLLHLHHHLHLLLHLLLLLLLLLLHLHLLLHHLHLHLHLHLLLLLHLLLLLLLLLHHLHLLHHLLHLHLLLLLHLLHLHHLHLHLHHLLLHLHLHHLLHLHHHLLHHHHLHLLHLHLHLLHHHLLLLLLHHHHLLHLHHLHLHLHHLLLLHHLLLHHHHHLHHHLLLLLHLLHLHLLLHLLLLLLHLLLHLLLLLHL
+LLLLLLLLLHLLLHLLHLLLLLLLLLLLLLLLLLLLLLLHLHLLLHHLLLLLHLLLLHLLLLLLLLLHLLHHLHHHLLHHLLLLHLHHLLLHLLLLLHLHLHLLHHHLLLHHLLLHLHHHLHHHHHHHLLLHLLLHHHLLLLHLLLLLLHLHLLHHLHHLLLLLLLLLLLHLLLLLHLLHLLHLLLHHLHLLLLLLLLLLLLLLLHLLHLHHLLHLHLLHLHHLLLLLLLLLLLHLHLLLHLHHLHLLHLLLLLLLLHHHLHLLLLHHHLLHLHHHLHLLLLLLHLLHHHLHLHLLLLLLHHHHHHLHLHHLLHHHLLHHHHLHHLHLHLLHHLHHHHHHHLHHHLHLHLLHLLHLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLHLLHLLLLLLLLLLLLLLHLLLLLLLLLLLLLHHLLHHHLLLHLLLLLLLHLLHLLHLHLLHLLLLLLHLLLLLLLHLHHHHHLLLLLHLLLLHLHHHLLLHHLLLHHLHHLLHHLLHHHHHLHLLLLHLHLHLLLHLLLHLHHHLHLLLHHLLLLLHLHLHHLLLHHLLHLHHHHHHLLHLHLLHHLLHHHLLLLHLHLLLLLHLLLLLHLLLHLHHHLHLLLLHHLHHLLLLHHHLHHHLLLHLHHLHHHHHLLLHHHHLLHHHHLLHLLLHLHHLLLHLHLLHHLL
+; 
+      "test_si"=
+0000000000000000000001000000000011110100010110010110111011100010110111100001100011111110110010011111000001001000101011101010111010010100011001111101010101010101101100001001000001001010110100001000000000000000000000000000000000001000101000010010100010111000110101111011001111011010001011010001000101101100001010110110000111001111010101110010110111000011010000000000001010110100001000110000000000000000000000000000000010100110110110111001101110010000100000101101000110101001010110101101011110000000100010100001000100000011110001000111111100111110000000110011000110000011111001010000000000000000100000000000000010010001000011010001000011101110011001110011111011010011011100111111110100010100000111111111101101100110011011010011011100110001000000101010000011100011000001100000000000000000000001000000000011111111011100011110111011000111100000010100010101001001110101101010000011101001011011100101111111001001111001010010111111101010001000000100001100100110000000000000001000000000000000000010000001000000000110101001000111111001
+11000100011111000110100010110100110000000101100010010011011110000111000010110100000001011100101011000001000000010100110110101011100000000000000000000000100000000001010101100011010001101001101001010000001011010111001000000001000111001100011010010000001001010101110001111001101111100110000011010010000010100000001011011100000000000000000000000000000000000011011111110001011110100001001010000100001010000101111101110000011001010011000111000000011110011110011001001110111100001111100001000000000110010000010100000001000000000010000001000000000000001000000011101100100010011110001011101111011011101101110000101000001110111011100101001110101111111101101111101111101010011110101101010000001010111011000010011110
+; }
+   Call "capture_CK" { 
+      "_pi"=00000101000011111111000110110111111110; "_po"=LHLLLLHHLHLHHLLHLLLHLHLHHHHHHLLLHLLLLLLLLLLLLLLHLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 9": Call "load_unload" { 
+      "test_so"=
+HLHHHLLLHLLLHLLHLHHLHHLHHHLHLLLLHHLHHHHLLLLHHLLLHHHHHHHLHHLLHLLHHHHHLLLLLHLLHLLLHLHLHHHLHLHLHHHLHLLHLHLLLHHLLHHHHHLHLHLHLHLHLHLHLHLLHHHLLHHLHHHLLLLHLHLLLLHLHHHHHHLHHLLLLHLLHLLLLLHLLHLHLHHLHLLLHHHLLLHLHHHLHLHLLHHHLLHLHHHHHHHLHHLHLHHHHLHHLLHHHHLHHLHLLLHLHHLHLLLHLLLHLHHLHHLLLLHLHLHHLHHLLLLHHHLLHHHHLHLHLHHHLLHLHHLHHHLLLLHHLLLLLLLHLLHLHLLHLLLLHLHHHHLLHLLLLLHLLLLLLLLLLLLHLHLHHLHLLLLHLLLHHHHHLHHLLLHLLHHLLLHLLHLLHLLHHLHLHLLLLLHLHHLHLLLHHLHLHLLHLHLHHLHLHHLHLHHHHLLLLLLLHLLLHLHLLLLHLLLHLLLLLLHHHHLLLHLLLHHHHHHHLLHHHHHLHHHHLLLLLHLLHHHLLLHHHLLLLLLHHLHLLLLLLLLHHLLHHLLLHHLLLLLHHHHHLLHLHLLLHLLLHHHHLHHLLHLLHHHHLHHHLHHLLHHLLHHHLLHHHHHLHHLHLLHHLHHHLLHHHHHHHHLHLLLHLHLLLLLHHHHHHHHHHLHHLHHLLHHLLHHLHHLHLLHHLHHHLLHHLLLHLHHLHHLHLHLLHLHLLLLHLHLLHLHLHLLLHLLLLLLHLHLHLLLLLHHHLLLHHLLLLLHHLLLHHHLLHLLLHLLLLHHHHLLHLLLLLLLLHLLLLLLHLHLLLHLHLHLLHLLHHHLHLHHLHLHLLLLLHHHLHLLHLHHLHHHLLHLHHHHHHHLLHLLHHHHLLHLHLLHLHHHHHHHLHLHLLLLHLHHHLLHHHLLLLLLHHLLHLHLHHLHHHLLHLLLLLLHLLLLHHLLHLLHHLLLLLLLLLHHLLHLLLHHHLHHLHLHLLHHHHLHHHHLHHHLLLHLLLHHHHHLLLHHLHLLLHLHHLHLL
+HHLLLLLLLHLHHLLLHLLHLLHHLHHHHLLLLHHHLLLLHLHHLHLLLLLLLHLHHHLLHLHLLLHHLHLLHLLLHLHLHLLHLLLLLLLLLLLLLHHLLLLLHLLLLLLLHLHLLHHLHHLHLHLHHLHLLHHLHLLHHHLLLLHHLLLLLHLLLHHLLHLHLLLLLLHLHHLHLHHHLLHLLLLLLLLHLLLHHHLLHHLLLHHLHLLHLLLLLLHLLHLHLHLHHHLLLHHHHLLHHLHHHHHLLHHLLLLLLLLLLHLHHHHHLLLHHHHLLHLHLLHLLLLHHHHLHLLHLLLLLHLHLLLLLLLHLHHLHHHLHLHHLHHHHLHLLLLHLHHHLLLLLLLHLLHHHLLLLHLLLLHLHLLLLHLHHHHHLHHHLLLLLHHLLHLHLLHHLLLHHHLLLLLLLHHHHLLHHHHLLHHLLHLLHHHLHHHHLLLLHHHHHLLLLLHHLLLLHLHLLHHLHHHLHLHLLLLHHHLLLLHLLLLLLLLLHHLLHLLLLLHLHLLLLLLLHLHHHLLLLLHLHHHLLHLLHLLLHHHHHHHLHHHLHHHHLHHLHHHLHHLHHHLLLLHLHLLLLLHHHLHHHLHHHLLHLHLLHHHLHLHHHHHHHHLHHLHHHHHLHHHHHLHLHLLHHHHLHLHHHLLLHHHHHHLHLHLLLHLLHHLHLHHLLLLHHLHLHLLLLLLHLHLHHHLHHLLLLHLLHHHH
+; 
+      "test_si"=
+1010100111010100001111111010011101100001100001100100000010110100001111001111010000000011110101001101001110000010001111101001010000001001111010100101100001100001000000000000000100010000000000100000011000010010001000000001101010001010011010100110001001011001001011111000101101100111100110011100010100111001101001000001100010110100100101110101000110111111000000011000000000000000000100000000000100010000000000010000010010111100011101000110011110111101111001101000010010001000110111011010100001000100110001011011101011011001100000001101001110011111000001000000001000000100000010000000010001000000000000010000000111101100111100011100011110111101011101000000001100110110101011100100001111010111001110000100100110001001100001100001001100111110001010000001000000000000000100000000100010100000000010000010000000111010000001100011000011100111111110000100101010110011110111100011011010011011001110000111111011111000110010100110001010101011000100001010000000000000000000000000100001100000010000000000000011010101110111011101101011011110
+11010111000111010101110011000011001001011000000001111011010001110110111110000010010001111110110100000000001000000000000001000000000100100010000010101000100010000011001001010110000011100100000111000110000000110000110100101010101101100011111111001011100000011000101001101110111111101110000100100000110000001000100000000000000000001000000100000110000010000101100110111010110000101000010000000011110101001000010111001100000010111100010011111010000011100001101011010010010111001101011110100100000000000000000001001000000101000011000010000000001011000000100000000101000000000000010000000000000010010000000000000010000000000001010000000100001001000000000000011101000000000000010000000000000100000000000000000001
+; }
+   Call "capture_CK" { 
+      "_pi"=10000010110001010101100000001011000100; "_po"=HLHHLLHLLLLHLLLLLHLHLLLLLLLLHLLLLLLHHLHLLLLLLLLLHLLLLHHLLLLHLHLLLLLLHLLLLLHHLLLLLHLLLLLLHLLLLLLLLLLLHLLLHLLLHLHLHLLLLLHLLLHLLHLLLLLLLLLLLLLLLLLHLLLLLLHHLLLLHLLLLLLLLLHLLLLLHLLLLLLLLLHLHLLLHLLLLHLLLLLLLHLLLLLLLLLLLLLHLLLHLLLLLLLHLLLLLHLLLLLLLLLLLHLLLHLLLLLLLLHLHHLLLLLLLLHLLLHLLHLLLLHHLLLLLHHHLLHLHHHHHHHLLLLHLHLHHHLLHLHLH; }
+   "pattern 10": Call "load_unload" { 
+      "test_so"=
+HLLLLLLHLHLHLHLLHHHLHLLHLLHLLHHLLLHHHHLLHHHHLHLLLLLLLLHHHHLHLHLLHHLHLLHHHLLLLLHLLLHHHHHLHLLHLHLLLLLLHLLHHHHLHLHLLHLHHLLLLHHLLLLHLLLHHLHLLLLLLLHHLHLHLHLLLHHLHLLLHLLLLLLLLLLLLLLLHLLLHLLLLLLLLLLHLHHLHLLHHLLHHHLHHHHLHLLHHLLHHLHLLLHLHHHHHLLLHLHHLHHLLHHHHLLHHLLHHHLLLHLHLLHHHLLHHLHLLHLLLLLHHLLLHLHHLHLLHLLHLHHHLHLHLLLHHLHHHHHHHLLLLHHHLLLHHLHLLLHLLHLHHLLHLHLHHLLLLLLLHHLLLLLLLLLLLLLLLLLLHLLLLHLLLLLLLLHHHLLHHHLHLLHHHHLLHLHLHHHLLHHLHLLLLHLLHLLLHLLLHHLHHHLHHLHLHLLLLHLLLHLLHHLLLHLHHLHHHLHLHHLHHLLHHLLLLLLLHHLHLLHHHLLHHHHHHHLHLHLLLHLLHHHHHHHHLLLLLHHLLHHHHLLLLLHLLLLLLLLHLLLLLLHLLLLLLHLLLHLLHLHLHLLHHHLLLHHHLLHLHHLLHLHLLHHHLHLLLLLLLLHHLLHHLHHLHLHLHHHLLHLLLLHHHHLHLHHHLLHHHLLLLHLLHLLHHLLLHLLHHLLLLHHLLLLHLLHHLLHHHHHLLLHLHLHHLLHHLHLLHHHHHLLHLHLLLHLHHLLHLHLLLLLLHLLLLLLLLLLLLLLLHLLLLLLLHLLHHLHHLLHHHLLLHHHHHHHLLLHHHHHHHLLLLHLLHLHLHLHHLLHHHHLHHHHLLLHHLHHLHLLHHLHHLLHHHLLLLHHHHHHLHHHHHLLLHHLLHLHLLHHLLLHLHLHLHLHHLHLHLLHLHLHLLLHHHHLHHLHLLHHLLHLLHLLLHLLLLHLHLLLLLLLLLLLLLLLLLLLLHLLHLHLLLHHLLHLLHHLLLHLLLHLHLHLLHHLHLHHHLLLHHHLHLHLHHHLLHHLLLLHH
+LLHLLHLHHLLLLLLLLHHHHLHHLHLLLHHHLHHLHHHHHLLLLLHLLHLLLHHHHHHLHHLHLLLLHHLLLLLHHHLHHHLHHLLHHHHLHHLLHLLLLLLLLLLHLLLLLLLLLLLLLLHLLLLLLHLHHLLHHHLLHHHLHHLLLHLLHLHLLLHHHHLLLHHLLLLLLLHHLLLLHHLHLLHLHLHLHLHHLHHLLLHHHHHHHHLLHLHHHLLLLLLHHLLLHLHLLHHLHHHLHHHHHHHLHHHLLLLHLHLLHLLLHHLLLLHLHLHHHLHLHLHHLHHHHLLHLLLLLHHLLLLLLHLLLHLLLLLLLLLLHHLHHHHHHLHHHHHLHLHLHHHLLHHHLHLHLLLLLLHHHHLHLHLLHLLLLHLHHHLLHHLLLLLLHLHHHHLLLHLLHHHHHLHLLLLLHHHLLLLHHLHLHHLHLLHLLHLHHHLLHHLHLHHHHHLLHLLLLLLLLHLLLLHHLHHLLLLLHLHHHHLHLLHLLLLLLLLLLLLLLLLLLLHLLHLLHHHHLHHHHLLHHHHLLHLHHHHHHLHHLHHHLLLLLLLLLLLLHLLHLLLLLLLLLLLLLLHLLLLLLLLLLLLHLHLLLLLLLHLLLLHLLHLLLLLLLLLLLLLHHHLHLLLLLLLLLLLLLHLLLHLLHLHHLHHHHLLLHHHLLLLHHLLHLLLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000011010111111110001101100011001100101001111001110000001100001010110110011101111001101001000100011101011001111011011101000011000000001000000000000000000000010000000000000000000000000000000000001110100000111101000010110001111101010100011101011001111111000111010100010101000000110001011111010011000010110001111000100101001000100000010000000000001100100000000000000000000000000000000000011111011110001000011100000011100000100111100001100111001100000101011000000111101111100001100100001001011001110101000001000011001001011000000011001110000000010000000000000000000000000000000000011101010100001110001110110010010110100101000100110101101011100111010000010101010001101010010001010000100000010100001101111101011011000000001000100011100000010000000000000000000000000000000000000000011010111001101001110111000111001111111101100101010010011110110001001111100010000000001001101101100100110101001101000001001000000011010000000000001111001010000000000000000000000000000000011110011111000001011101000001011
+11101011011000111010000100101011011100110011001001011000111101001110110000101110111100011110110100001000010000000011001000010000000000000010000000000000000000001101010111100111100101010011111001010111110001001101001011010011100010110001100001110110011100110111010100110111010010111011111100000000110000000001100000100000000000000000000000000000000000001110101110000001101011111001001101111111100010011110100111001101111101000010001011110010000110011011001110100010010111010100011000001000011001001010000000000000000000000001000000000000000000000010000011010100000011011010001100000000000100000000100011100011000000011101000001001001011000110010000100011100000100011100000000100001010101000100100101100001
+; }
+   Call "capture_CK" { 
+      "_pi"=10001001010000111110110000101101101110; "_po"=LLLHHHLLLLHLLLHLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 11": Call "load_unload" { 
+      "test_so"=
+LHHLLHHHLLHLLHHHLLLLLLLLHLHLLHHHHLLHLHLLHHHHLLHHHLLLLLLHHLLLLHLHLHHLHHLLHHHLHHHHLLHHLHLLHLLLHLLLHHHLHLHHLLHHHHLHHLHHHLHLLLLHHLLLLLLLHLLHHHLHHHHLHHHLHLHHHHHHLLHHHLLLLLHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLHHHLLHLHHHHLHLLLLHHHHHLHLLLHHLHLHLHLLLHHHLHLHHLLHHHHHHHLLLHHHLHLHLLLHLHLHLLLLLLHHLLLHLHHHHHLHLLHHLLLLHLHHLLLHHHHLLLHLLHLHLLHHHHLHHHLHHLHLHLLLHLHHHLLLLLLLHLLHLLLHLLLLLLHLLLLLLLLLLLLHHLLHLLLHHLLLHHHHHHLLLHHHHLHHHLLLLHLLLLLLLLHLLHHHHLLLLHHLLHHHLLHHLLLLLHLHLHHLLLLLLHHHHLHHHHHLLLLHHLLHLLLLHLLHLHHLLHHHLHLHLLLLLHLLLLHHLLHLLLHLLHHLLLLLLLLHLLLHHLLHLHHLLLLHLLHLHHLLLLLLLHHLLHHHLLLLLLLLHLLHLHHLHHLLHLLLHHHLLLHHHHLHLHLHLLLHHLHLLHLHLLLHLLHHLHLHHLHLHHHLLHHHLHLLLLLHLHLHLHLLLHHLHLHLLHLLLHLHLLLLHLLLLLLHLHLLLLHHLHHHHHLHLHHLLLHHHLLHLHLHHHLLHHLLLLHHHLHLHHHHLHHLLLLLLLLHLLLHLLLHHHLLLLLLHLLHHHLLLHLLLHHLHLLHHLLLHLHLLHHHHHHHHHLLHHHHHHHHLHHLLHLHLHLLHLLHHHHLHHLLLHLLHHHHHLLLHLLLLLLLLLHLLHHLHHLHHLLHLLHHLHLHLLHHLHLLLLLHLLHHHHLHLHLLHLLLLLHHHLHHHLLLLLHLLHLLLLLLLLLHHLHLLLLLLLLLLLLHHHHLLHLLLHLHHHHHLHLLLHLHHHHHLLLLLHHLLLLHHHLHLHHLHHLLLHHHLHLLLLHLLHLHLHH
+LHHHLLHHLLHHLLHLLHLHHLLLHHHHLHLLHHHLHHLLLLHLHHHLHHHHLLLHHHHLHHLHHLLLLHHHHLLHHHHHLHLLHHLHHHLLLHHLHLLLLHLLLLHLLLLLLLLHHLLHLLLLHLLLHLLLLLHHLLLHLHHLLLLHHLLLLHLHLHLLLHLHLHHHHHLLLHLLHHLHLLHLHHLHLLHHHLLLHLHHLLLHHLLLLHHHLHHLLHHHLLHHLHHHLHLHLLHHLHHHLHLLHLHHHLHHHHHHLHHHHHLLLLLLHHLLHLLLLHLHHHLHHHHLHLLLLLLLLHHLLLLLLLLLHHLLLLLHLLLLLLHHLHHLLLLLHLHLLHHHHHHLLLHLHLLLLHHHHHHHHLLLHLLHHHHLHLLHHHLLHHLHHHHHLHLLLLHLLLHLHHHHLLHLLLLHHLLHHLHHLLHHHLHLLLHLLHLHHHLHLHLLLHHLHHLHLLHHHLLLHLLLLLLHLHHLHHHHHHHLHLLLLHLLLLHHLLHLLHLHLLLLLLLLLLLLLLHHHLHLLHHLHHHHHHLHLHLLHHHHHLHHLLLLLLLLLLLHLLLLLLLLHLLLHHHLLLHHLLLLLLLHHHLHLLLLLHLLHLLHLHHLLLHHLLHLLLLHLLLHHHLLLLLHLLLHHHLLLLLLLLLLLLLLLLLLHLLLHLHLLLHLLLLHHHLLLLLHLLLLHLHLHLHLLLHLLHLLHLHHLLLL
+; 
+      "test_si"=
+0101011000001001100000000001100000010100010010001110111010011001001010100100101110010011001000000010010010010100110000101001100100110010100000000000101110111000000000000000000000000000001000001100000011000000000001110100000010011011001010011100101000101001000000100111010001100010001000111110011000100110000100011011111001011000011110101011111110010010000000000000000000000000000000001001100000001101011010100001101111001011101111101110100111001100011000011100110100010001000000011010100110110110110110001000111110110010010011010010000000100100000000000000000000000000000000001001100110100110110001000001000010111000100101110010101000011111111110000101101000100000010100101111000100101111101001010001010100111001111101010000000001010001000000000000100000000000000000000000000100000000000001111000011011110100111111100011011100100001010011110010011010100111011100011100111101000110100001101011100010110101000110011001011111011000000000000000100001000000000000100101001000000110000011100111010001000001001101010110101001110101
+11101110111010001101101100000101011010110001011011110101100101100100011011101011000010000100011000000000000000000000000000000000001010001000000001010011001101100100010100011110001000001111101000101110110101011111110011111111000111011010010110000101101011000001001011010101010010010100010100000000000000000000000000000010000010000010001000100000110100010111110001000001001010011101111101111001101100010001010100010110010011011000011000110111011001110111011001110001010010011010000000000000000000000000000010000000000010101000100000001111100000110100000000100000000100000000000001000000001000000001000000000000010000000010000000000001000000000000000001000000000100000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=00000100000111100000010011101100001100; "_po"=LLLLLLLLLHLLLHLLLLLLLLHHLLLLLLLHLHHLLLLLHHHHHLLLLLLLHLLLHLHLHLLLLHLLLHLHHLLLLLHLLLHLLLHLLLLLHLLLLLHHLHHLLHHLLHLHLLLLLLLLHLLLHLHLLLLHLHHHLLHHHLLLLLHHLLLLLLHLLHLHLLHHLLLLHHHHLLLLLLLLLLLLLHLLLLLLLLLLLHLLLLLHLLLHHLHHLLHLHHLLHHLLHHHLHHLLLLHLHLHHLHLHHLLLLLLLHHLLHLLLLLLHLHHHLLLLLLLLLLLHHLLLLLLHHLLLHHLLLLLLLLLLHHLLHLLLLLHHLHLHL; }
+   "pattern 12": Call "load_unload" { 
+      "test_so"=
+HHLLHLHLHLLHHLHHHHHLHHLHHHHLLHHHLLHLHLHLLHLLHLHHHLLHLLHHLLHLLLLLLLHLLHLLHLLHLHLLHHLLLLHLHLLHHLLHLLHHLLHLHLLLLLLLLLLLHLHHHLHHHLLLHLLLLHHLHHHLLHLLLLLLHHHHLLLLLHLLHLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLHHHLHLHLLLHLHHLHLHHLHHLHHLHHLHHHLLLLLLHLLHHHLHLLLHHLLLHLLLHLLLHHHHHLLHHLLLHLLHHLLLLHLLLHHLHHHHHLLHLHHLLLLHHHHLHLHLHHHHHHHLLHLLHLLLHLHLLLLLLHLHHHHLHHLHLLHLLHHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHLLLHHHLLHHLHLHHHHLLLLLHLHHLHHLLLLHHHLLHHLHLLLHLLLHLLLLLLLHHLHLHLLHHLHHLHHLHHLHHLLLHLLLHHHHHLHHLLHLLHLLHHLHLLHLLLLLLLHLLHLLLLHLLHHHLLLLLLLHLLLLLHHLLLHLLHHLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHLHLLHHHLLHHHHLLHLHHLHHLHLLHHHHHHHLLLLHLHHLHLLLHLLLLLLHLHLLHLHHHHLLLHLLHLHHHHHLHLLHLHLLLHLHLHLLHHHLLHHHHHLHLHLLLLLLLLLHLHLLLHHLHHLLLHHLLLHLLLLLLLLLLLLHHLLHHLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLHHHHLLHLLLHLLHHHLLLHHHHHHLHHHLLLHLLHHHHLLHLLHHLHLHLLHHHLHHHLLLHHHLLHHHHLHLLLHHLHLLLLHHLHLHHHLLLHLHHLHLHLLLHHLLHHLLHLHHHHHLHHLLLHLLLHLLLLLLHLHHHHLHLHHHHLLLLHLLHHLLLLLLLLLLLLHLLLLHLLLLLLLLLLLLHHHHHLHLHHLHLLHLHLHLLHHHHHLLHLHLHHHHLHHHLHHHLHLLLHHLHHLHHLLLLLHLH
+LHHLHLHHLLLHLHHLHHHHLHLHHLLHLHHLLHLLLHHLHHHLHLHHLLLLHLLLLHLLLHHLHHLLLLLHHLLLLHHHHLLLLLLHLLHHLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHLLLHHHHHHLHHLLHLLLLHLLHHLLLHLLHLHHHLHHLHLHLHHHHHHHLLHHHHHHHHLLLHHHLHHLHLLHLHHLLLLHLHHLHLHHLLLLLHLLHLHHLHLHLHLHLLHLLHLHLLLHLHHLLLLLHLLLHLLLLLLHLLHHLLHLHLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLHLHLLLLHLHHHHLLHHHHLLLHHLLLHHLHHHHLLHHLHHLLLHLLLHLHLHLLLHLHHLLHLLHHLHHLLLLHHLLLHHLHHHLHHLLHHHLHHHLHHLLHHHLLLHLHLLHLLHHLHLLLLLLHHLLHLLHLHHHLHHLLLHLLLLHHHLHHLLHLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLHHHLHLHLHHHLLHHHHHHLLHLLHHHHHLHHLHLLLLLLLLHLLLLLLLLHLLLLLLLLLLLLLHLLLLLLLLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLHLLLLLLLLLHLLLLLLLLLLLLLLHHHHHLLLLLLHHHLHLLLLHLLLLLHHHLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0010000000000000010000000001000000000010000000100000000000000100000000100000000000000000000001000000001000000010010000000000000000000010000000000100000000000000111001011100100110011110111010110000000000000010000001000000000000001011100000110100101000001100000010100000001100000000100101010000100110110000100000100001000000001000001100001100100010001001011101000100010000000001010000001001000000010100000100000000100010000011110001000001000000000001100100111100000000010000000000000110000100100010000100010000011001110001001001100001000100000111000010000001000111000110101100001011000000000010100000110000001000100000010000000000100100011100000100000100000100100110001101010001000010000001000000011010000000100000100000000010111010001001100000100011111000010000000000000100000000001010000000001100000100001100000010000011010000000000100011000000010001110100000001001001100110001100011011000000000000011001100000000010110000000100011000000111001100000011111000010010000000100100010000000000000001011000100110000010010000010100
+00000010100110000001100001010000000100000010000000110100000100000100101000100000000010000101010010000001010001011100001010100001010010011000010000000000001000000000000010000001001000010100000000010000100000000100010011000000000000101000000001000001000000100001001010000001001001001000001011101000011101000001101000101101010100010000001001000001000000011100000010000001000100100000001000000100000110110100001000001110001000000000101001000010100001101110010010010000000100101000101000010010011000001010010001000001000000000001000010010010000000000011000001000000100100011000011010100110011000010000000000011000101101100100100100000000000010000010001001001000100100001001011001001011101101100110001101100001
+; }
+   Call "capture_CK" { 
+      "_pi"=10000001000100001101100010001110011111; "_po"=LLHHHHLLHHLHHHLLHHLLHLHHLLHHLHHLHLLLLLLLLLHLLHLLHLLLLHLLLLLLLLLLLHLLLLLLLHLLLLLHLLHLLLLLLHLLLHLHLLLLLLHLLLLLLLLLLLLHLLLLHHLLHLLHLLLLLLLLLLLLLLLHLLLHLLHLLLLLLLHLLHLLLLLHHLLLLLLLLLHLHLLLLLLLLLLHLLHLLLLLLHHLLLLLHLHLLLLLLLLLLHHLHLLLHLLLLLLLLHLLLLLHLHLLLLLLLHLLHLLLLLLLLLLHLLLLLLHLLLLLLLLLLLLLLLLLLHLLLLLLLLLHLLLLLLLLLLLLLLHLL; }
+   "pattern 13": Call "load_unload" { 
+      "test_so"=
+HLLHHHHHHHHHHHHHLLHHHHHHHLLHHHHHLLLLLLHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHLLLLLLLHLLHLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLLLLLLHHHLLHLHHHLLHLLHHLLHHHHLHHHLHLHHLHHHLLHLHHHLLHLLHHLLHHHHLHHHLHLHHHLLHHHHHLHLHLLHLLHHLHHLLLHLHHHHLLLLHLHLLLLLLLHHLLLLLLLLHLLHLHLHLLLLHLLHHLHHLLLLHLLLLLHLLLLHLLLLLLLLHLLLLLHHLLLLHHLLHLLLHLLLHLLHLHHHLHLLLHLLLHLLLLLLLLLHLHLLLLLLHLHHHLHLLLHLLLHLLLLLLLLLHLHLLLLLLHLHHHHHHHLHHHHLHHHHLHLLLLHHHHHHHLLHLLHHHHLLLLLLLLLHLLLLLLLLLLLLLHHLLLLHLLHLLLHLLLLHLLLHLLLLLHHLLHHHLLLHLLHLLHHLLLLHLLLHLLLLLHHHLLLLHLLLLLLHLLLHHHLLLHHLHLHHLLLLHLLLLHLLLLLLHLLLHHHLLLHHLHLHHLLLHLHLLHHHLHHLHLHHHHHHLLHHHHHLHHHLLLLHLLLLLHLLLLLHLLHLLHHLLLHHLHLHLLLHLLLLHLLLLLLHLLLLLLLHHLHLLLLLLLHLLLLLHLLLLLLLLLHLHHHLHLLLHLLHHLLLLLHLLLHHHHHLLLLHLLLLLLLLLLLLHHLLLLLHLLLHHHHHLLLLHLLLLLLLLLLLLHHHHHHHHHLLLHHHHHHLHHHLLHLLHHLHHLLLHHLLLLLLLHLLLHHHLHLLLLLLLHLLHLLHHLLHHLLLHHLLLHHLHHLLLLLLLLLLLLLHHLLHHLLLLLLLLLHLHHLLLLLLLHLLLHHLLLLLLHHHLLHHLLLLLLHHHHHLLLLHLLHHLLLLLLHHHLLHHLLLLLLHHHHHLLLLHLLHLHHHHLLHLLHHLHHLLHHLHHHLLHLHLLLLLLHLHLLHHLLLLLLHHLLLLHLHLLLL
+LLLHLLLLLLHLLLLLLLHHLHLLLLLHLLLLLHLLHLHLLLHLLLLLLLLLHLLLLHLHLHLLHLLLLLLHLHLLLHLHHHLLLLHLHLHLLLLHLHLLLLLLHLHLLLHLHHHLLLLHLHLHLLLLLHHLHHHLLHHHLLHHLHHHHHHLHLHHHHHHLLLHLLLLHLLLLLLLLHLLLHLLHHLLLLLLLLLLLLHLHLLLLLLLLHLLLLLHLLLLLLHLLLLHLLHLHLLLLLLHLLHLLHLLHLLLLLHLHHHLHLLLLHHHLHLLLLLHHLHLLLHLHHLHLHHHLHLLLLHHHLHLLLLLHHLHLLLHLHHLLLLHHHLHHLHHLLHHHHHHHHLLHHHHHHHLLLLLLHLLLLLHHLHHLHLLLLHLLLLLHHHLLLHLLLLLLLLLHLHLLHLLLLHLHLLLLHHLHHHLLHLLHLLHLLLLLLLHLLHLHLLLHLHLLLLHLLHLLHHLLLLLHLHLLHLLLHLLLLLHLLLLHLLHLLHHLLLLLHLHLLHLLLHLLLLLHLLHHHHLLHLHLHHHHHLHHLLHHHHHLLHHHLHLLHHLLHHLLLLHLLLLLLLLLLLHHLLLHLHHLHHLLHLLHLLHLLLLLLLLLLLLHLLLLLHLLLHLLHLLHLLLHLLHLLLLHLLHLHHLLHLLHLHHHLHHLHHLLHHLLLHHLHHLLLLHLLHLLHLHHHLHHLHHLLHHLLLHHLHHLLLL
+; 
+      "test_si"=
+1000000010000000001001000100110000000000000000000000000000000000000000000000001000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000001000000000000010001000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000010000000000010000000000100110000000000000000000000000000000100000000000000000000000000000001000000010000000000000000000000010000000100000000000000000000000000000000010000000000000001110000000001010001000001000000001000000000000000000000000010000000000000000000000000000000100000000000000000000000000000001000000000000000000000000000000010000000000000000000000000000000000000010000100000000000000000000000000010000000000000000000000000000000000000000000000000000010000000000000000000000000000000000001000000000000000000000000001000010000000000000000001000000000000000000000000001001000000000000011000100000000010000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000001000000000000000010000000000000100000000000000000000000000000001000000000000000000000000000000010000000000000000000000000000000100000000000000000000000000000000000000000110000000000000100000000000000000000001010000100000000000001000000000000000000000000000000010000000000000000000000000000010000000000000000000000000000000001000000000000000000000000000001010000000000000000000000000001001010000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000010000000000000000000000000000000000000000000000010000000000010000000
+; }
+   Call "capture_CK" { 
+      "_pi"=10000000100010000110110001000111001101; "_po"=HLLLLLLLHLLLLLLLLHHHLHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLHLHLLHLLLLLLLLLHLLLLHLHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLHLLLLLLLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLHLLLHHLLLLLLLLLLLLLHLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHLLLLLHLLLLLLLLLLLHHLLHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHLLHHLLHLLLHLLHLLLLLLLLLHLLLLLLLH; }
+   "pattern 14": Call "load_unload" { 
+      "test_so"=
+HHHHHHHLHHHHHHHLHLHHHHHHLHHHLHHLLLLLLLLLLLLLLLHLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLHHLLHLLLHLLHLLLLLLLLLHLLLLLLLHHLLLLLLLLLLLLLLHLLLLLLLLLLLLLHLLHHHHHHHHHHLHHHHLHHHHLHHHHHHLHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHHLLLLLLLLLLHLLLLLLLLLLLLLLLLLHLLHHHHHHHLLHHHHHHHHHLHHLLHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHLLHLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLLLLLLLHHHLLLLLLLLLHLHHLHHHHHLHHHHHHHHLHLHHHHHHHHHHHHLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHLLLLLHLLLHLLLLLLLLLLLLLLLLLLLHLLLLHLLLLLLHHHHHHHHHHHHHHHHHHHLHHHHHHHHHHHHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLHLLHLLLLLLLLLLLLLLLLLLLLLLLLLLHLHHHHHHHHHHHHHLLLHHLHLHHHHHHLLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLHLLLHHLLLLLLLLLLLLLHHLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLHHHHHHHLHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLHLLLLLLLLHLLLLLLLLLLLLLLLLLHHLLLLLLLLLLLLHHHHHHHHHHHHHHHLHHHLLHLHLHHLHLHLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLHLLLLHLHLLLLLLLLLLLLLLLLLLLLLLHHLLLLLLLLLLHLHLLLLLLLLLLLLLLLLLLHHHHHHHLHHLHLHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHLLHLLLLLLLLHLLLLLLLLLLLLHLLLLLLLLLLLHLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000001000000000100010110000000000001000001010011000001100000010000000100011001110010000000000000000101000001010000010011000000000000000000000000000000000000000000100001100000000000000000000010000001011000100110100100001000100100011010000001000000000000000101000010100010000010010000100000010000001000000111010000000000000000000000000000000000000000000010000000010000000001010000001000001000101000100000001000111000000000101010000010000000100000001000011000000000100000100010100010001010000100100000000000000000000000000000000000000000000000000000000001000000010001000000000000011000101000000000010100000000110101001000000001000110001010000001100010001000010001010000101011010000101000000100001101100000000000000000000000000000000001110001000000100010100000101100010000010010010010000000100000110001100001010100000010001000000011001001010000000011100011111010100000010001000010011000010100111000000000000000000000000000000000000010100000000000100010000000010001101000001011000010010000010
+00001000000000010101010000001000010010011000010111001000000000101000010100000101000101000000000000000000000000000000000000000000010000000000101100000000000000010010100010001000100110110000111101101000001110100000000100000101000000000011100010001011010011000100000010111000000110000100101100000000000000000000000000000000010000100100000000010001000001100000000000000100000110110110000000001000000010000001000001000000000010100100000000001001110000000000100010001000001100010100000000000000000000000000000000000000000000010000000000010000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=00000010001110111111010011011010011100; "_po"=LLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLHLLLLLLLLHHLLLLLHLLLHLLLLLLLLLHLLHLLLLHLHLLLLLLLLLLLLLLLHHLHLLLLLLLLLLHLLLLLLLLLHLLLHLLLLLLLLLLLHLHLLLLLLLLHHLHLLLLLHLHLLLHLLLLLLHLLLHHHLLLLLLLHLLLHLLLLLLLHLLLLLLLLLLLLLLLLLHLHLLLLLLLLLHLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLHHLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 15": Call "load_unload" { 
+      "test_so"=
+HHHHLLHLHHHLHHHHHHHHHLHHHHHHHHHHLLLLLLLLHLLLLLHLHLLHHLLLLLHHLLLLLLHLLLLLLLHLLLHHLLHHHLLHLLLLLLLLLLLLLLLLHLHLLLLLHLHLLLLLHLLHHLLLHHLLHLHHLHHLLHLHHHHHHLHHHLLLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHLLHLHLHLHLHHHLLHLHHHHHHLHHHLLLHLLHLLLHHLHLLLLLLHLLLLLLLLLLLLLLLHLHLLLLHLHLLLHLLLLLHLLHLLLLHLLLLLLHLLLLLLHLLLLLLHHHLHLLLLLLLLLHLLLLLLLHLLLLHLLLLHLLHLLLHHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHLHHHHHHLLHHHLHLHHLLLHHHHLHLLLLLLLLLHLHLHLLLLLHLLLLLLLHLLLLLLLHLLLLHHLLLLLLLLLHLLLLLHLLLHLHLLLHLLLHLHLLLLHLLHLLLLLLLLLLLLLLLLLLHLHLLLLLHLLLLLLLHLHLHLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHLHLHHHLHHHHHHLLLHHLLLHHHHHHLLLHHLHLHLLHLLLLLLLLHLLLHHLLLHLHLLLLLLHHLLLHLLLHLLLLHLLLHLHLLLLHLHLHHLHLLLLHLHLLLLLLHLLLLHHLHHLLLHLLLLLLHHLLLLHLLLLLLLLLLLLHLLHLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHHLHHLHHHLHHLHHLLLHLHLLLHHHHHLLHHLLLLHLHLHLLLLLLHLLLHLLLLLLLHHLLHLLHLHLLLLLLLLHHHLLLHHHHHLHLHLLLLLLHLLLHLLLLHLLHHLLLLHLHLLHHHLHLLLLLLHLLLLLLHLLLLHLLLHLHLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHHLHLLHHLHHHHLLHHHHHLHLHLLHHHLLLLLHLLLLLLLLLLHLHLHLHLLLLLLHLLL
+LHLLHLLHHLLLLHLHHHLLHLLLLLLLLLHLHLLLLHLHLLLLLHLHLLLHLHLLLLLLLLLLLLHLLLHLLHLLLLLLLHLHLLLHLHLHLHLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLHHHHLLHHLLLLHHHLHHHLHHHLHLLHLHHLHLLLLLHHHLHLLLLLLLLHLLLLLHLHLLLLLLLLLLHHHLLLHLLLHLHHLHLLHHLLLHLLLLLLHLHHHLLLLLLHHLLLLHLLHLHHLHLLHLLHHLLLLHLLLLLLHHLLHLLLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHLHHLHLLHHHHHHHHHLHHHHHLLHHLLLLHLLLLLLLHLLLLLLHLLLLLHLLLLLLLLLLHLHLLHLLLLLLLLLLHLLHHHLLLLLLLLLLHLLLHLLLHLLLLLHHLLLHLHLLLLLLLLLLLLLLLLHHLLHLLLLLHLLHLLLLHHLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHLHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHLHHLLLHLLLLHHLLHHHLHLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000100000101000000010010000001010001000100000000000000000000010000010000000000100001001010000101000000010101000000010000000000010000000101000000000000001000000000000000000000000000000000000000100100000000000001100000000000000001000000010000000000000000000011010000000100000100100000000000010100000000000000100000000000001101000000000000000010000000000000000000000000000000000000000010000101010000000000000000100000100010001100000000000000000010010000000001000000000000100000100000000000010000000000001000100000100000000100000000000000000000000000000000000000000000000000011000000000011001010000100000100001000000000001110000000001000101010000000001010101000100000010011000000000011011000001000000110000000000000010000000000001000000000000000000000000000000000000001000000000000101001000001000000000000000000011111000000100000001000000000000011100000000000000011000000000000011100000010010000010100100000000000010000000000000000000000000000000000000000000000000000000001010100000100000000
+01000000000000010000000001000000000000000000000000000000000000000000000000000100110010000000000000000000000001001000000001000000000000000000000000000000000000000000100000010010001010000000000000000000000100000010100000100000010001000000001000000100001000000000010000000010000000000000000000000100000100000000010000000000000000000000000000000000000000001001000000000000000000000100100010010011000010010100001001001010110000110000100000000000000000001100000000000000001000101000100010010011000000000100000010001010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=10010001000111011111101001101101001110; "_po"=LHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 16": Call "load_unload" { 
+      "test_so"=
+HHHHLHHLHHHHHHHLHLHHHHHLHHHHHHHHLLHLHLLLHLLLHLLLLLLLLLLLLLLLLLLLLLHLLLLLHLLLLLLLLLLHLLLLHLLHLHLLLLHLHLLLLLLLHLHLHLLLLLLLHLLLLLLLLLHLLLLLHLLLLLLLHHHLHHHHLHHHHLHHHLLLLHLLLLLLLHLHLLLLLLLLLLLLLLHLHHHHHHHHLLHHHHHHHHHHHHHLHHLHHHHHLLLLLLLLHLLLLLLLHLLLLLLLLLLLLLLLLLLLLHHLHLLLLLLLHLLLLLHLLHLLLLLLLLLLLLHLHLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHLHHHHHHHLLLLLHHLHLLLLLLLLLLLLLLLLHLLLLLHHLHHHHHHHHHHHHHHHHLHLHLHHHHLHHHLLLHLLLHLLLHHLLLLLLLLLLLLLLLLLLHLLHLLLLLLLLLHLLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLHLLLLLLLLLLLLHLLLHLLLLHLLLLHHLHHLLLLHHHHHHHHHHHHHHHHHLLLHLLLLLLLLHLLLLLLLLLLLLLLLLLLHHLHHHHHLHHHHLHLHHLLHHHHHHHHHHLLLLHLLLLLLLLLLLHHHLLLLLLLLLHLLLHLHLHLLLLLLLLLHLHLHLHLLLHLLLLLLHLLHHLLLLLLLLLLHHLHHLLLLLHLLLLLLHHLHLLLLLLLLLLLHLLLHHHHHHHLHHLHHLHHHLLLLLLLLLLLLLHLLLLLLLLLLLLHLLLLHHHHHHLHHHHHLHHLHLHHHHHHHHHHHHLHLLLLLLLLLLLLLHHHHHLLLLLLHLLLLLLLHLLLLLLLLLLLLLHHHLLLLLLLLLLLLLLLHHLLLLLLLLLLLLLHHHLLLLLLHLLHLLLLLLLLLLLLLLLLLHHHHHHLHHHHHLHLHHHHHLHLHLLHLLLLLLLLLLLLHLLLLLLLLLLLHHHHHHHHLHHHHHLHLHLHHHHHHHHHHHHHLHLLLLLLLLLLLLLHLLLLLLLLLHLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLHHLLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLHHHLHHLHLHHHHHHHLLLLLLLLLLLLLHLLHLLLLLLLLHLLLLLHHHHHHHHHHHLHLHHHLHHLHHHHHHLHHHHLLLLLLLLLLLHLLLLLLHLHLLLLLHLLLLLLHLLLHLLLLLLLLHLLLLLLHLLLLHLLLLLLLLLLHLLLLLLLLHLLLLLLLLLLLLLLLLLLHLLHLLLLLLLLLHLHHHHHLHHHHHHHHHHHLLLLLHLLLLLHLLLLLLLLLHLLLLLLLLLHHHLHHLHHHHHHHHHHHHHHHHHHHHHLHHLHLLHLLHHLLLLHLLHLHLLLLHLLHLLHLHLHHLLLLHHLLLLHLLLLLLLLLLLLLLLLLLLHHLLLLLLLLLLLLLLLLHLLLHLHLLLHLLLLLLLLLLLLLLLLLLHHLLHHHHHLHHHLHLHHHLLHLLHHLLLLLLLLLHLLLLLLHLLLHLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000000000000001000000010000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000001000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000100000001010000000000000000000000000000000000000000000000000000010000000000000000000000000000000100000001000000000000000000000000000000000000000000000000000100000000000000000001000000000000010001000000000000
+00000000000000000000000000000000000000000000000100000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=00011010111100010011111111001111011110; "_po"=LHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 17": Call "load_unload" { 
+      "test_so"=
+HHHHLHHHHHHHLHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHLHHHHHHHLHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLHLLHHHHHHHHHHHHHHLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHLHLHHHHHHHLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLHLHHHHHHHHHLHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHLHHHHHHHHHHHHHLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHLHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHLHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHLHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000010000010000010000000000000000010000000000000100000000000000000000000010000001000000100000000000100000100000000000001000000000011000000000000000000010000000000000000001100000010000100010000000010100000000000000000000010100000000000000000000000000000000000000000000000000100000000000010000000000000000001000000000000000000000000000000000000000000000000000000000000010000000000001000010000000000110000010000000000000000000000000000000000000000000000000000000000001000000000000000000000000000100010010000000000000000000000000000000000000000000000000000000000000000000000110100010000010000000000110001000000000000000100000000000000110000010000000001000000000010000000000100000000010000000000100010010000010000000000000000000000000000000000000000000001001000001100000000000000110010000000000000000000000100100000000000000000000000000000001000001000000000000100000000000000010000000000000001000000000000000100000000000000000000000000000000010000000000001000000000001100000000100001000000000000000000000
+00000000001000000000000000000000000000000000000000001000000000000000000000000000100010000000000000000000000000000000000000000000000000100001000001001101000000000000000001001001000010000010000100000000000000110001100000000001000000000000000100010000000000000000000000000011000000000000000000000000000000000000000000000000110000000001100011000000000000000000000000000000000000000000000100000010000000000000100010000000000000000000000000000000100000000000001000000000000000000000000000000000000000000000000000000000000000010000100001000000110000000000000110000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=00001111000001110101110100011110010100; "_po"=LLLLLLLLLLLLHLLLLLLLLLLLHHLLLLLLLLLLLLLHHLLLLLLHLLLLHLLLLHLLLLLLLLLLLLLLLLLLLLLHHLLLHHLLLLLLLLLHHLLLLLLLLHLHHLLHLLLLLHLLLLHLLLLLLLLLHHLLLLLLLLLLLHLLLLLLLLLLLLHLLHLLLLLLLLLLLLLLHHLLLLLHLLHLLLLLLLLLLLHLLLHLHHLLLLLLLLLLLLLLLLLLLLLLLLHLLLLHLLLLLLLLLLLLHLLLLLLLLHLHLLLLLLLLHLLLHLLLLHLLLLLLHHLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 18": Call "load_unload" { 
+      "test_so"=
+HHHHLHHHHHHHHHHHHHHHHHLHHHHHHHHHLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLHLLLLLLHLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLLHLLLLLLLLLLHHLLLLHLLHHHHLLLHLHHHLHLHHHLLLLLHHHHLHLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLHHLLHHHHLHHHHHHLHHHLHHHHHHHHLHLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHLHHHHHHHHHHHLLHHHHHLHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLHLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHLHHLHLLHHHLHHHHHLHLLLLLLLLLLLLLLHHLLLLLHLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLHLLLLLLLLLLHLLLHLLHLLLLLHLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHLHHHHHLHHHHHLLHHHHHHHHHHHHLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLHLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLHHLLLLLHLLLLLHLLLLLLLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHHHHHHHHHHHHLHHHHHHLHHHHHLHHHHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHLLHHHHHHHHLHHHHHHHHHHHLLLLLLLLLLLLLLHHLLLHHLLLLLLLLLLHLLLLLLLLLLLLLLLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLHHLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHLLHHHHLHHHLHHHHHHLHHHLLLLLLLHLLLLLLLLLLLLLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLHLLLLLLLLLLLLLHLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHLHHHHHHHHHLHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000000000001000000000100010000000000000000100010000001000000000000000000000000100000010001000000000000000010001000000000010000000000000000110010000001000100000000000000000000000000000000000000000000000000000001000000000001000010000010000000010000000000000000000000000000000000000000000100001000001000000001000000000001000010000010000000010000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000100000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000001000000010000000000000000000000010000000100000000000000100000000100000001000000000000001000000001000000010000000000000010000000010000000100000000000000100000000000000000000000000000000000010001000000000000000000000000000100010000000000000000000000000000000110000000000010000000000001000001100000000000000000000000000100011000000100001000000000000100000000000000000000000000000000000000000000000000000000000000000
+00000000001000000000000000000000000000100000000000000000000000000000001000100000000000000000010000000010001000000000000000000100000000000000000000000000000000000010000000000100100000000000000000000000001001000000000000000010000000000000000000000000000000100010000000100000001000000000001000100000001001001010000000000010000000000000100000000000000000000010010000000000000010000100000000100100000000000000000001000000000001000000000000000000000000000000010000000000000000000100000000100100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=00000111100000111010111010001111001110; "_po"=LHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 19": Call "load_unload" { 
+      "test_so"=
+HLHHHLHHHHHHHHHLHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLHLLLHLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLHLLLHLLLLLLLLLLLLLLLLHLLLHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLHHLHHHHHHLHHHLHHLLLLLLLLLLLLLLLHHLLHLLLLLLHLLLHHHHHHHHHHLHHHHHHHHHHHHHHHHHHHHHHLLHLLLLHLLLLLHLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLHLLLLLHLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHLHHHHHHHHHHLLHLLLLHLLLLLHLLLLLLLLHLLLLLLLLHHHHHHHHHHLHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHLLHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLHHLLLLLLLLLHHHHHHHHHHHHHHHHHHHLHHHHHHHLHHHHLLLLHLLLLLLLHLLLLLLLLLLLLLLHLLLLLLLLHLLLLLLLHLLLLLLLLLLLLLLHLLLLLLLLHLLLLLLLHLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHLHHHHHLLLLHLLLLLLLHLLLLLLLLLLLLLLHLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHLHHHLHLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHLLLLLLLLLLLHLLLLLLLLLLLLHLLLLLHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLHHHHHHHHHHHHLHHHLLLHHLLLLLLHLLLLHLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLL
+LLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLHLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHLHHHLLLLLLHLLLHLLLLLLLLLLLLLLLLLLHLHHHHHHHHHHHHHHHLHHLHHHHHHHHHHLHHLLLLLLLLLLHLLHLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLHLLLLLLLHLLLLLLLHLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLHLHHHHHHHHHHHLHHLLHLLLLLLLHLLHLLHLHLLLLLLLLLLLHHHHHHHLHHHHHHHHHHHHHHHHHHHLHHLHHLLHLLHLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLHHHHLHHHHLHHHHHHHLLHLLHLLLLLLLLLLLLLLLLLLLHLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000001100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000100000000000000001000000000000000000000000000000010100000000000000000000000000000010000100000100111000010000100001000000001000000000101000001110000001000010010000000100001000001100010011001000000000000000010000
+; }
+   Call "capture_CK" { 
+      "_pi"=10000011110000011101011101000111100011; "_po"=LHLHLHHHLHHLLLLHLLLHHHLHHLLLHHHLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 20": Call "load_unload" { 
+      "test_so"=
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000010000000000000000000000000000000100000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000
+00000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100100000000011000010000000000001001000000100110000100000001000010101000000000100001000000010000101010000010001000010000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=10000001111000001110101110100011110111; "_po"=LHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "pattern 21": Call "load_unload" { 
+      "test_so"=
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHLHHHHHHHHHHHHHLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHLHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHLHHHHLLHHHHHHHHHLHHLHHHHLLLLHLLHLLLLLLHLLHHLLLLHLLLLLLLHLLLLHLHLHLLLLLLLLLHLLLLHLLLLLLLHLLLLHLHLHLLLLLHLLLHLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; 
+      "test_si"=
+0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+; }
+   Call "capture_CK" { 
+      "_pi"=10010000111100000111010111010001111101; "_po"=LLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL; }
+   "end 21 unload": Call "load_unload" { 
+      "test_so"=
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHLHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLHLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+; }
+}
+
+// Patterns reference 89 V statements, generating 39810 test cycles
