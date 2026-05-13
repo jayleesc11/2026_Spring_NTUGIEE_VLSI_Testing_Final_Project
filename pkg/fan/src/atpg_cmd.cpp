@@ -984,6 +984,14 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 		npat = fanMgr_->pcoll->patternVector_.size();
 	}
 
+	PatternProcessor::CaptureFFTCStats fftcStats;
+	PatternProcessor::ShiftFFTCStats shiftFftcStats;
+	if (fanMgr_->pcoll)
+	{
+		fftcStats = fanMgr_->pcoll->calculateCaptureFFTCStats();
+		shiftFftcStats = fanMgr_->pcoll->calculateShiftFFTCStats();
+	}
+
 	size_t numCollapsedFaults = 0;
 	size_t fu = 0;
 	size_t ud = 0;
@@ -1039,7 +1047,7 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 	std::cout << "#  Pattern type                  " << std::setw(19) << ptype << "\n";
 	std::cout << "#  -------------------------------------------------\n";
 	std::cout << "#  Fault classes                             #faults\n";
-	std::cout << "#  ----------------------------  -------------------\n";
+	std::cout << "#    --------------------------  -------------------\n";
 	std::cout << "#    FU (full)                   " << std::setw(19) << fu << "\n";
 	std::cout << "#    FU (collapsed)              " << std::setw(19) << numCollapsedFaults << "\n";
 	std::cout << "#    --------------------------  -------------------\n";
@@ -1062,6 +1070,39 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 	std::cout << std::setw(5) << ae << "%\n";
 	std::cout << "#  -------------------------------------------------\n";
 	std::cout << "#  #Patterns                     " << std::setw(19) << npat << "\n";
+	std::cout << "#  -------------------------------------------------\n";
+	std::cout << "#  Power metric\n";
+	std::cout << "#    -----------------------------------------------\n";
+	std::cout << "#    scan flip-flops             " << std::setw(19) << fftcStats.scanFlipFlopCount_ << "\n";
+	std::cout << "#    shift FFTC\n";
+	std::cout << "#      ---------------------------------------------\n";
+	if (shiftFftcStats.shiftCycleCount_ == 0)
+	{
+		std::cout << "#      status                    " << std::setw(19) << "N/A" << "\n";
+	}
+	else
+	{
+		std::cout << "#      shift operations          " << std::setw(19) << shiftFftcStats.shiftOperationCount_ << "\n";
+		std::cout << "#      shift cycles evaluated    " << std::setw(19) << shiftFftcStats.shiftCycleCount_ << "\n";
+		std::cout << "#      total FFTC                " << std::setw(19) << shiftFftcStats.totalShiftFFTC_ << "\n";
+		std::cout << "#      average FFTC/cycle        " << std::setw(19) << shiftFftcStats.averageShiftFFTC_ << "\n";
+		std::cout << "#      maximum FFTC/cycle        " << std::setw(19) << shiftFftcStats.maxShiftFFTC_ << "\n";
+		std::cout << "#      unknown transitions       " << std::setw(19) << shiftFftcStats.totalUnknownShiftPairs_ << "\n";
+	}
+	std::cout << "#    -----------------------------------------------\n";
+	std::cout << "#    capture FFTC\n";
+	std::cout << "#      ---------------------------------------------\n";
+	if (fftcStats.patternsWithCaptureData_ == 0)
+	{
+		std::cout << "#      status                    " << std::setw(19) << "N/A" << "\n";
+	}
+	else
+	{
+		std::cout << "#      total FFTC                " << std::setw(19) << fftcStats.totalCaptureFFTC_ << "\n";
+		std::cout << "#      average FFTC/pattern      " << std::setw(19) << fftcStats.averageCaptureFFTC_ << "\n";
+		std::cout << "#      maximum FFTC/pattern      " << std::setw(19) << fftcStats.maxCaptureFFTC_ << "\n";
+		std::cout << "#      unknown transitions       " << std::setw(19) << fftcStats.totalUnknownCapturePairs_ << "\n";
+	}
 	std::cout << "#  -------------------------------------------------\n";
 	std::cout << "#  ATPG runtime                  " << std::setw(17) << rtime;
 	std::cout << " s\n";

@@ -5,22 +5,23 @@
 Contains the reports after ATPG or Fault Simulation.
 A report records the important statistics:
 
-- FaultModel<br>
-\- SAF (Stuck At Fault) or TDF (Transition Delay Fault)
+- FaultModel: SAF (Stuck At Fault) or TDF (Transition Delay Fault)
 
-- FU (full)<br>
-\- Full fault list extracted
+- FU (full): Full fault list extracted
 
-- FU (collapsed)<br>
-\- Full fault list after fault collapsing
+- FU (collapsed): Full fault list after fault collapsing
 
-- DT (detected)<br>
-\- Detected faults
+- DT (detected): Detected faults
 
 - test coverage, fault coverage, atpg effectiveness<br>
 
-- #Patterns<br>
-\- Test Length
+- \#Patterns: Test Length
+
+- Power metric: FFTC (Flip-Flop Transition Count)
+    Note that pessimistic unknown policy is used: unknown transitions are counted as possible toggles
+
+  - Shift FFTC: assuming all initial scan state 0. Final unload is not included, matching TestMAX `report_power` shift switching.
+  - Capture FFTC
 
 - Runtime
 
