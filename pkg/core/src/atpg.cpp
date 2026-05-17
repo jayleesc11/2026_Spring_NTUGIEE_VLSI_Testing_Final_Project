@@ -486,9 +486,9 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		pPatternProcessor->patternVector_.push_back(pattern);
 		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
 
-		if ((pPatternProcessor->staticCompression_ == PatternProcessor::OFF) && (pPatternProcessor->XFill_ == PatternProcessor::ON))
+		if (pPatternProcessor->staticCompression_ == PatternProcessor::OFF)
 		{
-			randomFill(pPatternProcessor->patternVector_.back());
+			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 		}
 
 		pSimulator_->parallelFaultFaultSimWithOnePattern(pPatternProcessor->patternVector_.back(), faultPtrListForGen);
@@ -658,12 +658,7 @@ void Atpg::StuckAtFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *
 		storeCurrentAtpgVal();
 		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
 
-		if (pPatternProcessor->XFill_ == PatternProcessor::ON)
-		{
-			// Randomly fill the pats_.back().
-			// Note that the v_, gh_, gl_, fh_ and fl_ do not be changed.
-			randomFill(pPatternProcessor->patternVector_.back());
-		}
+		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 
 		//  This function will assign pi/ppi stored in pats_.back() to
 		//  the gh_ and gl_ in each gate, and then it will run fault
@@ -4514,7 +4509,7 @@ void Atpg::XFill(PatternProcessor *pPatternProcessor)
 {
 	for (int i = 0; i < (int)pPatternProcessor->patternVector_.size(); ++i)
 	{
-		randomFill(pPatternProcessor->patternVector_[i]);
+		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_[i]);
 		pSimulator_->assignPatternToCircuitInputs(pPatternProcessor->patternVector_.at(i));
 		pSimulator_->goodSim();
 		writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.at(i));

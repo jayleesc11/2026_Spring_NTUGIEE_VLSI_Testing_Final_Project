@@ -711,9 +711,9 @@ SetXFillCmd::SetXFillCmd(const std::string &name, FanMgr *fanMgr) : Cmd(name)
 	fanMgr_ = fanMgr;
 	optMgr_.setName(name);
 	optMgr_.setShortDes("set X-Fill");
-	optMgr_.setDes("set X-Fill on/off");
-	optMgr_.regArg(new Arg(Arg::REQ, "either on or off",
-												 "on/off"));
+	optMgr_.setDes("set X-Fill mode");
+	optMgr_.regArg(new Arg(Arg::REQ, "off, on/random, adjacent, or power",
+												 "MODE"));
 	Opt *opt = new Opt(Opt::BOOL, "print usage", "");
 	opt->addFlag("h");
 	opt->addFlag("help");
@@ -734,7 +734,7 @@ bool SetXFillCmd::exec(const std::vector<std::string> &argv)
 
 	if (optMgr_.getNParsedArg() < 1)
 	{
-		std::cerr << "**ERROR SetXFillCmd::exec(): on/off needed";
+		std::cerr << "**ERROR SetXFillCmd::exec(): X-Fill mode needed";
 		std::cerr << "\n";
 		return false;
 	}
@@ -744,18 +744,34 @@ bool SetXFillCmd::exec(const std::vector<std::string> &argv)
 		fanMgr_->pcoll = new PatternProcessor;
 	}
 
-	if (optMgr_.getParsedArg(0) == "on")
+	if ((optMgr_.getParsedArg(0) == "on") || (optMgr_.getParsedArg(0) == "random"))
 	{
-		std::cout << "#  X-Fill set to on"
+		std::cout << "#  X-Fill set to random"
 							<< "\n";
 
 		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_RANDOM;
+	}
+	else if (optMgr_.getParsedArg(0) == "adjacent")
+	{
+		std::cout << "#  X-Fill set to adjacent\n";
+
+		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_ADJACENT;
+	}
+	else if (optMgr_.getParsedArg(0) == "power")
+	{
+		std::cout << "#  X-Fill set to power\n";
+
+		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_POWER;
 	}
 	else if (optMgr_.getParsedArg(0) == "off")
 	{
 		std::cout << "#  X-Fill set to off\n";
 
 		fanMgr_->pcoll->XFill_ = PatternProcessor::OFF;
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_RANDOM;
 	}
 	else
 	{

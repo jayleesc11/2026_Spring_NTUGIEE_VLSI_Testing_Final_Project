@@ -78,6 +78,12 @@ namespace CoreNs
 			OFF = 0,
 			ON
 		};
+		enum XFillMode
+		{
+			XFILL_RANDOM,
+			XFILL_ADJACENT,
+			XFILL_POWER
+		};
 
 		struct CaptureFFTCStats
 		{
@@ -107,6 +113,7 @@ namespace CoreNs
 		State staticCompression_;	 // Flag; ON = need static compression
 		State dynamicCompression_; // Flag; ON = need dynamic compression
 		State XFill_;							 // Flag; ON = need X-Filling
+		XFillMode XFillMode_;		 // X-Fill strategy when XFill_ is ON.
 
 		Type type_;
 		int numPI_;
@@ -160,6 +167,7 @@ namespace CoreNs
 		staticCompression_ = OFF;
 		dynamicCompression_ = OFF;
 		XFill_ = OFF;
+		XFillMode_ = XFILL_RANDOM;
 
 		type_ = BASIC_SCAN;
 		numPI_ = 0;
