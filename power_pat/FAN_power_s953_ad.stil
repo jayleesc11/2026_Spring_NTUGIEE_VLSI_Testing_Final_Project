@@ -1,0 +1,932 @@
+STIL 1.0;
+
+Signals {
+   "CK" In;
+   "test_si" In { ScanIn; }
+   "test_se" In;
+   "Rdy1RtHS1" In;
+   "Rdy2RtHS1" In;
+   "Rdy1BmHS1" In;
+   "Rdy2BmHS1" In;
+   "InDoneHS1" In;
+   "RtTSHS1" In;
+   "TpArrayHS1" In;
+   "OutputHS1" In;
+   "WantBmHS1" In;
+   "WantRtHS1" In;
+   "OutAvHS1" In;
+   "FullOHS1" In;
+   "FullIHS1" In;
+   "Prog_2" In;
+   "Prog_1" In;
+   "Prog_0" In;
+   "test_so" Out { ScanOut; }
+   "ReWhBufHS1" Out;
+   "TgWhBufHS1" Out;
+   "SeOutAvHS1" Out;
+   "LdProgHS1" Out;
+   "Mode2HS1" Out;
+   "ReRtTSHS1" Out;
+   "ShftIRHS1" Out;
+   "NewTrHS1" Out;
+   "Mode1HS1" Out;
+   "ShftORHS1" Out;
+   "ActRtHS1" Out;
+   "Mode0HS1" Out;
+   "TxHInHS1" Out;
+   "LxHInHS1" Out;
+   "NewLineHS1" Out;
+   "ActBmHS1" Out;
+   "GoBmHS1" Out;
+   "LoadOHHS1" Out;
+   "SeFullOHS1" Out;
+   "GoRtHS1" Out;
+   "LoadIHHS1" Out;
+   "SeFullIHS1" Out;
+}
+
+SignalGroups {
+   "_pi" = '"CK" + "test_si" + "test_se" + "Rdy1RtHS1" + "Rdy2RtHS1" + "Rdy1BmHS1" + "Rdy2BmHS1" + "InDoneHS1" + "RtTSHS1" + "TpArrayHS1" + "OutputHS1" + "WantBmHS1" + "WantRtHS1" + "OutAvHS1" + "FullOHS1" + "FullIHS1" + "Prog_2" + "Prog_1" + "Prog_0"';
+   "_in" = '"CK" + "test_si" + "test_se" + "Rdy1RtHS1" + "Rdy2RtHS1" + "Rdy1BmHS1" + "Rdy2BmHS1" + "InDoneHS1" + "RtTSHS1" + "TpArrayHS1" + "OutputHS1" + "WantBmHS1" + "WantRtHS1" + "OutAvHS1" + "FullOHS1" + "FullIHS1" + "Prog_2" + "Prog_1" + "Prog_0"';
+   "_si" = '"test_si"' { ScanIn; }
+   "_po" = '"test_so" + "ReWhBufHS1" + "TgWhBufHS1" + "SeOutAvHS1" + "LdProgHS1" + "Mode2HS1" + "ReRtTSHS1" + "ShftIRHS1" + "NewTrHS1" + "Mode1HS1" + "ShftORHS1" + "ActRtHS1" + "Mode0HS1" + "TxHInHS1" + "LxHInHS1" + "NewLineHS1" + "ActBmHS1" + "GoBmHS1" + "LoadOHHS1" + "SeFullOHS1" + "GoRtHS1" + "LoadIHHS1" + "SeFullIHS1"';
+   "_out" = '"test_so" + "ReWhBufHS1" + "TgWhBufHS1" + "SeOutAvHS1" + "LdProgHS1" + "Mode2HS1" + "ReRtTSHS1" + "ShftIRHS1" + "NewTrHS1" + "Mode1HS1" + "ShftORHS1" + "ActRtHS1" + "Mode0HS1" + "TxHInHS1" + "LxHInHS1" + "NewLineHS1" + "ActBmHS1" + "GoBmHS1" + "LoadOHHS1" + "SeFullOHS1" + "GoRtHS1" + "LoadIHHS1" + "SeFullIHS1"';
+   "_so" = '"test_so"' { ScanOut; }
+   "_default_In_Timing_" = '"test_si" + "test_se" + "Rdy1RtHS1" + "Rdy2RtHS1" + "Rdy1BmHS1" + "Rdy2BmHS1" + "InDoneHS1" + "RtTSHS1" + "TpArrayHS1" + "OutputHS1" + "WantBmHS1" + "WantRtHS1" + "OutAvHS1" + "FullOHS1" + "FullIHS1" + "Prog_2" + "Prog_1" + "Prog_0"';
+   "_default_Out_Timing_" = '"test_so" + "ReWhBufHS1" + "TgWhBufHS1" + "SeOutAvHS1" + "LdProgHS1" + "Mode2HS1" + "ReRtTSHS1" + "ShftIRHS1" + "NewTrHS1" + "Mode1HS1" + "ShftORHS1" + "ActRtHS1" + "Mode0HS1" + "TxHInHS1" + "LxHInHS1" + "NewLineHS1" + "ActBmHS1" + "GoBmHS1" + "LoadOHHS1" + "SeFullOHS1" + "GoRtHS1" + "LoadIHHS1" + "SeFullIHS1"';
+}
+
+Timing {
+   WaveformTable "_default_WFT_" {
+       Period '100ns';
+       Waveforms {
+           "CK" { 0 { '0ns' D; } }
+           "CK" { P { '0ns' D; '50ns' U; '75ns' D; } }
+           "CK" { 1 { '0ns' U; } }
+           "CK" { Z { '0ns' Z; } }
+           "_default_In_Timing_" { 0 { '0ns' D; } }
+           "_default_In_Timing_" { 1 { '0ns' U; } }
+           "_default_In_Timing_" { Z { '0ns' Z; } }
+           "_default_In_Timing_" { N { '0ns' N; } }
+           "_default_Out_Timing_" { X { '0ns' X; } }
+           "_default_Out_Timing_" { H { '0ns' X; ' 90 ns' H; } }
+           "_default_Out_Timing_" { T { '0ns' X; ' 90 ns' T; } }
+           "_default_Out_Timing_" { L { '0ns' X; ' 90 ns' L; } }
+       }
+   }
+}
+
+ScanStructures {
+   ScanChain "chain1" {
+       ScanLength 29;
+       ScanIn "test_si";
+       ScanOut "test_so";
+       ScanInversion 0;
+       ScanCells "TOP.U_State_5.SI" "TOP.U_State_4.SI" "TOP.U_State_3.SI" "TOP.U_State_2.SI" "TOP.U_State_1.SI" "TOP.U_State_0.SI" "TOP.U_ActRtHS1.SI" "TOP.U_ActBmHS1.SI" "TOP.U_GoRtHS1.SI" "TOP.U_GoBmHS1.SI" "TOP.U_NewTrHS1.SI" "TOP.U_ReRtTSHS1.SI" "TOP.U_Mode0HS1.SI" "TOP.U_Mode1HS1.SI" "TOP.U_Mode2HS1.SI" "TOP.U_NewLineHS1.SI" "TOP.U_ShftORHS1.SI" "TOP.U_ShftIRHS1.SI" "TOP.U_LxHInHS1.SI" "TOP.U_TxHInHS1.SI" "TOP.U_LoadOHHS1.SI" "TOP.U_LoadIHHS1.SI" "TOP.U_SeOutAvHS1.SI" "TOP.U_SeFullOHS1.SI" "TOP.U_SeFullIHS1.SI" "TOP.U_TgWhBufHS1.SI" "TOP.U_ReWhBufHS1.SI" "TOP.U_LdProgHS1.SI" "TOP.U_DumpIHS1.SI";
+       ScanMasterClock "CK" ;
+   }
+}
+
+PatternBurst "_burst_" {
+   PatList { "_pattern_" { } }
+}
+
+PatternExec {
+   PatternBurst "_burst_";
+}
+
+Procedures {
+   "load_unload" {
+       W "_default_WFT_";
+       C { "test_si"=0; "CK"=0; "test_se"=1; }
+       V { "_so"=#; }
+       Shift {
+           W "_default_WFT_";
+           V { "_si"=#; "_so"=#; "CK"=P; }
+       }
+   }
+   "capture_CK" {
+       W "_default_WFT_";
+       F { "test_se"=0; }
+       C { "_po"=\r23 X ; }
+       "forcePI": V { "_pi"=\r19 # ; }
+       "measurePO": V { "_po"=\r23 # ; }
+       C { "_po"=\r23 X ; }
+       "pulse": V { "CK"=P; }
+   }
+   "capture" {
+       W "_default_WFT_";
+       F { "test_se"=0; }
+       C { "_po"=\r23 X ; }
+       "forcePI": V { "_pi"=\r19 # ; }
+       "measurePO": V { "_po"=\r23 # ; }
+   }
+}
+
+MacroDefs {
+   "test_setup" {
+       W "_default_WFT_";
+       V { "test_se"=0; "CK"=0; }
+   }
+}
+
+Pattern "_pattern_" {
+   W "_default_WFT_";
+   "precondition all Signals": C { "_pi"=\r19 0 ; "_po"=\r23 X ; }
+   Macro "test_setup";
+   "pattern 0":
+       Call "load_unload" {
+           "test_si"=00000000000000000000000010011;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000000111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 1":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLHLLLLLLLLLHLLLHHLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000111111111100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 2":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLHLLLLLLLLLLLLHHLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111100000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 3":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLHHLLLHLLLLLHLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111110000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 4":
+       Call "load_unload" {
+           "test_so"=LLLLHLLHLHLLLHLLLLLHLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111111000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 5":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLHLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001001111111100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 6":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLHLLLLLLLLLLLLLHLLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 7":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111110001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111111000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 8":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLHHLLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111111000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 9":
+       Call "load_unload" {
+           "test_so"=LLLLHLLLLLLHLLLHHLLLLHLLLLLLH;
+           "test_si"=11111111111111111111111101001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000001;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 10":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLHLLHLLLLLHLHLHLLH;
+           "test_si"=11111111111111111111111110001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111100000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 11":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111110001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 12":
+       Call "load_unload" {
+           "test_so"=LLHLLHLLHHLLLHLLLLLHHLLLLLLLH;
+           "test_si"=00000000000000000000000000011;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 13":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHHHHLHLLLLLLHHLLLLHH;
+           "test_si"=00000000000000000000000011000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 14":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLHHLLL;
+           "test_si"=00000000000000000000000011100;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 15":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLHLLLLLHLLHLLHHHLL;
+           "test_si"=11111111111111111111111100001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111100000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 16":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLLHLLHLLHLLLLLHLLLLLLH;
+           "test_si"=00000000000000000000000011001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 17":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLHLLHHLLLLLHLHHLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000001100110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 18":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLHLHLLLLLLLLLHLLLLLLHH;
+           "test_si"=00000000000000000000000010011;
+       }
+       Call "capture_CK" {
+           "_pi"=0000111111111100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 19":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLHHLLLH;
+           "test_si"=11111111111111111111111100011;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111100111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 20":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLHHLLLH;
+           "test_si"=11111111111111111111111101100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 21":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLLLHLL;
+           "test_si"=11111111111111111111111100011;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111111111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 22":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000011000;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111111001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 23":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLHLLLLHLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000010001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 24":
+       Call "load_unload" {
+           "test_so"=LLHLLLHHLLHLLHLLLLLLHLLLHLLLH;
+           "test_si"=11111111111111111111111101001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111111111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 25":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLLLLLHLLHLLLLLHLHLLLLH;
+           "test_si"=11111111111111111111111100100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 26":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHHLHLLLLLHLLHLHHLHLL;
+           "test_si"=11111111111111111111111100011;
+       }
+       Call "capture_CK" {
+           "_pi"=0000010000000001111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 27":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLHLLLLLLLLHLLLHLHLHH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 28":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLHLLLLLLLLLLLLLHLLLH;
+           "test_si"=00000000000000000000000001001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 29":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000110000000000110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 30":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLHLHLLLLLLLLLLLLLLLLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000010000110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 31":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLHLLLLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000000000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111100000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 32":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLHHLLHLLLLLHLLLHLHHLL;
+           "test_si"=00000000000000000000000000000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 33":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHHLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111111111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 34":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLHHLLLLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111100000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111100000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 35":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001010000011100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 36":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLHLHLLLLLLLLHHLLLLLLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000100000011100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 37":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLHLLLLLLLLLLLLLLLLLH;
+           "test_si"=11111111111111111111111101110;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 38":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001010000010000110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 39":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLHLHLLLLLLLLHLLLLLLLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111110000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 40":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLHLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111100001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000010000000001111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 41":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLHLLLLLLLLLLLLHLLLLH;
+           "test_si"=11111111111111111111111100001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111111001;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 42":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLLHLLHLLHHLLLLLHLLLLLH;
+           "test_si"=00000000000000000000000010101;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 43":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000010100;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000000111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 44":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000011100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000111111111000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 45":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLHLLLLLHLLHLLLHHLL;
+           "test_si"=11111111111111111111111111100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000001111111111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 46":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000111111111100001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 47":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLHHLLLHLLLLLLHLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001110000000010001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 48":
+       Call "load_unload" {
+           "test_so"=LLHLLLHLLHLLLHLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000111111111110001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 49":
+       Call "load_unload" {
+           "test_so"=LLLLHLLHLHLLLHLLLLLLHLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000110000001110000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 50":
+       Call "load_unload" {
+           "test_so"=LLLLLLLHLLHLLHLLLLLHLLLLHLLLH;
+           "test_si"=00000000000000000000000001100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000011111111111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 51":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLHHHLLLLLLLHLLHLLLHLLL;
+           "test_si"=00000000000000000000000010011;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111000000011000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 52":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111110001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000010000;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 53":
+       Call "load_unload" {
+           "test_so"=LLHLLLHLLHLLLLLLLLLLLLLHHLLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000010111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 54":
+       Call "load_unload" {
+           "test_so"=LLHLLLHLLLHLLLLLLLLLLLLLHLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000011001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 55":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLLLLHLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000001000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000011111111000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 56":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLHHLLLLLLHLLLLLLLLLLL;
+           "test_si"=00000000000000000000000001000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000011111111100;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 57":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLHHLLHLLLHLLLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000100000001100111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 58":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLHLLLLLLLLLLLLHLLLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000100000000001000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 59":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLHLLHLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111111111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 60":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLHLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111110000100;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 61":
+       Call "load_unload" {
+           "test_so"=HLHLHLLHLLHLLLLLLLLLLLLLHLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000000000000001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 62":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHHLLHLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000000001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 63":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLHLHLLHLLLLLLHLLHLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000110000010010111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 64":
+       Call "load_unload" {
+           "test_so"=LLHLLLHLLLHLLLLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001101111111101001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 65":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLHLLLLLLLLLLLLLLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001001111111101000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 66":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLHHLLLHLLLLLHLLLLLLLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000000000000000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 67":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHLHLLLHHLLLLHLLHLLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000111111110001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 68":
+       Call "load_unload" {
+           "test_so"=LLLLHLLLLLHHLLLHLLLLLLHLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111110000110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 69":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLHLLLLLLLLLLLLLHLLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111110000101;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 70":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLHLLLLLLLLLLLLLHLLHH;
+           "test_si"=00000000000000000000000000100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000011111111100000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 71":
+       Call "load_unload" {
+           "test_so"=LHLLLLLLLHHLHLLLLLHLLHLHLLHLL;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001010000000011000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 72":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLLLLHLLLLLLLLLLLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000100000000000111;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 73":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLHLHLLLLLLLLLLLLLLLLHH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000111111101100110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 74":
+       Call "load_unload" {
+           "test_so"=HLLLHLLHLLHLLLLLLLLLLLLHLLLLH;
+           "test_si"=00000000000000000000000000001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001110000011100110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 75":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLHLLLLLLLLLLLLHLLLLH;
+           "test_si"=00000000000000000000000000011;
+       }
+       Call "capture_CK" {
+           "_pi"=0000110111000010010;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 76":
+       Call "load_unload" {
+           "test_so"=LLHLLLHLLLHHHLHHLLLLLHHLLLLLH;
+           "test_si"=00000000000000000000000000011;
+       }
+       Call "capture_CK" {
+           "_pi"=0001110111111110001;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 77":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLLHLHHLHLHLLLLHHLLLLLH;
+           "test_si"=11111111111111111111111110100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000010000000000111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 78":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHHLHLLLLLHLLHLLHHHLL;
+           "test_si"=11111111111111111111111110100;
+       }
+       Call "capture_CK" {
+           "_pi"=0000100001111100111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 79":
+       Call "load_unload" {
+           "test_so"=LLLLLHLLHHHLHLLLLLHLLHLLHHLLL;
+           "test_si"=00000000000000000000000001000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000111100001100110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 80":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLHHLLLLLLLLLLLLLLHLLL;
+           "test_si"=00000000000000000000000001000;
+       }
+       Call "capture_CK" {
+           "_pi"=0000101111111101010;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 81":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLHHLLLLLLHLLLLLLLLLLH;
+           "test_si"=00000000000000000000000011001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001101000000001000;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 82":
+       Call "load_unload" {
+           "test_so"=LLLHLLHLLLLLHLLHHLLLLLHLHHLLH;
+           "test_si"=00000000000000000000000011011;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111111111010011;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 83":
+       Call "load_unload" {
+           "test_so"=LLHLLLHLLLLLLLLLLLLLLLHLHLLHH;
+           "test_si"=11111111111111111111111100001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001011111100000111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 84":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111100001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000100000010000111;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 85":
+       Call "load_unload" {
+           "test_so"=LLHLLLLLLHHLLLLLLLLLLLLHLLLLH;
+           "test_si"=11111111111111111111111100001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000110011101100110;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "pattern 86":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLHLHLLHLLLLLHLLLHLHLLH;
+           "test_si"=00000000000000000000000010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001110000001100110;
+           "_po"=LLLLLLLLLLLLLLLLLLLLLLL;
+       }
+   "pattern 87":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLLLLLLLLLLLLLLLLLLLLLL;
+           "test_si"=11111111111111111111111010001;
+       }
+       Call "capture_CK" {
+           "_pi"=0001001110101100110;
+           "_po"=LHHHHHHHHHHHHHHHHHHHHHH;
+       }
+   "end 87 unload":
+       Call "load_unload" {
+           "test_so"=LLLLLLLLHLHLLHLLLLLLHLLLHHLLH;
+       }
+}
