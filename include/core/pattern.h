@@ -82,6 +82,7 @@ namespace CoreNs
 		{
 			XFILL_RANDOM,
 			XFILL_ADJACENT,
+			XFILL_SFILL,
 			XFILL_POWER
 		};
 

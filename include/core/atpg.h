@@ -96,6 +96,8 @@ namespace CoreNs
 		std::vector<int> unjustifiedGateIDs_;											// J-frontier list
 		std::vector<int> dFrontiers_;															// D-frontier list
 		std::vector<int> isInEventStack_;													// 1 if a gate is in an event stack, 0 otherwise
+		std::vector<size_t> powerFillSImpact_;										// cached iFill S-impact for each PPI
+		std::vector<int> powerFillOrder_;												// PPIs sorted by descending S-impact
 		Gate *firstTimeFrameHeadLine_;														// this parameter is for multiple time frame
 
 		// ---------------private methods----------------- //
@@ -199,11 +201,14 @@ namespace CoreNs
 		inline Value cXNOR2(const Value &i1, const Value &i2);
 		inline Value cXNOR3(const Value &i1, const Value &i2, const Value &i3);
 
-		// should be moved to pattern.h
-		inline void randomFill(Pattern &pattern);
-		inline void adjacentFill(Pattern &pattern); // currently not used, added by WANG, WEI-SHEN
-		inline void powerFill(PatternProcessor *pPatternProcessor, Pattern &pattern);
-		inline void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
+		// X-Fill helper methods
+		void randomFill(Pattern &pattern);
+		void adjacentFill(Pattern &pattern); // currently not used, added by WANG, WEI-SHEN
+		void initializePowerFillOrder();
+		const std::vector<int> &getPowerFillOrder();
+		void sFill(PatternProcessor *pPatternProcessor, Pattern &pattern);
+		void powerFill(PatternProcessor *pPatternProcessor, Pattern &pattern);
+		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
 
 		// function not used or removed
 		void checkLevelInfo();																		// for debug use
@@ -992,274 +997,7 @@ namespace CoreNs
 		return cINV(cXOR3(i1, i2, i3));
 	}
 
-	// TODO: should be moved to pattern.h
-	// **************************************************************************
-	// Function   [ Atpg::randomFill ]
-	// Commenter  [ CAL WWS ]
-	// Synopsis   [ usage: Randomly set the don't care pattern to 1 or 0
-	// 							arguments:
-	// 								[in] pattern: Atpg generated test pattern with don't cares.
-	//            ]
-	// Date       [ Ver. 1.0 started 2013/08/13 last modified 2023/01/06 ]
-	// **************************************************************************
-	inline void Atpg::randomFill(Pattern &pattern)
-	{
-		srand(0);
-		for (int i = 0; i < pCircuit_->numPI_; ++i)
-		{
-			if (pattern.PI1_[i] == X)
-			{
-				pattern.PI1_[i] = rand() % 2;
-			}
-		}
-		for (int i = 0; i < pCircuit_->numPPI_; ++i)
-		{
-			if (pattern.PPI_[i] == X)
-			{
-				pattern.PPI_[i] = rand() % 2;
-			}
-		}
-		if (!pattern.PI2_.empty())
-		{
-			for (int i = 0; i < pCircuit_->numPI_; ++i)
-			{
-				if (pattern.PI2_[i] == X)
-				{
-					pattern.PI2_[i] = rand() % 2;
-				}
-			}
-		}
-		if (!pattern.SI_.empty())
-		{
-			if (pattern.SI_[0] == X)
-			{
-				pattern.SI_[0] = rand() % 2;
-			}
-		}
-	}
 
-	inline void Atpg::adjacentFill(Pattern &pattern)
-	{
-		if (pattern.PI1_[0] == X)
-		{
-			pattern.PI1_[0] = L;
-		}
-		for (int i = 1; i < pCircuit_->numPI_; ++i)
-		{
-			if (pattern.PI1_[i] == X)
-			{
-				pattern.PI1_[i] = pattern.PI1_[i - 1];
-			}
-		}
-
-		if (pattern.PPI_[0] == X)
-		{
-			pattern.PPI_[0] = pattern.PI1_[pCircuit_->numPI_ - 1];
-		}
-		for (int i = 1; i < pCircuit_->numPPI_; ++i)
-		{
-			if (pattern.PPI_[i] == X)
-			{
-				pattern.PPI_[i] = pattern.PPI_[i - 1];
-			}
-		}
-
-		if (!pattern.PI2_.empty())
-		{
-			for (int i = 0; i < pCircuit_->numPI_; ++i)
-			{
-				if (pattern.PI2_[i] == X)
-				{
-					pattern.PI2_[i] = pattern.PI1_[i];
-				}
-			}
-		}
-		if (!pattern.SI_.empty())
-		{
-			if (pattern.SI_[0] == X)
-			{
-				pattern.SI_[0] = L;
-			}
-		}
-	}
-
-	inline void Atpg::powerFill(PatternProcessor *pPatternProcessor, Pattern &pattern)
-	{
-		if (!pattern.PI1_.empty() && pattern.PI1_[0] == X)
-		{
-			pattern.PI1_[0] = L;
-		}
-		for (int i = 1; i < pCircuit_->numPI_; ++i)
-		{
-			if (pattern.PI1_[i] == X)
-			{
-				pattern.PI1_[i] = pattern.PI1_[i - 1];
-			}
-		}
-
-		auto transitionCost = [](const Value &fromValue, const Value &toValue) -> double {
-			if ((fromValue != L && fromValue != H) || (toValue != L && toValue != H))
-			{
-				return 0.5;
-			}
-			return fromValue == toValue ? 0.0 : 1.0;
-		};
-		auto completePatternForLookahead = [&](const int &forcedPpiIndex, const Value &forcedValue) -> Pattern {
-			Pattern candidate = pattern;
-			candidate.PPI_[forcedPpiIndex] = forcedValue;
-			adjacentFill(candidate);
-			return candidate;
-		};
-		auto calculateStimulusShiftCost = [&](const Pattern &candidate) -> double {
-			double cost = 0.0;
-			for (int i = 1; i < pCircuit_->numPPI_; ++i)
-			{
-				cost += transitionCost(candidate.PPI_[i], candidate.PPI_[i - 1]) * static_cast<double>(i);
-			}
-			return cost;
-		};
-		auto calculateResponseShiftCost = [&](const std::vector<Value> &ppoValues) -> double {
-			double cost = 0.0;
-			for (int i = 1; i < pCircuit_->numPPI_; ++i)
-			{
-				cost += transitionCost(ppoValues[i], ppoValues[i - 1]) * static_cast<double>(pCircuit_->numPPI_ - i);
-			}
-			return cost;
-		};
-		auto calculateSTP = [&](const int &forcedPpiIndex, const Value &forcedValue) -> double {
-			const Pattern candidate = completePatternForLookahead(forcedPpiIndex, forcedValue);
-			std::vector<Value> ppoValues(pCircuit_->numPPI_, X);
-			if (pSimulator_)
-			{
-				pSimulator_->assignPatternToCircuitInputs(candidate);
-				pSimulator_->goodSim();
-				const int ppoOffset = pCircuit_->numGate_ - pCircuit_->numPPI_;
-				for (int i = 0; i < pCircuit_->numPPI_; ++i)
-				{
-					const Gate &ppoGate = pCircuit_->circuitGates_[ppoOffset + i];
-					if (ppoGate.goodSimLow_ == PARA_H)
-					{
-						ppoValues[i] = L;
-					}
-					else if (ppoGate.goodSimHigh_ == PARA_H)
-					{
-						ppoValues[i] = H;
-					}
-				}
-			}
-			return calculateStimulusShiftCost(candidate) + calculateResponseShiftCost(ppoValues);
-		};
-
-		// iFill S-impact: prefer X scan cells that affect longer shift-in
-		// intervals or more observable shift-out positions.
-		std::vector<size_t> sImpact(pCircuit_->numPPI_, 0);
-		for (int i = 0; i < pCircuit_->numPPI_; ++i)
-		{
-			if (pattern.PPI_[i] != X)
-			{
-				continue;
-			}
-
-			sImpact[i] = static_cast<size_t>(i + 1);
-			const int ppiGateID = pCircuit_->numPI_ + i;
-			std::vector<int> stack;
-			std::vector<char> visited(pCircuit_->numGate_, 0);
-			stack.push_back(ppiGateID);
-			visited[ppiGateID] = 1;
-			while (!stack.empty())
-			{
-				const int gateID = stack.back();
-				stack.pop_back();
-				const Gate &gate = pCircuit_->circuitGates_[gateID];
-				for (const int &fanoutID : gate.fanoutVector_)
-				{
-					if (fanoutID < 0 || fanoutID >= pCircuit_->numGate_ || visited[fanoutID])
-					{
-						continue;
-					}
-					visited[fanoutID] = 1;
-					const Gate &fanoutGate = pCircuit_->circuitGates_[fanoutID];
-					if (fanoutGate.gateType_ == Gate::PPO)
-					{
-						const int ppoIndex = fanoutID - (pCircuit_->numGate_ - pCircuit_->numPPI_);
-						if (ppoIndex >= 0 && ppoIndex < pCircuit_->numPPI_)
-						{
-							sImpact[i] += static_cast<size_t>(pCircuit_->numPPI_ - ppoIndex);
-						}
-					}
-					else
-					{
-						stack.push_back(fanoutID);
-					}
-				}
-			}
-		}
-
-		while (true)
-		{
-			int targetIndex = -1;
-			size_t targetImpact = 0;
-			for (int i = 0; i < pCircuit_->numPPI_; ++i)
-			{
-				if (pattern.PPI_[i] != X)
-				{
-					continue;
-				}
-				if (targetIndex < 0 || sImpact[i] > targetImpact)
-				{
-					targetIndex = i;
-					targetImpact = sImpact[i];
-				}
-			}
-			if (targetIndex < 0)
-			{
-				break;
-			}
-
-			// S-filling only: compare STP = SITP + SOTP. Capture-power
-			// limits are intentionally not applied here.
-			const double stpL = calculateSTP(targetIndex, L);
-			const double stpH = calculateSTP(targetIndex, H);
-			pattern.PPI_[targetIndex] = stpH < stpL ? H : L;
-		}
-
-		if (!pattern.PI2_.empty())
-		{
-			for (int i = 0; i < pCircuit_->numPI_; ++i)
-			{
-				if (pattern.PI2_[i] == X)
-				{
-					pattern.PI2_[i] = pattern.PI1_[i];
-				}
-			}
-		}
-		if (!pattern.SI_.empty() && pattern.SI_[0] == X)
-		{
-			pattern.SI_[0] = L;
-		}
-	}
-
-	inline void Atpg::xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern)
-	{
-		if (!pPatternProcessor || pPatternProcessor->XFill_ == PatternProcessor::OFF)
-		{
-			return;
-		}
-
-		switch (pPatternProcessor->XFillMode_)
-		{
-			case PatternProcessor::XFILL_ADJACENT:
-				adjacentFill(pattern);
-				break;
-			case PatternProcessor::XFILL_POWER:
-				powerFill(pPatternProcessor, pattern);
-				break;
-			case PatternProcessor::XFILL_RANDOM:
-			default:
-				randomFill(pattern);
-				break;
-		}
-	}
 };
 
 #endif

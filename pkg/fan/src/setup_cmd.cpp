@@ -712,7 +712,7 @@ SetXFillCmd::SetXFillCmd(const std::string &name, FanMgr *fanMgr) : Cmd(name)
 	optMgr_.setName(name);
 	optMgr_.setShortDes("set X-Fill");
 	optMgr_.setDes("set X-Fill mode");
-	optMgr_.regArg(new Arg(Arg::REQ, "off, on/random, adjacent, or power",
+	optMgr_.regArg(new Arg(Arg::REQ, "off, on/random, adjacent, sfill, or power",
 												 "MODE"));
 	Opt *opt = new Opt(Opt::BOOL, "print usage", "");
 	opt->addFlag("h");
@@ -758,6 +758,13 @@ bool SetXFillCmd::exec(const std::vector<std::string> &argv)
 
 		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
 		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_ADJACENT;
+	}
+	else if (optMgr_.getParsedArg(0) == "sfill")
+	{
+		std::cout << "#  X-Fill set to sfill\n";
+
+		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_SFILL;
 	}
 	else if (optMgr_.getParsedArg(0) == "power")
 	{
