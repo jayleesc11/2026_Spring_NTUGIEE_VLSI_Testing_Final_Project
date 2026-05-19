@@ -100,6 +100,10 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
 		originalFaultPtrList = faultPtrListForSTC;
 	}
+	if (pPatternProcessor->XFill_ == PatternProcessor::ON)
+	{
+		XFill(pPatternProcessor);
+	}
 
 	// finish calculation equivalent faults left
 	for (Fault *pFault : originalFaultPtrList)
@@ -486,7 +490,7 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		pPatternProcessor->patternVector_.push_back(pattern);
 		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
 
-		if (pPatternProcessor->staticCompression_ == PatternProcessor::OFF)
+		if (pPatternProcessor->XFill_ == PatternProcessor::ON)
 		{
 			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 		}

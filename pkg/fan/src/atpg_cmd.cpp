@@ -1305,6 +1305,7 @@ bool RunFaultSimCmd::exec(const std::vector<std::string> &argv)
 	{
 		fanMgr_->sim->parallelPatternFaultSimWithAllPattern(fanMgr_->pcoll, fanMgr_->fListExtract);
 	}
+	fanMgr_->sim->parallelPatternGoodSimWithAllPattern(fanMgr_->pcoll);
 
 	TmStat stat;
 	fanMgr_->tmusg.getPeriodUsage(stat);

@@ -24,6 +24,7 @@ TMAX_BIN="${TMAX_BIN:-tmax}"
 PYTHON="${PYTHON:-python3}"
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
 ATPG_MODE="${ATPG_MODE:-power}"
+NO_COMPRESSION="${NO_COMPRESSION:-0}"
 TMP_FILES=()
 
 cleanup() {
@@ -36,9 +37,9 @@ trap cleanup EXIT
 usage() {
   cat <<USAGE
 Usage:
-  $0 [--mode normal|power] <circuit|all>
+  $0 [--mode normal|power] [--nocomp] <circuit|all>
   $0 --normal <circuit|all>
-  $0 --power-aware <circuit|all>
+  $0 --power <circuit|all>
 
 Circuits:
   ${CIRCUITS[*]}
@@ -46,6 +47,8 @@ Circuits:
 Modes:
   normal       TestMAX LOC/TDF ATPG: set_atpg -fill 0
   power        TestMAX LOC/TDF power-aware ATPG: adjacent fill + shift power effort
+  --nocomp
+               Disable TestMAX ATPG merge/compression and run fast-sequential ATPG directly.
 
 Environment overrides:
   TMAX_SETUP=/path/to/tmax.cshrc
@@ -53,6 +56,7 @@ Environment overrides:
   PYTHON=python3
   FAN_BIN=./bin/opt/fan
   ATPG_MODE=normal|power
+  NO_COMPRESSION=0|1
 USAGE
 }
 
@@ -112,9 +116,29 @@ TCL
       ;;
   esac
 
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    cat >> "${script}" <<TCL
+puts "ATPG compression: off"
+set_atpg -merge Off
+
+TCL
+  fi
+
   cat >> "${script}" <<TCL
 add_faults -all
+TCL
+
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    cat >> "${script}" <<TCL
+run_atpg Fast_sequential_only
+TCL
+  else
+    cat >> "${script}" <<TCL
 run_atpg -auto_compression
+TCL
+  fi
+
+  cat >> "${script}" <<TCL
 report_power -per_pattern -percentage
 write_patterns ${pat_dir}/${circuit}.stil -format stil -replace
 exit
@@ -164,7 +188,11 @@ run_one() {
   write_fsim_script "${circuit}"
   fsim_script="${FSIM_SCRIPT}"
 
-  echo "==> [${circuit}] TestMAX ATPG (${ATPG_MODE})"
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    echo "==> [${circuit}] TestMAX ATPG (${ATPG_MODE}, no compression)"
+  else
+    echo "==> [${circuit}] TestMAX ATPG (${ATPG_MODE})"
+  fi
   tcsh -f -c "source ${TMAX_SETUP}; ${TMAX_BIN} -shell ${tmax_script}"
 
   echo "==> [${circuit}] Convert STIL to FAN PAT"
@@ -186,8 +214,11 @@ main() {
       --normal)
         ATPG_MODE="normal"
         ;;
-      --power|--power-aware)
+      --power)
         ATPG_MODE="power"
+        ;;
+      --nocomp)
+        NO_COMPRESSION="1"
         ;;
       -h|--help)
         usage

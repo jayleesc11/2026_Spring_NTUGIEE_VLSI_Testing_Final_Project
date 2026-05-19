@@ -1,11 +1,11 @@
 read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
  Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
  End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
- End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.08 sec, Memory=0MB
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.05 sec, Memory=0MB
 read_netlist mod_netlist/s27.v -format verilog
  Begin reading netlist ( mod_netlist/s27.v )...
  End parsing Verilog file mod_netlist/s27.v with 0 errors.
- End reading netlist: #modules=1, top=s27, #lines=90, CPU_time=0.01 sec, Memory=0MB
+ End reading netlist: #modules=1, top=s27, #lines=90, CPU_time=0.00 sec, Memory=0MB
 run_build_model s27
  ------------------------------------------------------------------------------
  Begin build model for topcut = s27 ...
@@ -62,42 +62,49 @@ puts "ATPG mode: power-aware LOC/TDF"
 ATPG mode: power-aware LOC/TDF
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
+puts "ATPG compression: off"
+ATPG compression: off
+set_atpg -merge Off
 add_faults -all
  88 faults were added to fault list.
-run_atpg -auto_compression
- 
+run_atpg Fast_sequential_only
  Warning: Multicycle capture procedure will reduce effectiveness of transition fault patterns. (M238)
  ATPG performed for transition fault model using internal pattern source.
  ----------------------------------------------------------
  #patterns     #faults     #ATPG faults  test      process
  stored     detect/active  red/au/abort  coverage  CPU time
  ---------  -------------  ------------  --------  --------
- Begin deterministic ATPG: #uncollapsed_faults=72, abort_limit=10...
- Optimized clock launch transition fault ATPG is enabled.
- 14             72      0         0/0/0   100.00%      0.00
+ Begin fast-seq ATPG: #uncollapsed_faults=72, abort_limit=10, depth=4...
+ 1              10     62         0/0/0    29.55%      0.00
+ 2              10     52         0/0/0    40.91%      0.00
+ 3              15     37         0/0/0    57.95%      0.00
+ 4              16     21         0/0/0    76.14%      0.00
+ 5               1     20         0/0/0    77.27%      0.00
+ 6               4     16         0/0/0    81.82%      0.00
+ 7               1     15         0/0/0    82.95%      0.00
+ 8               4     11         0/0/0    87.50%      0.00
+ 9               5      6         0/0/0    93.18%      0.00
+ 10              2      4         0/0/0    95.45%      0.00
+ 11              2      2         0/0/0    97.73%      0.00
+ 12              1      1         0/0/0    98.86%      0.00
  
    Uncollapsed Transition Fault Summary Report
  -----------------------------------------------
  fault class                     code   #faults
  ------------------------------  ----  ---------
- Detected                         DT         88
+ Detected                         DT         87
  Possibly detected                PT          0
  Undetectable                     UD          0
  ATPG untestable                  AU          0
- Not detected                     ND          0
+ Not detected                     ND          1
  -----------------------------------------------
  total faults                                88
- test coverage                           100.00%
+ test coverage                            98.86%
  -----------------------------------------------
             Pattern Summary Report
  -----------------------------------------------
- #internal patterns                          14
-     #basic_scan patterns                     1
-     #fast_sequential patterns               13
- -----------------------------------------------
-            CPU Usage Summary Report
- -----------------------------------------------
- Total CPU time                            0.00
+ #internal patterns                          12
+     #fast_sequential patterns               12
  -----------------------------------------------
 report_power -per_pattern -percentage
  ------------------------------------------------------------------------------
@@ -107,81 +114,73 @@ report_power -per_pattern -percentage
      Shift Results:
       Peak
         pattern    load cycle   shift cycle     switching    percentage
-              0             0             2             1        33.33%
-              1             0             0             1        33.33%
-              2             0             0             3       100.00%
-              3             0             2             2        66.67%
+              0             0             0             1        33.33%
+              1             0             0             2        66.67%
+              2             0             0             0         0.00%
+              3             0             0             2        66.67%
               4             0             0             2        66.67%
-              5             0             0             1        33.33%
-              6             0             2             3       100.00%
-              7             0             0             2        66.67%
-              8             0             0             2        66.67%
-              9             0             0             2        66.67%
+              5             0             0             2        66.67%
+              6             0             0             0         0.00%
+              7             0             0             1        33.33%
+              8             0             0             0         0.00%
+              9             0             0             3       100.00%
              10             0             0             1        33.33%
-             11             0             0             2        66.67%
-             12             0             0             2        66.67%
-             13             0             0             0         0.00%
+             11             0             0             0         0.00%
       Average
         pattern           average switching    percentage
-              0                        0.33        11.11%
+              0                        1.00        33.33%
               1                        1.00        33.33%
-              2                        2.00        66.67%
-              3                        1.33        44.44%
-              4                        1.67        55.56%
-              5                        1.00        33.33%
-              6                        2.33        77.78%
-              7                        1.00        33.33%
-              8                        1.33        44.44%
-              9                        1.00        33.33%
+              2                        0.00         0.00%
+              3                        1.00        33.33%
+              4                        1.00        33.33%
+              5                        1.33        44.44%
+              6                        0.00         0.00%
+              7                        0.67        22.22%
+              8                        0.00         0.00%
+              9                        2.00        66.67%
              10                        1.00        33.33%
-             11                        2.00        66.67%
-             12                        1.67        55.56%
-             13                        0.00         0.00%
+             11                        0.00         0.00%
  
      Capture Results:
       Peak
         pattern capture cycle     switching    percentage
-              0             0             0         0.00%
-              1             1             3       100.00%
-              2             0             2        66.67%
-              3             1             2        66.67%
+              0             1             1        33.33%
+              1             1             2        66.67%
+              2             1             3       100.00%
+              3             0             3       100.00%
               4             0             1        33.33%
-              5             0             2        66.67%
-              6             0             2        66.67%
-              7             1             1        33.33%
-              8             0             3       100.00%
-              9             0             1        33.33%
-             10             0             0         0.00%
-             11             0             0         0.00%
-             12             0             3       100.00%
-             13             0             1        33.33%
+              5             0             3       100.00%
+              6             0             1        33.33%
+              7             0             3       100.00%
+              8             0             1        33.33%
+              9             0             3       100.00%
+             10             0             3       100.00%
+             11             0             1        33.33%
       Average
         pattern           average switching    percentage
-              0                        0.00         0.00%
-              1                        2.00        66.67%
+              0                        0.50        16.67%
+              1                        1.50        50.00%
               2                        2.00        66.67%
-              3                        1.50        50.00%
+              3                        2.00        66.67%
               4                        0.50        16.67%
               5                        1.50        50.00%
-              6                        1.50        50.00%
-              7                        0.50        16.67%
-              8                        2.00        66.67%
-              9                        0.50        16.67%
-             10                        0.00         0.00%
-             11                        0.00         0.00%
-             12                        1.50        50.00%
-             13                        0.50        16.67%
+              6                        0.50        16.67%
+              7                        1.50        50.00%
+              8                        0.50        16.67%
+              9                        1.50        50.00%
+             10                        1.50        50.00%
+             11                        0.50        16.67%
  ------------------------------------------------------------------------------
                                 Power Analysis Summary
  ------------------------------------------------------------------------------
       Number of Scan Cells                       3
-      Number of Patterns                         0-13
+      Number of Patterns                         0-11
       Cycles Per Load                            3
-      Average Shift Switching                    1.26 42.06%
-      Average Capture Switching                  1.04 34.57%
-      Peak Shift Switching                       3 100.00% (pattern: 2 cycle: 0)
-      Peak Capture Switching                     3 100.00% (pattern: 1)
+      Average Shift Switching                    0.75 25.00%
+      Average Capture Switching                  1.17 38.89%
+      Peak Shift Switching                       3 100.00% (pattern: 9 cycle: 0)
+      Peak Capture Switching                     3 100.00% (pattern: 2)
 write_patterns tmax/pat_power/s27.stil -format stil -replace
- Patterns written reference 87 V statements, generating 117 test cycles
- End writing file 's27.stil' with 14 patterns, File_size = 7834, CPU_time = 0.0 sec.
+ Patterns written reference 77 V statements, generating 103 test cycles
+ End writing file 's27.stil' with 12 patterns, File_size = 7423, CPU_time = 0.0 sec.
 exit
