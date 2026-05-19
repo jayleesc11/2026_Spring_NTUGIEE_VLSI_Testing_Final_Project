@@ -5,7 +5,7 @@ read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -
 read_netlist mod_netlist/s27.v -format verilog
  Begin reading netlist ( mod_netlist/s27.v )...
  End parsing Verilog file mod_netlist/s27.v with 0 errors.
- End reading netlist: #modules=1, top=s27, #lines=90, CPU_time=0.02 sec, Memory=0MB
+ End reading netlist: #modules=1, top=s27, #lines=90, CPU_time=0.00 sec, Memory=0MB
 run_build_model s27
  ------------------------------------------------------------------------------
  Begin build model for topcut = s27 ...
@@ -58,22 +58,22 @@ run_drc
  Design rules checking was successful, total CPU time=0.00 sec.
  ------------------------------------------------------------------------------
 set_faults -model transition
+set_delay -launch_cycle system_clock
+set_atpg -capture_cycles 2
 puts "ATPG mode: normal LOC/TDF"
 ATPG mode: normal LOC/TDF
 set_atpg -fill 0
-puts "ATPG compression: off"
-ATPG compression: off
 set_atpg -merge Off
 add_faults -all
  88 faults were added to fault list.
-run_atpg Fast_sequential_only
+run_atpg fast_sequential_only
  Warning: Multicycle capture procedure will reduce effectiveness of transition fault patterns. (M238)
  ATPG performed for transition fault model using internal pattern source.
  ----------------------------------------------------------
  #patterns     #faults     #ATPG faults  test      process
  stored     detect/active  red/au/abort  coverage  CPU time
  ---------  -------------  ------------  --------  --------
- Begin fast-seq ATPG: #uncollapsed_faults=72, abort_limit=10, depth=4...
+ Begin fast-seq ATPG: #uncollapsed_faults=72, abort_limit=10, depth=2...
  1              10     62         0/0/0    29.55%      0.00
  2               6     56         0/0/0    36.36%      0.00
  3               4     52         0/0/0    40.91%      0.00
@@ -199,7 +199,7 @@ report_power -per_pattern -percentage
       Average Capture Switching                  0.69 22.92%
       Peak Shift Switching                       3 100.00% (pattern: 1 cycle: 0)
       Peak Capture Switching                     3 100.00% (pattern: 13)
-write_patterns tmax/pat_normal_nocomp/s27.stil -format stil -replace
+write_patterns tmax/pat_normal/s27.stil -format stil -replace
  Patterns written reference 103 V statements, generating 137 test cycles
  End writing file 's27.stil' with 16 patterns, File_size = 8241, CPU_time = 0.0 sec.
 exit

@@ -95,6 +95,8 @@ add_scan_chains chain1 test_si test_so
 add_pi_constraints 0 test_se
 run_drc
 set_faults -model transition
+set_delay -launch_cycle system_clock
+set_atpg -capture_cycles 2
 
 TCL
 
@@ -118,7 +120,6 @@ TCL
 
   if [[ "${NO_COMPRESSION}" == "1" ]]; then
     cat >> "${script}" <<TCL
-puts "ATPG compression: off"
 set_atpg -merge Off
 
 TCL
@@ -130,7 +131,7 @@ TCL
 
   if [[ "${NO_COMPRESSION}" == "1" ]]; then
     cat >> "${script}" <<TCL
-run_atpg Fast_sequential_only
+run_atpg fast_sequential_only
 TCL
   else
     cat >> "${script}" <<TCL

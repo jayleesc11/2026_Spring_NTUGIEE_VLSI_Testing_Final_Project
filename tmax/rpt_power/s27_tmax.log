@@ -1,7 +1,7 @@
 read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
  Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
  End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
- End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.05 sec, Memory=0MB
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.02 sec, Memory=0MB
 read_netlist mod_netlist/s27.v -format verilog
  Begin reading netlist ( mod_netlist/s27.v )...
  End parsing Verilog file mod_netlist/s27.v with 0 errors.
@@ -58,23 +58,23 @@ run_drc
  Design rules checking was successful, total CPU time=0.00 sec.
  ------------------------------------------------------------------------------
 set_faults -model transition
+set_delay -launch_cycle system_clock
+set_atpg -capture_cycles 2
 puts "ATPG mode: power-aware LOC/TDF"
 ATPG mode: power-aware LOC/TDF
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
-puts "ATPG compression: off"
-ATPG compression: off
 set_atpg -merge Off
 add_faults -all
  88 faults were added to fault list.
-run_atpg Fast_sequential_only
+run_atpg fast_sequential_only
  Warning: Multicycle capture procedure will reduce effectiveness of transition fault patterns. (M238)
  ATPG performed for transition fault model using internal pattern source.
  ----------------------------------------------------------
  #patterns     #faults     #ATPG faults  test      process
  stored     detect/active  red/au/abort  coverage  CPU time
  ---------  -------------  ------------  --------  --------
- Begin fast-seq ATPG: #uncollapsed_faults=72, abort_limit=10, depth=4...
+ Begin fast-seq ATPG: #uncollapsed_faults=72, abort_limit=10, depth=2...
  1              10     62         0/0/0    29.55%      0.00
  2              10     52         0/0/0    40.91%      0.00
  3              15     37         0/0/0    57.95%      0.00
