@@ -17,7 +17,7 @@ This folder contains some scripts the users might want to use for convenience.
     |
     |-- fanScriptsNoDTC/          # Contains scripts for ATPG and Fault Simulation with Dynamic Test Compression turned OFF for ATPG.
     |
-    `-- powerFANScripts/          # Contains power-aware ATPG experiments, e.g. set_X-Fill power.
+    `-- powerFANScripts/          # Contains LOC/TDF two-frame power-aware ATPG experiments.
 
 ## Power-aware X-Fill
 
@@ -26,7 +26,23 @@ This folder contains some scripts the users might want to use for convenience.
 - `off`: disable X-fill.
 - `on` or `random`: use the original random X-fill.
 - `adjacent`: use adjacent fill to reduce neighboring input/scan transitions.
-- `power`: use iFill-style power fill. It currently optimizes shift FFTC and does not enforce a capture-power limit.
+- `sfill`: use the original iFill-style probability-based S-filling.
+- `power`: use our power-aware fill. It currently optimizes shift FFTC and does not enforce a capture-power limit.
+
+## Power Scripts
+
+`powerFANScripts/` runs transition-delay ATPG in launch-on-capture mode:
+
+```
+set_pattern_type LOC
+build_circuit --frame 2
+set_fault_type tdf
+set_static_compression off
+set_dynamic_compression off
+set_X-Fill power
+```
+
+Reports are written to `power_rpt/`, and generated patterns are written to `power_pat/`.
 
 ## Contact
 

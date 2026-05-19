@@ -7,8 +7,89 @@
 
 #include "simulator.h"
 
+#include <algorithm>
+
 using namespace IntfNs;
 using namespace CoreNs;
+
+namespace
+{
+Value getGoodSimValue(const Gate &gate, size_t bit)
+{
+	bool isLow = getBitValue(gate.goodSimLow_, bit) == H;
+	bool isHigh = getBitValue(gate.goodSimHigh_, bit) == H;
+	if (isLow && !isHigh)
+	{
+		return L;
+	}
+	if (isHigh && !isLow)
+	{
+		return H;
+	}
+	return X;
+}
+
+Value getScalarGoodSimValue(const Gate &gate)
+{
+	if (gate.goodSimLow_ == PARA_H && gate.goodSimHigh_ == PARA_L)
+	{
+		return L;
+	}
+	if (gate.goodSimHigh_ == PARA_H && gate.goodSimLow_ == PARA_L)
+	{
+		return H;
+	}
+	return X;
+}
+
+void writeGoodSimValuesToPattern(Circuit *pCircuit, Pattern &pattern, size_t bit)
+{
+	int offset = pCircuit->numGate_ - pCircuit->numPO_ - pCircuit->numPPI_;
+	if (pattern.PO1_.empty())
+	{
+		pattern.PO1_.resize(pCircuit->numPO_, X);
+	}
+	for (int i = 0; i < pCircuit->numPO_; ++i)
+	{
+		pattern.PO1_[i] = getGoodSimValue(pCircuit->circuitGates_[offset + i], bit);
+	}
+
+	if (!pattern.PI2_.empty() && pCircuit->numFrame_ > 1)
+	{
+		if (pattern.PO2_.empty())
+		{
+			pattern.PO2_.resize(pCircuit->numPO_, X);
+		}
+		for (int i = 0; i < pCircuit->numPO_; ++i)
+		{
+			pattern.PO2_[i] = getGoodSimValue(pCircuit->circuitGates_[offset + i + pCircuit->numGate_], bit);
+		}
+	}
+
+	offset = pCircuit->numGate_ - pCircuit->numPPI_;
+	if (!pattern.PI2_.empty() && pCircuit->numFrame_ > 1)
+	{
+		if (pattern.PPO1_.empty())
+		{
+			pattern.PPO1_.resize(pCircuit->numPPI_, X);
+		}
+		for (int i = 0; i < pCircuit->numPPI_; ++i)
+		{
+			pattern.PPO1_[i] = getGoodSimValue(pCircuit->circuitGates_[offset + i], bit);
+		}
+		offset += pCircuit->numGate_ * (pCircuit->numFrame_ - 1);
+	}
+
+	if (pattern.PPO_.empty())
+	{
+		pattern.PPO_.resize(pCircuit->numPPI_, X);
+	}
+	for (int i = 0; i < pCircuit->numPPI_; ++i)
+	{
+		pattern.PPO_[i] = getGoodSimValue(pCircuit->circuitGates_[offset + i], bit);
+	}
+}
+} // namespace
 
 // **************************************************************************
 // Function   [ Simulator::eventFaultSim ]
@@ -177,10 +258,99 @@ void Simulator::parallelFaultFaultSim(FaultPtrList &remainingFaults)
 // **************************************************************************
 void Simulator::parallelPatternGoodSimWithAllPattern(PatternProcessor *pPatternCollector)
 {
+	bool hasExplicitCaptureClocks = false;
+	for (const Pattern &pattern : pPatternCollector->patternVector_)
+	{
+		if (!pattern.captureClockEnabled_.empty())
+		{
+			hasExplicitCaptureClocks = true;
+			break;
+		}
+	}
+
+	if (hasExplicitCaptureClocks)
+	{
+		int poOffset = pCircuit_->numGate_ - pCircuit_->numPO_ - pCircuit_->numPPI_;
+		int ppoOffset = pCircuit_->numGate_ - pCircuit_->numPPI_;
+		for (Pattern &pattern : pPatternCollector->patternVector_)
+		{
+			std::vector<bool> captureClock = pattern.captureClockEnabled_;
+			if (captureClock.empty())
+			{
+				captureClock.resize(pattern.PI2_.empty() ? 1 : 2, true);
+			}
+
+			std::vector<Value> state = pattern.PPI_;
+			if (state.empty())
+			{
+				state.resize(pCircuit_->numPPI_, X);
+			}
+			pattern.PPO1_.clear();
+			pattern.PPO_.resize(pCircuit_->numPPI_, X);
+			if (pattern.PO1_.empty())
+			{
+				pattern.PO1_.resize(pCircuit_->numPO_, X);
+			}
+			if (pattern.PO2_.empty())
+			{
+				pattern.PO2_.resize(pCircuit_->numPO_, X);
+			}
+
+			auto simulateCycle = [&](const std::vector<Value> &pi, std::vector<Value> &po, std::vector<Value> &nextState) {
+				Pattern oneCycle;
+				oneCycle.PI1_ = pi;
+				oneCycle.PPI_ = state;
+				oneCycle.PO1_.resize(pCircuit_->numPO_, X);
+				oneCycle.PPO_.resize(pCircuit_->numPPI_, X);
+				assignPatternToCircuitInputs(oneCycle);
+				goodSim();
+				for (int i = 0; i < pCircuit_->numPO_; ++i)
+				{
+					po[i] = getScalarGoodSimValue(pCircuit_->circuitGates_[poOffset + i]);
+				}
+				nextState.resize(pCircuit_->numPPI_, X);
+				for (int i = 0; i < pCircuit_->numPPI_; ++i)
+				{
+					nextState[i] = getScalarGoodSimValue(pCircuit_->circuitGates_[ppoOffset + i]);
+				}
+			};
+
+			std::vector<Value> nextState;
+			simulateCycle(pattern.PI1_, pattern.PO1_, nextState);
+			if (captureClock[0])
+			{
+				state = nextState;
+			}
+			if (captureClock.size() == 1)
+			{
+				pattern.PPO_ = state;
+				continue;
+			}
+
+			pattern.PPO1_ = state;
+			const std::vector<Value> &pi2 = pattern.PI2_.empty() ? pattern.PI1_ : pattern.PI2_;
+			simulateCycle(pi2, pattern.PO2_, nextState);
+			if (captureClock[1])
+			{
+				state = nextState;
+			}
+			pattern.PPO_ = state;
+		}
+		return;
+	}
+
 	for (int patternStartIndex = 0; patternStartIndex < (int)pPatternCollector->patternVector_.size(); patternStartIndex += WORD_SIZE)
 	{
 		parallelPatternSetPattern(pPatternCollector, patternStartIndex);
 		goodSim();
+		int endpat = std::min(patternStartIndex + (int)WORD_SIZE, (int)pPatternCollector->patternVector_.size());
+		for (int patternIndex = patternStartIndex; patternIndex < endpat; ++patternIndex)
+		{
+			writeGoodSimValuesToPattern(
+					pCircuit_,
+					pPatternCollector->patternVector_[patternIndex],
+					(size_t)(patternIndex - patternStartIndex));
+		}
 	}
 }
 

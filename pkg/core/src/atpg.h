@@ -807,13 +807,31 @@ namespace CoreNs
 			}
 		}
 
-		offset = pCircuit_->numGate_ - pCircuit_->numPPI_;
-		if (pCircuit_->numFrame_ > 1)
-		{
-			offset += pCircuit_->numGate_;
-		}
+			offset = pCircuit_->numGate_ - pCircuit_->numPPI_;
+			if (!(pattern.PPO1_.empty()) && pCircuit_->numFrame_ > 1)
+			{
+				for (int i = 0; i < pCircuit_->numPPI_; ++i)
+				{
+					if (pCircuit_->circuitGates_[offset + i].goodSimLow_ == PARA_H)
+					{
+						pattern.PPO1_[i] = L;
+					}
+					else if (pCircuit_->circuitGates_[offset + i].goodSimHigh_ == PARA_H)
+					{
+						pattern.PPO1_[i] = H;
+					}
+					else
+					{
+						pattern.PPO1_[i] = X;
+					}
+				}
+			}
+			if (pCircuit_->numFrame_ > 1)
+			{
+				offset += pCircuit_->numGate_ * (pCircuit_->numFrame_ - 1);
+			}
 
-		for (int i = 0; i < pCircuit_->numPPI_; ++i)
+			for (int i = 0; i < pCircuit_->numPPI_; ++i)
 		{
 			if (pCircuit_->circuitGates_[offset + i].goodSimLow_ == PARA_H)
 			{

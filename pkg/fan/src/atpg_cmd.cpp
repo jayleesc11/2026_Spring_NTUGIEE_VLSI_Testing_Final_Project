@@ -1040,6 +1040,13 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 
 	std::cout << std::right;
 	std::cout << std::setprecision(4);
+	const std::ios_base::fmtflags savedFloatFlags = std::cout.flags();
+	const std::streamsize savedPrecision = std::cout.precision();
+	auto printFftcAverage = [&](const char *label, const double value) {
+		std::cout << label << std::setw(19) << std::fixed << std::setprecision(2) << value << "\n";
+		std::cout.flags(savedFloatFlags);
+		std::cout.precision(savedPrecision);
+	};
 	std::cout << "#                 Statistics Report\n";
 	std::cout << "#  Circuit name                  " << std::setw(19);
 	std::cout << fanMgr_->nl->getTop()->name_ << "\n";
@@ -1085,22 +1092,23 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 		std::cout << "#      shift operations          " << std::setw(19) << shiftFftcStats.shiftOperationCount_ << "\n";
 		std::cout << "#      shift cycles evaluated    " << std::setw(19) << shiftFftcStats.shiftCycleCount_ << "\n";
 		std::cout << "#      total FFTC                " << std::setw(19) << shiftFftcStats.totalShiftFFTC_ << "\n";
-		std::cout << "#      average FFTC/cycle        " << std::setw(19) << shiftFftcStats.averageShiftFFTC_ << "\n";
-		std::cout << "#      maximum FFTC/cycle        " << std::setw(19) << shiftFftcStats.maxShiftFFTC_ << "\n";
+		printFftcAverage("#      average FFTC              ", shiftFftcStats.averageShiftFFTC_);
+		std::cout << "#      maximum FFTC              " << std::setw(19) << shiftFftcStats.maxShiftFFTC_ << "\n";
 		std::cout << "#      unknown transitions       " << std::setw(19) << shiftFftcStats.totalUnknownShiftPairs_ << "\n";
 	}
 	std::cout << "#    -----------------------------------------------\n";
 	std::cout << "#    capture FFTC\n";
 	std::cout << "#      ---------------------------------------------\n";
-	if (fftcStats.patternsWithCaptureData_ == 0)
+	if (fftcStats.captureCycleCount_ == 0)
 	{
 		std::cout << "#      status                    " << std::setw(19) << "N/A" << "\n";
 	}
 	else
 	{
 		std::cout << "#      total FFTC                " << std::setw(19) << fftcStats.totalCaptureFFTC_ << "\n";
-		std::cout << "#      average FFTC/pattern      " << std::setw(19) << fftcStats.averageCaptureFFTC_ << "\n";
-		std::cout << "#      maximum FFTC/pattern      " << std::setw(19) << fftcStats.maxCaptureFFTC_ << "\n";
+		std::cout << "#      capture cycles evaluated  " << std::setw(19) << fftcStats.captureCycleCount_ << "\n";
+		printFftcAverage("#      average FFTC              ", fftcStats.averageCaptureFFTC_);
+		std::cout << "#      maximum FFTC              " << std::setw(19) << fftcStats.maxCaptureFFTC_ << "\n";
 		std::cout << "#      unknown transitions       " << std::setw(19) << fftcStats.totalUnknownCapturePairs_ << "\n";
 	}
 	std::cout << "#  -------------------------------------------------\n";

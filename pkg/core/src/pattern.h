@@ -27,7 +27,9 @@ namespace CoreNs
 		std::vector<Value> SI_;
 		std::vector<Value> PO1_;
 		std::vector<Value> PO2_;
+		std::vector<Value> PPO1_;
 		std::vector<Value> PPO_;
+		std::vector<bool> captureClockEnabled_;
 		inline void initForTransitionDelayFault(Circuit *pCircuit);
 	};
 	inline Pattern::Pattern(Circuit *pCircuit)
@@ -49,11 +51,12 @@ namespace CoreNs
 	// Date       [ CHT Ver. 1.0 started  2023/01/05 ]
 	// **************************************************************************
 	inline void Pattern::initForTransitionDelayFault(Circuit *pCircuit)
-	{
-		PI2_.resize(pCircuit->numPI_);
-		PO2_.resize(pCircuit->numPO_);
-		SI_.resize(1);
-	}
+		{
+			PI2_.resize(pCircuit->numPI_);
+			PO2_.resize(pCircuit->numPO_);
+			PPO1_.resize(pCircuit->numPPI_);
+			SI_.resize(1);
+		}
 
 	// This class process the test pattern set
 	// it supports :
@@ -91,7 +94,7 @@ namespace CoreNs
 			inline CaptureFFTCStats();
 			size_t patternCount_;
 			size_t scanFlipFlopCount_;
-			size_t patternsWithCaptureData_;
+			size_t captureCycleCount_;
 			size_t totalCaptureFFTC_;
 			size_t maxCaptureFFTC_;
 			size_t totalUnknownCapturePairs_;
@@ -127,7 +130,6 @@ namespace CoreNs
 		std::vector<int> pPOorder_;
 
 		void init(Circuit *pCircuit);
-		size_t calculateCaptureFFTC(const Pattern &pattern, size_t *unknownPairs = NULL) const;
 		CaptureFFTCStats calculateCaptureFFTCStats() const;
 		ShiftFFTCStats calculateShiftFFTCStats(const bool includeFinalUnload = false) const;
 		// Fixed static compression
@@ -135,21 +137,22 @@ namespace CoreNs
 		bool updateTable(std::vector<bool> mergeRecord, std::vector<bool> patternTable);
 
 	private:
-		static bool isBinaryValue(const Value &value);
-		static Value getValueOrUnknown(const std::vector<Value> &values, const size_t &index);
-		size_t shiftScanState(std::vector<Value> &scanState, const Value &scanInValue, size_t *unknownPairs = NULL) const;
-	};
+			static bool isBinaryValue(const Value &value);
+			static Value getValueOrUnknown(const std::vector<Value> &values, const size_t &index);
+			size_t calculateCaptureFFTCBetweenStates(const std::vector<Value> &fromValues, const std::vector<Value> &toValues, size_t *unknownPairs = NULL) const;
+			size_t shiftScanState(std::vector<Value> &scanState, const Value &scanInValue, size_t *unknownPairs = NULL) const;
+		};
 
 	inline PatternProcessor::CaptureFFTCStats::CaptureFFTCStats()
 			: patternCount_(0),
-				scanFlipFlopCount_(0),
-				patternsWithCaptureData_(0),
-				totalCaptureFFTC_(0),
-				maxCaptureFFTC_(0),
-				totalUnknownCapturePairs_(0),
-				averageCaptureFFTC_(0.0)
-	{
-	}
+					scanFlipFlopCount_(0),
+					captureCycleCount_(0),
+					totalCaptureFFTC_(0),
+					maxCaptureFFTC_(0),
+					totalUnknownCapturePairs_(0),
+					averageCaptureFFTC_(0.0)
+		{
+		}
 
 	inline PatternProcessor::ShiftFFTCStats::ShiftFFTCStats()
 			: patternCount_(0),
@@ -272,31 +275,31 @@ namespace CoreNs
 		return fftc;
 	}
 
-	inline size_t PatternProcessor::calculateCaptureFFTC(const Pattern &pattern, size_t *unknownPairs) const
-	{
-		if (unknownPairs)
+		inline size_t PatternProcessor::calculateCaptureFFTCBetweenStates(const std::vector<Value> &fromValues, const std::vector<Value> &toValues, size_t *unknownPairs) const
 		{
-			*unknownPairs = 0;
-		}
-
-		if (pattern.PPI_.empty() || pattern.PPO_.empty() || numPPI_ <= 0)
-		{
-			return 0;
-		}
-
-		const size_t expectedPairs = static_cast<size_t>(numPPI_);
-		size_t comparePairs = pattern.PPI_.size() < pattern.PPO_.size() ? pattern.PPI_.size() : pattern.PPO_.size();
-		comparePairs = comparePairs < expectedPairs ? comparePairs : expectedPairs;
-
-		size_t unknown = expectedPairs - comparePairs;
-		size_t fftc = unknown;
-		for (size_t i = 0; i < comparePairs; ++i)
-		{
-			const Value &launchValue = pattern.PPI_[i];
-			const Value &captureValue = pattern.PPO_[i];
-			if (!isBinaryValue(launchValue) || !isBinaryValue(captureValue))
+			if (unknownPairs)
 			{
-				++unknown;
+				*unknownPairs = 0;
+			}
+
+			if (fromValues.empty() || toValues.empty() || numPPI_ <= 0)
+			{
+				return 0;
+			}
+
+			const size_t expectedPairs = static_cast<size_t>(numPPI_);
+			size_t comparePairs = fromValues.size() < toValues.size() ? fromValues.size() : toValues.size();
+			comparePairs = comparePairs < expectedPairs ? comparePairs : expectedPairs;
+
+			size_t unknown = expectedPairs - comparePairs;
+			size_t fftc = unknown;
+			for (size_t i = 0; i < comparePairs; ++i)
+			{
+				const Value &launchValue = fromValues[i];
+				const Value &captureValue = toValues[i];
+				if (!isBinaryValue(launchValue) || !isBinaryValue(captureValue))
+				{
+					++unknown;
 				++fftc;
 				continue;
 			}
@@ -309,9 +312,9 @@ namespace CoreNs
 		if (unknownPairs)
 		{
 			*unknownPairs = unknown;
+			}
+			return fftc;
 		}
-		return fftc;
-	}
 
 	inline PatternProcessor::CaptureFFTCStats PatternProcessor::calculateCaptureFFTCStats() const
 	{
@@ -326,20 +329,45 @@ namespace CoreNs
 				continue;
 			}
 
-			size_t unknownPairs = 0;
-			const size_t fftc = calculateCaptureFFTC(pattern, &unknownPairs);
-			++stats.patternsWithCaptureData_;
-			stats.totalCaptureFFTC_ += fftc;
-			stats.totalUnknownCapturePairs_ += unknownPairs;
-			if (fftc > stats.maxCaptureFFTC_)
+			size_t cycleUnknown = 0;
+			size_t cycleFftc = 0;
+			if (!pattern.PPO1_.empty())
 			{
-				stats.maxCaptureFFTC_ = fftc;
+				cycleFftc = calculateCaptureFFTCBetweenStates(pattern.PPI_, pattern.PPO1_, &cycleUnknown);
+				++stats.captureCycleCount_;
+				stats.totalCaptureFFTC_ += cycleFftc;
+				stats.totalUnknownCapturePairs_ += cycleUnknown;
+				if (cycleFftc > stats.maxCaptureFFTC_)
+				{
+					stats.maxCaptureFFTC_ = cycleFftc;
+				}
+
+				cycleUnknown = 0;
+				cycleFftc = calculateCaptureFFTCBetweenStates(pattern.PPO1_, pattern.PPO_, &cycleUnknown);
+				++stats.captureCycleCount_;
+				stats.totalCaptureFFTC_ += cycleFftc;
+				stats.totalUnknownCapturePairs_ += cycleUnknown;
+				if (cycleFftc > stats.maxCaptureFFTC_)
+				{
+					stats.maxCaptureFFTC_ = cycleFftc;
+				}
+			}
+			else
+			{
+				cycleFftc = calculateCaptureFFTCBetweenStates(pattern.PPI_, pattern.PPO_, &cycleUnknown);
+				++stats.captureCycleCount_;
+				stats.totalCaptureFFTC_ += cycleFftc;
+				stats.totalUnknownCapturePairs_ += cycleUnknown;
+				if (cycleFftc > stats.maxCaptureFFTC_)
+				{
+					stats.maxCaptureFFTC_ = cycleFftc;
+				}
 			}
 		}
 
-		if (stats.patternsWithCaptureData_ > 0)
+		if (stats.captureCycleCount_ > 0)
 		{
-			stats.averageCaptureFFTC_ = static_cast<double>(stats.totalCaptureFFTC_) / static_cast<double>(stats.patternsWithCaptureData_);
+			stats.averageCaptureFFTC_ = static_cast<double>(stats.totalCaptureFFTC_) / static_cast<double>(stats.captureCycleCount_);
 		}
 		return stats;
 	}
@@ -702,16 +730,23 @@ namespace CoreNs
 				{
 					patternVector_[i].PO1_[k] = (patternVector_[i].PO1_[k] < patternVector_[j].PO1_[k]) ? patternVector_[i].PO1_[k] : patternVector_[j].PO1_[k];
 				}
-				if (!patternVector_[i].PO2_.empty())
-				{
-					for (int k = 0; k < numPO_; ++k)
+					if (!patternVector_[i].PO2_.empty())
 					{
-						patternVector_[i].PO2_[k] = (patternVector_[i].PO2_[k] < patternVector_[j].PO2_[k]) ? patternVector_[i].PO2_[k] : patternVector_[j].PO2_[k];
+						for (int k = 0; k < numPO_; ++k)
+					{
+							patternVector_[i].PO2_[k] = (patternVector_[i].PO2_[k] < patternVector_[j].PO2_[k]) ? patternVector_[i].PO2_[k] : patternVector_[j].PO2_[k];
+						}
 					}
-				}
-				if (!patternVector_[i].PPO_.empty())
-				{
-					for (int k = 0; k < numPPI_; ++k)
+					if (!patternVector_[i].PPO1_.empty())
+					{
+						for (int k = 0; k < numPPI_; ++k)
+						{
+							patternVector_[i].PPO1_[k] = (patternVector_[i].PPO1_[k] < patternVector_[j].PPO1_[k]) ? patternVector_[i].PPO1_[k] : patternVector_[j].PPO1_[k];
+						}
+					}
+					if (!patternVector_[i].PPO_.empty())
+					{
+						for (int k = 0; k < numPPI_; ++k)
 					{
 						patternVector_[i].PPO_[k] = (patternVector_[i].PPO_[k] < patternVector_[j].PPO_[k]) ? patternVector_[i].PPO_[k] : patternVector_[j].PPO_[k];
 					}

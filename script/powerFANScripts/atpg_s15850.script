@@ -1,9 +1,10 @@
 read_lib techlib/mod_nangate45.mdt
 read_netlist mod_netlist/s15850.v
 report_netlist
-build_circuit --frame 1
+set_pattern_type LOC
+build_circuit --frame 2
 report_circuit
-set_fault_type saf
+set_fault_type tdf
 add_fault --all
 set_static_compression on
 set_dynamic_compression on

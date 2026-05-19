@@ -277,6 +277,7 @@ void PatternReader::addPattern(const char *const pPI1,
 	{
 		pPatternProcessor_->patternVector_[curPattern_].PI2_.resize(pPatternProcessor_->numPI_);
 		assignValue(pPatternProcessor_->patternVector_[curPattern_].PI2_, pPI2, pPatternProcessor_->numPI_);
+		pPatternProcessor_->patternVector_[curPattern_].PPO1_.resize(pPatternProcessor_->numPPI_, X);
 	}
 	if (pPPI && curPattern_ < (int)pPatternProcessor_->patternVector_.size())
 	{
@@ -285,8 +286,22 @@ void PatternReader::addPattern(const char *const pPI1,
 	}
 	if (pSI && curPattern_ < (int)pPatternProcessor_->patternVector_.size())
 	{
-		pPatternProcessor_->patternVector_[curPattern_].SI_.resize(pPatternProcessor_->numSI_);
-		assignValue(pPatternProcessor_->patternVector_[curPattern_].SI_, pSI, pPatternProcessor_->numSI_);
+		if (pPatternProcessor_->type_ == PatternProcessor::LAUNCH_CAPTURE)
+		{
+			pPatternProcessor_->patternVector_[curPattern_].captureClockEnabled_.clear();
+			for (const char *p = pSI; *p != '\0'; ++p)
+			{
+				if (*p == '0' || *p == '1')
+				{
+					pPatternProcessor_->patternVector_[curPattern_].captureClockEnabled_.push_back(*p == '1');
+				}
+			}
+		}
+		else
+		{
+			pPatternProcessor_->patternVector_[curPattern_].SI_.resize(pPatternProcessor_->numSI_);
+			assignValue(pPatternProcessor_->patternVector_[curPattern_].SI_, pSI, pPatternProcessor_->numSI_);
+		}
 	}
 	if (pPO1 && curPattern_ < (int)pPatternProcessor_->patternVector_.size())
 	{
@@ -984,9 +999,9 @@ bool PatternWriter::writeSTIL(const char *const fname)
 	{
 		std::map<std::string, std::string> map_pattern;
 
-		if (!pattern.PI1_.empty())
-		{
-			map_pattern["pPI1"] = "";
+			if (!pattern.PI1_.empty())
+			{
+				map_pattern["pPI1"] = "";
 			for (int j = 0; j < pPatternProcessor_->numPI_; ++j)
 			{
 				if (pattern.PI1_[j] == L)
@@ -995,11 +1010,24 @@ bool PatternWriter::writeSTIL(const char *const fname)
 					map_pattern["pPI1"] += "1";
 				else
 					map_pattern["pPI1"] += "N";
+				}
 			}
-		}
+			if (!pattern.PI2_.empty())
+			{
+				map_pattern["pPI2"] = "";
+				for (int j = 0; j < pPatternProcessor_->numPI_; ++j)
+				{
+					if (pattern.PI2_[j] == L)
+						map_pattern["pPI2"] += "0";
+					else if (pattern.PI2_[j] == H)
+						map_pattern["pPI2"] += "1";
+					else
+						map_pattern["pPI2"] += "N";
+				}
+			}
 
-		if (!pattern.PPI_.empty())
-		{
+			if (!pattern.PPI_.empty())
+			{
 			map_pattern["pPPI1"] = "";
 			for (int j = 0; j < pPatternProcessor_->numPPI_; ++j)
 			{
@@ -1021,10 +1049,23 @@ bool PatternWriter::writeSTIL(const char *const fname)
 					map_pattern["pPO1"] += "L";
 				else if (pattern.PO1_[j] == H)
 					map_pattern["pPO1"] += "H";
-				else
-					map_pattern["pPO1"] += "N";
+					else
+						map_pattern["pPO1"] += "N";
+				}
 			}
-		}
+			if (!pattern.PO2_.empty())
+			{
+				map_pattern["pPO2"] = "";
+				for (int j = 0; j < pPatternProcessor_->numPO_; ++j)
+				{
+					if (pattern.PO2_[j] == L)
+						map_pattern["pPO2"] += "L";
+					else if (pattern.PO2_[j] == H)
+						map_pattern["pPO2"] += "H";
+					else
+						map_pattern["pPO2"] += "N";
+				}
+			}
 
 		if (!pattern.PPI_.empty())
 		{
@@ -1224,9 +1265,9 @@ bool PatternWriter::writeSTIL(const char *const fname)
 		}
 		os << "           \"test_si\"=" << patternList[i]["pPPI1"] << ";\n";
 		os << "       }\n";
-		os << "       Call \"capture_CK\" {\n";
-		os << "           \"_pi\"=";
-		for (size_t j = patternList[i]["pPI1"].length(); j < PI_Order.size(); ++j)
+			os << "       Call \"capture_CK\" {\n";
+			os << "           \"_pi\"=";
+			for (size_t j = patternList[i]["pPI1"].length(); j < PI_Order.size(); ++j)
 		{
 			os << "0";
 		}
@@ -1235,10 +1276,27 @@ bool PatternWriter::writeSTIL(const char *const fname)
 		for (size_t j = patternList[i]["pPO1"].length(); j < PO_Order.size(); ++j)
 		{
 			os << "L";
+			}
+			os << patternList[i]["pPO1"] << ";\n";
+			os << "       }\n";
+			if (pPatternProcessor_->type_ == PatternProcessor::LAUNCH_CAPTURE || pPatternProcessor_->type_ == PatternProcessor::LAUNCH_SHIFT)
+			{
+				os << "       Call \"capture_CK\" {\n";
+				os << "           \"_pi\"=";
+				for (size_t j = patternList[i]["pPI2"].length(); j < PI_Order.size(); ++j)
+				{
+					os << "0";
+				}
+				os << patternList[i]["pPI2"] << ";\n";
+				os << "           \"_po\"=";
+				for (size_t j = patternList[i]["pPO2"].length(); j < PO_Order.size(); ++j)
+				{
+					os << "L";
+				}
+				os << patternList[i]["pPO2"] << ";\n";
+				os << "       }\n";
+			}
 		}
-		os << patternList[i]["pPO1"] << ";\n";
-		os << "       }\n";
-	}
 
 	os << "   \"end " << pattern_size - 1 << " unload\":\n";
 	os << "       Call \"load_unload\" {\n";

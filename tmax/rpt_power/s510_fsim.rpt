@@ -1,48 +1,49 @@
 #                 Statistics Report
 #  Circuit name                                 s510
-#  Fault model                                   SAF
-#  Pattern type                                BASIC
+#  Fault model                                   TDF
+#  Pattern type                                  LOC
 #  -------------------------------------------------
 #  Fault classes                             #faults
 #    --------------------------  -------------------
-#    FU (full)                                  1402
-#    FU (collapsed)                              946
+#    FU (full)                                  1076
+#    FU (collapsed)                             1076
 #    --------------------------  -------------------
-#    UD (undetected)                              12
+#    UD (undetected)                             115
 #    PT (possibly testable)                        0
 #    AU (atpg untestable)                          0
 #    RE (redundant)                                0
 #    AB (atpg abort)                               0
 #    TI (tied)                                     0
 #    --------------------------  -------------------
-#    DT (detected)                              1390
+#    DT (detected)                               961
 #  -------------------------------------------------
 #  Coverage                               percentage
 #    --------------------------  -------------------
-#    test coverage                            99.14%
-#    fault coverage                           99.14%
-#    atpg effectiveness                       99.14%
+#    test coverage                            89.31%
+#    fault coverage                           89.31%
+#    atpg effectiveness                       89.31%
 #  -------------------------------------------------
-#  #Patterns                                      68
+#  #Patterns                                      92
 #  -------------------------------------------------
 #  Power metric
 #    -----------------------------------------------
 #    scan flip-flops                               6
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                           68
-#      shift cycles evaluated                    408
-#      total FFTC                               1210
-#      average FFTC/cycle                      2.966
-#      maximum FFTC/cycle                          6
+#      shift operations                           92
+#      shift cycles evaluated                    552
+#      total FFTC                               1686
+#      average FFTC                             3.05
+#      maximum FFTC                                6
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                                106
-#      average FFTC/pattern                    1.559
-#      maximum FFTC/pattern                        6
+#      total FFTC                                344
+#      capture cycles evaluated                  183
+#      average FFTC                             1.88
+#      maximum FFTC                                6
 #      unknown transitions                         0
 #  -------------------------------------------------
-#  ATPG runtime                           0.000778 s
+#  ATPG runtime                           0.001552 s
 #  -------------------------------------------------

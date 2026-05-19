@@ -8,3 +8,4 @@ profiler.txt
 **/lib/opt/**
 **/lib/dbg/**
 !**/.gitignore
+**/__pycache__/**

@@ -4955,7 +4955,11 @@ void Atpg::powerFill(PatternProcessor *pPatternProcessor, Pattern &pattern)
 		{
 			pSimulator_->assignPatternToCircuitInputs(candidate);
 			pSimulator_->goodSim();
-			const int ppoOffset = pCircuit_->numGate_ - pCircuit_->numPPI_;
+			int ppoOffset = pCircuit_->numGate_ - pCircuit_->numPPI_;
+			if (pCircuit_->numFrame_ > 1)
+			{
+				ppoOffset += pCircuit_->numGate_ * (pCircuit_->numFrame_ - 1);
+			}
 			for (int i = 0; i < pCircuit_->numPPI_; ++i)
 			{
 				const Gate &ppoGate = pCircuit_->circuitGates_[ppoOffset + i];

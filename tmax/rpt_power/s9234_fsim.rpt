@@ -1,48 +1,49 @@
 #                 Statistics Report
 #  Circuit name                                s9234
-#  Fault model                                   SAF
-#  Pattern type                                BASIC
+#  Fault model                                   TDF
+#  Pattern type                                  LOC
 #  -------------------------------------------------
 #  Fault classes                             #faults
 #    --------------------------  -------------------
-#    FU (full)                                 16476
-#    FU (collapsed)                            11493
+#    FU (full)                                 13066
+#    FU (collapsed)                            13066
 #    --------------------------  -------------------
-#    UD (undetected)                             965
+#    UD (undetected)                            1853
 #    PT (possibly testable)                        0
 #    AU (atpg untestable)                          0
 #    RE (redundant)                                0
 #    AB (atpg abort)                               0
 #    TI (tied)                                     0
 #    --------------------------  -------------------
-#    DT (detected)                             15511
+#    DT (detected)                             11213
 #  -------------------------------------------------
 #  Coverage                               percentage
 #    --------------------------  -------------------
-#    test coverage                            94.14%
-#    fault coverage                           94.14%
-#    atpg effectiveness                       94.14%
+#    test coverage                            85.82%
+#    fault coverage                           85.82%
+#    atpg effectiveness                       85.82%
 #  -------------------------------------------------
-#  #Patterns                                     263
+#  #Patterns                                     514
 #  -------------------------------------------------
 #  Power metric
 #    -----------------------------------------------
 #    scan flip-flops                             211
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                          263
-#      shift cycles evaluated                  55493
-#      total FFTC                            3002312
-#      average FFTC/cycle                       54.1
-#      maximum FFTC/cycle                        115
+#      shift operations                          514
+#      shift cycles evaluated                 108454
+#      total FFTC                            6319302
+#      average FFTC                            58.27
+#      maximum FFTC                              130
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                              18277
-#      average FFTC/pattern                    69.49
-#      maximum FFTC/pattern                      102
+#      total FFTC                              60582
+#      capture cycles evaluated                 1027
+#      average FFTC                            58.99
+#      maximum FFTC                              108
 #      unknown transitions                         0
 #  -------------------------------------------------
-#  ATPG runtime                            0.07629 s
+#  ATPG runtime                             0.2784 s
 #  -------------------------------------------------

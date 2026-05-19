@@ -44,8 +44,8 @@ Circuits:
   ${CIRCUITS[*]}
 
 Modes:
-  normal       TestMAX normal ATPG: set_atpg -fill 0
-  power        TestMAX power-aware ATPG: adjacent fill + shift power effort
+  normal       TestMAX LOC/TDF ATPG: set_atpg -fill 0
+  power        TestMAX LOC/TDF power-aware ATPG: adjacent fill + shift power effort
 
 Environment overrides:
   TMAX_SETUP=/path/to/tmax.cshrc
@@ -74,33 +74,37 @@ write_tmax_script() {
   local circuit="$1"
   local script
   local netlist="mod_netlist/${circuit}.v"
+  local rpt_dir="tmax/rpt_${ATPG_MODE}"
+  local pat_dir="tmax/pat_${ATPG_MODE}"
 
   [[ -f "${netlist}" ]] || die "missing ${netlist}"
   script="$(mktemp "${TMPDIR:-/tmp}/tmax_${circuit}.tcl.XXXXXX")"
   TMP_FILES+=("${script}")
   cat > "${script}" <<TCL
-set_messages -log tmax/rpt/${circuit}_tmax.log -replace
+set_messages -log ${rpt_dir}/${circuit}_tmax.log -replace
 read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
 read_netlist mod_netlist/${circuit}.v -format verilog
 run_build_model ${circuit}
 add_clocks 0 CK -shift
 add_scan_enables 1 test_se
 add_scan_chains chain1 test_si test_so
+add_pi_constraints 0 test_se
 run_drc
+set_faults -model transition
 
 TCL
 
   case "${ATPG_MODE}" in
     normal)
       cat >> "${script}" <<TCL
-puts "ATPG mode: normal"
+puts "ATPG mode: normal LOC/TDF"
 set_atpg -fill 0
 
 TCL
       ;;
     power)
       cat >> "${script}" <<TCL
-puts "ATPG mode: power-aware"
+puts "ATPG mode: power-aware LOC/TDF"
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
 
@@ -112,7 +116,7 @@ TCL
 add_faults -all
 run_atpg -auto_compression
 report_power -per_pattern -percentage
-write_patterns tmax/pat/${circuit}.stil -format stil -replace
+write_patterns ${pat_dir}/${circuit}.stil -format stil -replace
 exit
 TCL
 
@@ -122,18 +126,22 @@ TCL
 write_fsim_script() {
   local circuit="$1"
   local script
+  local rpt_dir="tmax/rpt_${ATPG_MODE}"
+  local pat_dir="tmax/pat_${ATPG_MODE}"
 
   script="$(mktemp "${TMPDIR:-/tmp}/fsim_${circuit}.script.XXXXXX")"
   TMP_FILES+=("${script}")
   cat > "${script}" <<TCL
 read_lib techlib/mod_nangate45.mdt
 read_netlist mod_netlist/${circuit}.v
-build_circuit --frame 1
-read_pattern tmax/pat/${circuit}.pat
-set_fault_type saf
+set_pattern_type LOC
+build_circuit --frame 2
+read_pattern ${pat_dir}/${circuit}.pat
+set_fault_type tdf
 add_fault -a
 run_fault_sim
-report_statistics > tmax/rpt/${circuit}_fsim.rpt
+run_logic_sim
+report_statistics > ${rpt_dir}/${circuit}_fsim.rpt
 exit
 TCL
 
@@ -144,10 +152,13 @@ run_one() {
   local circuit="$1"
   local tmax_script
   local fsim_script
-  local stil="tmax/pat/${circuit}.stil"
-  local pat="tmax/pat/${circuit}.pat"
+  local pat_dir="tmax/pat_${ATPG_MODE}"
+  local rpt_dir="tmax/rpt_${ATPG_MODE}"
+  local stil="${pat_dir}/${circuit}.stil"
+  local pat="${pat_dir}/${circuit}.pat"
 
   [[ -x "${FAN_BIN}" ]] || die "missing executable FAN binary: ${FAN_BIN}. Run make first or set FAN_BIN."
+  mkdir -p "${pat_dir}" "${rpt_dir}"
   write_tmax_script "${circuit}"
   tmax_script="${TMAX_SCRIPT}"
   write_fsim_script "${circuit}"
@@ -157,7 +168,7 @@ run_one() {
   tcsh -f -c "source ${TMAX_SETUP}; ${TMAX_BIN} -shell ${tmax_script}"
 
   echo "==> [${circuit}] Convert STIL to FAN PAT"
-  "${PYTHON}" tmax/utility/scan_stil_to_fan_pat.py "${stil}" --out "${pat}"
+  "${PYTHON}" tmax/utility/scan_stil_to_fan_pat.py "${stil}" --out "${pat}" --pattern-type loc
 
   echo "==> [${circuit}] FAN fault simulation"
   "${FAN_BIN}" -f "${fsim_script}"
@@ -217,7 +228,7 @@ main() {
   }
 
   cd "${ROOT_DIR}"
-  mkdir -p tmax/pat tmax/rpt
+  mkdir -p "tmax/pat_${ATPG_MODE}" "tmax/rpt_${ATPG_MODE}"
 
   local target="$1"
   if [[ "${target}" == "all" ]]; then
