@@ -7,27 +7,27 @@ This flow uses the original sequential scan netlist, not an abstract combination
 Run one circuit:
 
 ```
-./tmax/run_flow.sh s27
+./tmax/run_flow.sh power s27
 ```
 
 Choose ATPG mode:
 
 ```
-./tmax/run_flow.sh --mode normal s27
-./tmax/run_flow.sh --mode power s27
-./tmax/run_flow.sh --mode power --nocomp s27
+./tmax/run_flow.sh normal s27
+./tmax/run_flow.sh power s27
+./tmax/run_flow.sh --nocomp power s27
 ```
 
 Run all supported circuits:
 
 ```
-./tmax/run_flow.sh all
-./tmax/run_flow.sh --power-aware all
+./tmax/run_flow.sh power all
+./tmax/run_flow.sh normal all
 ```
 
 Supported circuits are the scan netlists in `mod_netlist/`: `s27`, `s208`, `s510`, `s953`, `s1196`, `s1238`, `s5378`, `s9234`, `s15850`, `s35932`, `s38417`, and `s38584`.
 
-The script runs TestMAX LOC/TDF ATPG, converts the generated scan STIL into FAN `.pat`, then runs FAN TDF fault simulation. The default mode is `power`, which uses adjacent fill and shift-power reduction. `normal` uses `set_atpg -fill 0`. Add `--no-compression` to use `set_atpg -merge Off` and `run_atpg Fast_sequential_only`; it still writes to the selected mode's regular `tmax/rpt_<mode>` and `tmax/pat_<mode>` outputs.
+The script runs TestMAX LOC/TDF ATPG, converts the generated scan STIL into FAN `.pat`, then runs FAN TDF fault simulation. `power` uses adjacent fill and shift-power reduction. `normal` uses `set_atpg -fill 0`. Add `--nocomp` to use `set_atpg -merge Off` and `run_atpg Fast_sequential_only`; it still writes to the selected ATPG mode's regular `tmax/rpt_<mode>` and `tmax/pat_<mode>` outputs.
 
 `run_flow.sh` creates temporary TestMAX Tcl and FAN fsim scripts under `/tmp`, so adding a circuit usually only requires adding its name to the `CIRCUITS` list in `run_flow.sh`.
 

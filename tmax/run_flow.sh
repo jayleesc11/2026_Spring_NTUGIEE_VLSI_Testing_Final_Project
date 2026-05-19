@@ -23,7 +23,7 @@ TMAX_SETUP="${TMAX_SETUP:-/work/cad/synopsys/CIC/tmax.cshrc}"
 TMAX_BIN="${TMAX_BIN:-tmax}"
 PYTHON="${PYTHON:-python3}"
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
-ATPG_MODE="${ATPG_MODE:-power}"
+ATPG_FLOW=""
 NO_COMPRESSION="${NO_COMPRESSION:-0}"
 TMP_FILES=()
 
@@ -37,9 +37,7 @@ trap cleanup EXIT
 usage() {
   cat <<USAGE
 Usage:
-  $0 [--mode normal|power] [--nocomp] <circuit|all>
-  $0 --normal <circuit|all>
-  $0 --power <circuit|all>
+  $0 [--nocomp] <normal|power> <circuit|all>
 
 Circuits:
   ${CIRCUITS[*]}
@@ -55,8 +53,6 @@ Environment overrides:
   TMAX_BIN=tmax
   PYTHON=python3
   FAN_BIN=./bin/opt/fan
-  ATPG_MODE=normal|power
-  NO_COMPRESSION=0|1
 USAGE
 }
 
@@ -207,17 +203,6 @@ main() {
   local args=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --mode)
-        shift
-        [[ $# -gt 0 ]] || die "--mode requires normal or power"
-        ATPG_MODE="$1"
-        ;;
-      --normal)
-        ATPG_MODE="normal"
-        ;;
-      --power)
-        ATPG_MODE="power"
-        ;;
       --nocomp)
         NO_COMPRESSION="1"
         ;;
@@ -241,28 +226,26 @@ main() {
     shift
   done
 
-  case "${ATPG_MODE}" in
-    normal|power)
-      ;;
-    power-aware)
-      ATPG_MODE="power"
-      ;;
-    *)
-      usage
-      die "unknown ATPG mode: ${ATPG_MODE}"
-      ;;
-  esac
-
   set -- "${args[@]}"
-  [[ $# -eq 1 ]] || {
+  [[ $# -eq 2 ]] || {
     usage
     exit 1
   }
 
+  ATPG_MODE="$1"
+  case "${ATPG_MODE}" in
+    normal|power)
+      ;;
+    *)
+      usage
+      die "unknown ATPG: ${ATPG_MODE}"
+      ;;
+  esac
+
   cd "${ROOT_DIR}"
   mkdir -p "tmax/pat_${ATPG_MODE}" "tmax/rpt_${ATPG_MODE}"
 
-  local target="$1"
+  local target="$2"
   if [[ "${target}" == "all" ]]; then
     local circuit
     for circuit in "${CIRCUITS[@]}"; do
