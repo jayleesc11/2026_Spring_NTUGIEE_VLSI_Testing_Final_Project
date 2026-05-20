@@ -4600,11 +4600,7 @@ void Atpg::initializePowerFillOrder()
 	if (static_cast<int>(powerFillPiOrder_.size()) == pCircuit_->numPI_ &&
 	    static_cast<int>(powerFillPiImpact_.size()) == pCircuit_->numPI_ &&
 	    static_cast<int>(powerFillPi1FanoutCones_.size()) == pCircuit_->numPI_ &&
-	    static_cast<int>(powerFillPi2FanoutCones_.size()) == pCircuit_->numPI_ &&
-	    static_cast<int>(powerFillPi1ResponseEdges_.size()) == pCircuit_->numPI_ &&
-	    static_cast<int>(powerFillPi2ResponseEdges_.size()) == pCircuit_->numPI_ &&
-	    static_cast<int>(powerFillPi1CaptureBits_.size()) == pCircuit_->numPI_ &&
-	    static_cast<int>(powerFillPi2CaptureBits_.size()) == pCircuit_->numPI_)
+	    static_cast<int>(powerFillPi2FanoutCones_.size()) == pCircuit_->numPI_)
 	{
 		return;
 	}
@@ -4613,14 +4609,6 @@ void Atpg::initializePowerFillOrder()
 	powerFillPiOrder_.resize(pCircuit_->numPI_);
 	powerFillPi1FanoutCones_.assign(pCircuit_->numPI_, std::vector<int>());
 	powerFillPi2FanoutCones_.assign(pCircuit_->numPI_, std::vector<int>());
-	powerFillPi1ResponseEdges_.assign(pCircuit_->numPI_, std::vector<int>());
-	powerFillPi2ResponseEdges_.assign(pCircuit_->numPI_, std::vector<int>());
-	powerFillPi1CaptureBits_.assign(pCircuit_->numPI_, std::vector<int>());
-	powerFillPi2CaptureBits_.assign(pCircuit_->numPI_, std::vector<int>());
-	auto sortUnique = [](std::vector<int> &values) {
-		std::sort(values.begin(), values.end());
-		values.erase(std::unique(values.begin(), values.end()), values.end());
-	};
 	auto buildFanoutCone = [&](const int &sourceGateID, std::vector<int> &fanoutCone) {
 		fanoutCone.clear();
 		if (sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
@@ -4650,25 +4638,8 @@ void Atpg::initializePowerFillOrder()
 		}
 		std::sort(fanoutCone.begin(), fanoutCone.end());
 	};
-	auto addAffectedPpoIndex = [&](const int &ppoIndex, std::vector<int> &responseEdges, std::vector<int> &captureBits) {
-		if (ppoIndex < 0 || ppoIndex >= pCircuit_->numPPI_)
-		{
-			return;
-		}
-		captureBits.push_back(ppoIndex);
-		if (ppoIndex > 0)
-		{
-			responseEdges.push_back(ppoIndex);
-		}
-		if (ppoIndex + 1 < pCircuit_->numPPI_)
-		{
-			responseEdges.push_back(ppoIndex + 1);
-		}
-	};
-	auto buildAffectedScoreWindows = [&](const std::vector<int> &fanoutCone, std::vector<int> &responseEdges, std::vector<int> &captureBits) {
-		responseEdges.clear();
-		captureBits.clear();
-		const int finalFrame = pCircuit_->numFrame_ > 0 ? pCircuit_->numFrame_ - 1 : 0;
+	auto calculateResponseImpact = [&](const std::vector<int> &fanoutCone) -> size_t {
+		size_t impact = 0;
 		for (const int &gateID : fanoutCone)
 		{
 			if (gateID < 0 || gateID >= pCircuit_->totalGate_)
@@ -4680,74 +4651,26 @@ void Atpg::initializePowerFillOrder()
 			{
 				continue;
 			}
-			const int frame = pCircuit_->numGate_ > 0 ? gateID / pCircuit_->numGate_ : 0;
 			const int localGateID = pCircuit_->numGate_ > 0 ? gateID % pCircuit_->numGate_ : gateID;
 			const int ppoIndex = localGateID - (pCircuit_->numGate_ - pCircuit_->numPPI_);
-			if (ppoIndex < 0 || ppoIndex >= pCircuit_->numPPI_)
+			if (ppoIndex >= 0 && ppoIndex < pCircuit_->numPPI_)
 			{
-				continue;
-			}
-			if (frame == finalFrame)
-			{
-				addAffectedPpoIndex(ppoIndex, responseEdges, captureBits);
-			}
-			else if (frame == 0 && pCircuit_->numFrame_ > 1)
-			{
-				captureBits.push_back(ppoIndex);
+				impact += static_cast<size_t>(pCircuit_->numPPI_ - ppoIndex);
 			}
 		}
-		sortUnique(responseEdges);
-		sortUnique(captureBits);
-	};
-	auto addResponseImpactFromFanout = [&](const int &sourceGateID, size_t &impact) {
-		if (sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
-		{
-			return;
-		}
-
-		std::vector<int> stack;
-		std::vector<char> visited(pCircuit_->totalGate_, 0);
-		stack.push_back(sourceGateID);
-		visited[sourceGateID] = 1;
-		while (!stack.empty())
-		{
-			const int gateID = stack.back();
-			stack.pop_back();
-			const Gate &gate = pCircuit_->circuitGates_[gateID];
-			for (const int &fanoutID : gate.fanoutVector_)
-			{
-				if (fanoutID < 0 || fanoutID >= pCircuit_->totalGate_ || visited[fanoutID])
-				{
-					continue;
-				}
-				visited[fanoutID] = 1;
-				const Gate &fanoutGate = pCircuit_->circuitGates_[fanoutID];
-				if (fanoutGate.gateType_ == Gate::PPO)
-				{
-					const int localGateID = pCircuit_->numGate_ > 0 ? fanoutID % pCircuit_->numGate_ : fanoutID;
-					const int ppoIndex = localGateID - (pCircuit_->numGate_ - pCircuit_->numPPI_);
-					if (ppoIndex >= 0 && ppoIndex < pCircuit_->numPPI_)
-					{
-						impact += static_cast<size_t>(pCircuit_->numPPI_ - ppoIndex);
-					}
-				}
-				stack.push_back(fanoutID);
-			}
-		}
+		return impact;
 	};
 	for (int i = 0; i < pCircuit_->numPI_; ++i)
 	{
 		powerFillPiOrder_[i] = i;
 		powerFillPiImpact_[i] = 0;
 		buildFanoutCone(i, powerFillPi1FanoutCones_[i]);
-		buildAffectedScoreWindows(powerFillPi1FanoutCones_[i], powerFillPi1ResponseEdges_[i], powerFillPi1CaptureBits_[i]);
-		addResponseImpactFromFanout(i, powerFillPiImpact_[i]);
+		powerFillPiImpact_[i] += calculateResponseImpact(powerFillPi1FanoutCones_[i]);
 		if (pCircuit_->numFrame_ > 1)
 		{
 			const int frame2PiGateID = i + pCircuit_->numGate_;
 			buildFanoutCone(frame2PiGateID, powerFillPi2FanoutCones_[i]);
-			buildAffectedScoreWindows(powerFillPi2FanoutCones_[i], powerFillPi2ResponseEdges_[i], powerFillPi2CaptureBits_[i]);
-			addResponseImpactFromFanout(frame2PiGateID, powerFillPiImpact_[i]);
+			powerFillPiImpact_[i] += calculateResponseImpact(powerFillPi2FanoutCones_[i]);
 		}
 	}
 
@@ -4894,6 +4817,15 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		}
 		return score;
 	};
+	auto calculatePiRepairScore = [&](const size_t &patternIndex, const double &fixedShiftLoadCost) -> double {
+		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
+		double score = fixedShiftLoadCost + calculateCaptureCost(pattern);
+		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
+		{
+			score += calculateShiftLoadCost(getScanStateAfterPattern(pattern), pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
+		}
+		return score;
+	};
 	auto getPreviousScanHead = [&](const size_t &patternIndex) -> Value {
 		if (patternIndex == 0)
 		{
@@ -5010,7 +4942,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	{
 		maxPiFlipTrials = 128;
 	}
-	auto tryPiFlip = [&](Pattern &pattern, const size_t &patternIndex, double &currentScore, std::vector<Value> &values, const int &targetIndex, const int &sourceGateID, const std::vector<int> &fanoutCone) -> bool {
+	auto tryPiFlip = [&](Pattern &pattern, const size_t &patternIndex, const double &fixedShiftLoadCost, double &currentScore, std::vector<Value> &values, const int &targetIndex, const int &sourceGateID, const std::vector<int> &fanoutCone) -> bool {
 		if (targetIndex < 0 || targetIndex >= static_cast<int>(values.size()) ||
 		    sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
 		{
@@ -5045,7 +4977,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			pSimulator_->goodValueEvaluation(gateID);
 		}
 		writeGoodSimValToPatternPO(pattern);
-		const double candidateScore = calculatePostFillScore(patternIndex);
+		const double candidateScore = calculatePiRepairScore(patternIndex, fixedShiftLoadCost);
 		if (candidateScore + acceptMargin < currentScore)
 		{
 			currentScore = candidateScore;
@@ -5070,6 +5002,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	{
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		double currentScore = calculatePostFillScore(patternIndex);
+		const double fixedPiShiftLoadCost = calculateShiftLoadCost(getScanStateBeforePattern(patternIndex), pattern.PPI_);
 		const bool canRepairPi1 = pattern.PI1OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) &&
 		                          std::find(pattern.PI1OriginalX_.begin(), pattern.PI1OriginalX_.end(), 1) != pattern.PI1OriginalX_.end();
 		const bool canRepairPi2 = pattern.PI2OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) && !pattern.PI2_.empty() &&
@@ -5077,7 +5010,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		if (canRepairPi1 || canRepairPi2)
 		{
 			simulateGoodOutputs(pattern);
-			currentScore = calculatePostFillScore(patternIndex);
+			currentScore = calculatePiRepairScore(patternIndex, fixedPiShiftLoadCost);
 
 			size_t flipTrials = 0;
 			for (const int &targetIndex : piFillOrder)
@@ -5091,7 +5024,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					continue;
 				}
 				++flipTrials;
-				tryPiFlip(pattern, patternIndex, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
+				tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
 			}
 
 			flipTrials = 0;
@@ -5106,7 +5039,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					continue;
 				}
 				++flipTrials;
-				tryPiFlip(pattern, patternIndex, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
+				tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
 			}
 		}
 
