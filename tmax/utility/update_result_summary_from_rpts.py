@@ -12,12 +12,49 @@ TMAX_DIR = os.path.dirname(ROOT)
 PROJECT_ROOT = os.path.dirname(TMAX_DIR)
 CSV_PATH = os.path.join(TMAX_DIR, 'result_summary.csv')
 
+def ensure_header(header, rows):
+    derived_columns = (
+        'total_fftc',
+        'power_total_fftc_delta_pct_vs_method',
+        'runtime_sec',
+        'power_runtime_delta_pct_vs_method',
+    )
+    old_derived_columns = (
+        'total_fftc_delta_pct_vs_power',
+        'runtime_delta_pct_vs_power',
+    )
+    header = [column for column in list(header or []) if column not in derived_columns and column not in old_derived_columns]
+    header.extend(derived_columns)
+
+    for row in rows:
+        for column in old_derived_columns:
+            row.pop(column, None)
+        for column in header:
+            row.setdefault(column, '')
+        for column in list(row.keys()):
+            if column not in header:
+                header.append(column)
+    return header
+
 def parse_rpt(path):
     with open(path, 'r', errors='ignore') as f:
         txt = f.read()
 
     def find_regex(pattern, flags=0):
         m = re.search(pattern, txt, flags)
+        return m.group(1).strip() if m else None
+
+    def find_block(start_pattern, end_pattern):
+        start = re.search(start_pattern, txt, re.IGNORECASE)
+        if not start:
+            return ''
+        end = re.search(end_pattern, txt[start.end():], re.IGNORECASE)
+        if not end:
+            return txt[start.end():]
+        return txt[start.end():start.end() + end.start()]
+
+    def find_in_text(source, pattern, flags=0):
+        m = re.search(pattern, source, flags)
         return m.group(1).strip() if m else None
 
     data = {}
@@ -41,9 +78,10 @@ def parse_rpt(path):
         data['patterns'] = pats
 
     # shift FFTC block
-    shift_total = find_regex(r'shift[\s\S]{0,120}?total FFTC\s+([0-9]+)')
-    shift_avg = find_regex(r'shift[\s\S]{0,120}?average FFTC\s+([0-9]+\.?[0-9]*)')
-    shift_max = find_regex(r'shift[\s\S]{0,120}?maximum FFTC\s+([0-9]+)')
+    shift_block = find_block(r'shift FFTC', r'capture FFTC|ATPG runtime')
+    shift_total = find_in_text(shift_block, r'total FFTC\s+([0-9]+)')
+    shift_avg = find_in_text(shift_block, r'average FFTC\s+([0-9]+\.?[0-9]*)')
+    shift_max = find_in_text(shift_block, r'maximum FFTC\s+([0-9]+)')
     if shift_total:
         data['shift_total_fftc'] = shift_total
     if shift_avg:
@@ -52,9 +90,10 @@ def parse_rpt(path):
         data['shift_max_fftc_per_cycle'] = shift_max
 
     # capture FFTC block
-    cap_total = find_regex(r'capture[\s\S]{0,120}?total FFTC\s+([0-9]+)')
-    cap_avg = find_regex(r'capture[\s\S]{0,120}?average FFTC\s+([0-9]+\.?[0-9]*)')
-    cap_max = find_regex(r'capture[\s\S]{0,120}?maximum FFTC\s+([0-9]+)')
+    capture_block = find_block(r'capture FFTC', r'ATPG runtime')
+    cap_total = find_in_text(capture_block, r'total FFTC\s+([0-9]+)')
+    cap_avg = find_in_text(capture_block, r'average FFTC\s+([0-9]+\.?[0-9]*)')
+    cap_max = find_in_text(capture_block, r'maximum FFTC\s+([0-9]+)')
     if cap_total:
         data['capture_total_fftc'] = cap_total
     if cap_avg:
@@ -62,7 +101,73 @@ def parse_rpt(path):
     if cap_max:
         data['capture_max_fftc_per_pattern'] = cap_max
 
+    runtime = find_regex(r'ATPG runtime\s+([0-9]+(?:\.[0-9]+)?(?:e[+\-]?[0-9]+)?)\s*s', re.IGNORECASE)
+    if runtime:
+        data['runtime_sec'] = runtime
+
     return data
+
+def parse_tmax_log_runtime(path):
+    if not os.path.exists(path):
+        return None
+
+    atpg_runtime = None
+    atpg_row = re.compile(
+        r'^\s*\d+\s+\d+\s+\d+\s+\d+/\d+/\d+\s+\d+(?:\.\d+)?%\s+([0-9]+(?:\.[0-9]+)?)\s*$'
+    )
+    with open(path, 'r', errors='ignore') as f:
+        for line in f:
+            match = atpg_row.match(line)
+            if match:
+                atpg_runtime = match.group(1)
+    return atpg_runtime
+
+def tmax_log_path_for_rpt(rpt):
+    directory = os.path.dirname(rpt)
+    basename = os.path.basename(rpt)
+    if basename.endswith('_fsim.rpt'):
+        return os.path.join(directory, basename.replace('_fsim.rpt', '_tmax.log'))
+    match = re.search(r'(s\d+)', basename)
+    if match:
+        return os.path.join(directory, match.group(1) + '_tmax.log')
+    return None
+
+def add_total_fftc(data):
+    shift_total = data.get('shift_total_fftc')
+    capture_total = data.get('capture_total_fftc')
+    if shift_total is None or capture_total is None:
+        return
+    try:
+        data['total_fftc'] = str(int(shift_total) + int(capture_total))
+    except ValueError:
+        return
+
+def format_power_delta_pct(power_value, method_value):
+    try:
+        power_value = float(power_value)
+        method_value = float(method_value)
+    except (TypeError, ValueError):
+        return ''
+    if method_value == 0.0:
+        return ''
+    return f'{((power_value - method_value) / method_value) * 100.0:+.2f}%'
+
+def update_delta_columns(rows):
+    power_by_circuit = {}
+    for row in rows:
+        if row.get('method') == 'power':
+            power_by_circuit[row.get('circuit')] = row
+
+    for row in rows:
+        power_row = power_by_circuit.get(row.get('circuit'))
+        if not power_row:
+            continue
+        row['power_total_fftc_delta_pct_vs_method'] = format_power_delta_pct(
+            power_row.get('total_fftc'), row.get('total_fftc')
+        )
+        row['power_runtime_delta_pct_vs_method'] = format_power_delta_pct(
+            power_row.get('runtime_sec'), row.get('runtime_sec')
+        )
 
 def method_from_path(path):
     # tmax/rpt_normal -> tmax_normal
@@ -88,6 +193,7 @@ def main():
         reader = csv.DictReader(f)
         rows = list(reader)
         header = reader.fieldnames
+    header = ensure_header(header, rows)
 
     # build lookup
     lookup = {(r['circuit'], r['method']): r for r in rows}
@@ -107,6 +213,14 @@ def main():
             continue
         circuit = parsed.pop('circuit')
         method = method_from_path(rpt)
+        if method.startswith('tmax_'):
+            parsed.pop('runtime_sec', None)
+            log_path = tmax_log_path_for_rpt(rpt)
+            runtime = parse_tmax_log_runtime(log_path) if log_path else None
+            if runtime is not None:
+                parsed['runtime_sec'] = runtime
+        add_total_fftc(parsed)
+
         key = (circuit, method)
         if key in lookup:
             row = lookup[key]
@@ -123,6 +237,8 @@ def main():
             if k in row and v is not None:
                 row[k] = v
         updated += 1
+
+    update_delta_columns(rows)
 
     with open(CSV_PATH, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=header)

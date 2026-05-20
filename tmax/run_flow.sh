@@ -23,8 +23,8 @@ TMAX_SETUP="${TMAX_SETUP:-/work/cad/synopsys/CIC/tmax.cshrc}"
 TMAX_BIN="${TMAX_BIN:-tmax}"
 PYTHON="${PYTHON:-python3}"
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
-ATPG_FLOW=""
-NO_COMPRESSION="${NO_COMPRESSION:-0}"
+ATPG_MODE=""
+NO_COMPRESSION=1
 TMP_FILES=()
 
 cleanup() {
@@ -37,16 +37,16 @@ trap cleanup EXIT
 usage() {
   cat <<USAGE
 Usage:
-  $0 [--nocomp] <normal|power> <circuit|all>
+  $0 [--comp] <normal|power> <circuit|all>
 
 Circuits:
   ${CIRCUITS[*]}
 
-Modes:
+ATPG:
   normal       TestMAX LOC/TDF ATPG: set_atpg -fill 0
-  power        TestMAX LOC/TDF power-aware ATPG: adjacent fill + shift power effort
-  --nocomp
-               Disable TestMAX ATPG merge/compression and run fast-sequential ATPG directly.
+  power        TestMAX LOC/TDF ATPG: adjacent fill + shift power effort
+  --comp
+               Enable TestMAX ATPG merge/compression with auto-compression.
 
 Environment overrides:
   TMAX_SETUP=/path/to/tmax.cshrc
@@ -99,14 +99,14 @@ TCL
   case "${ATPG_MODE}" in
     normal)
       cat >> "${script}" <<TCL
-puts "ATPG mode: normal LOC/TDF"
+puts "ATPG: normal LOC/TDF"
 set_atpg -fill 0
 
 TCL
       ;;
     power)
       cat >> "${script}" <<TCL
-puts "ATPG mode: power-aware LOC/TDF"
+puts "ATPG: power LOC/TDF"
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
 
@@ -203,8 +203,8 @@ main() {
   local args=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --nocomp)
-        NO_COMPRESSION="1"
+      --comp)
+        NO_COMPRESSION="0"
         ;;
       -h|--help)
         usage

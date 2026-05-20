@@ -99,10 +99,14 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	{
 		staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
 		originalFaultPtrList = faultPtrListForSTC;
+		if (pPatternProcessor->XFill_ == PatternProcessor::ON)
+		{
+			XFill(pPatternProcessor);
+		}
 	}
-	if (pPatternProcessor->XFill_ == PatternProcessor::ON)
+	if (pPatternProcessor->XFill_ == PatternProcessor::ON && pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
 	{
-		XFill(pPatternProcessor);
+		postProcessPowerFill(pPatternProcessor);
 	}
 
 	// finish calculation equivalent faults left
@@ -490,7 +494,7 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		pPatternProcessor->patternVector_.push_back(pattern);
 		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
 
-		if (pPatternProcessor->XFill_ == PatternProcessor::ON)
+		if ((pPatternProcessor->staticCompression_ == PatternProcessor::OFF) && (pPatternProcessor->XFill_ == PatternProcessor::ON))
 		{
 			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 		}
@@ -4593,24 +4597,41 @@ void Atpg::adjacentFill(Pattern &pattern)
 
 void Atpg::initializePowerFillOrder()
 {
-	if (static_cast<int>(powerFillOrder_.size()) == pCircuit_->numPPI_ &&
-	    static_cast<int>(powerFillSImpact_.size()) == pCircuit_->numPPI_)
+	if (static_cast<int>(powerFillPiOrder_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPiImpact_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPi1FanoutCones_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPi2FanoutCones_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPi1ResponseEdges_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPi2ResponseEdges_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPi1CaptureBits_.size()) == pCircuit_->numPI_ &&
+	    static_cast<int>(powerFillPi2CaptureBits_.size()) == pCircuit_->numPI_)
 	{
 		return;
 	}
 
-	powerFillSImpact_.assign(pCircuit_->numPPI_, 0);
-	powerFillOrder_.resize(pCircuit_->numPPI_);
-	for (int i = 0; i < pCircuit_->numPPI_; ++i)
-	{
-		powerFillOrder_[i] = i;
-		powerFillSImpact_[i] = static_cast<size_t>(i + 1);
+	powerFillPiImpact_.assign(pCircuit_->numPI_, 0);
+	powerFillPiOrder_.resize(pCircuit_->numPI_);
+	powerFillPi1FanoutCones_.assign(pCircuit_->numPI_, std::vector<int>());
+	powerFillPi2FanoutCones_.assign(pCircuit_->numPI_, std::vector<int>());
+	powerFillPi1ResponseEdges_.assign(pCircuit_->numPI_, std::vector<int>());
+	powerFillPi2ResponseEdges_.assign(pCircuit_->numPI_, std::vector<int>());
+	powerFillPi1CaptureBits_.assign(pCircuit_->numPI_, std::vector<int>());
+	powerFillPi2CaptureBits_.assign(pCircuit_->numPI_, std::vector<int>());
+	auto sortUnique = [](std::vector<int> &values) {
+		std::sort(values.begin(), values.end());
+		values.erase(std::unique(values.begin(), values.end()), values.end());
+	};
+	auto buildFanoutCone = [&](const int &sourceGateID, std::vector<int> &fanoutCone) {
+		fanoutCone.clear();
+		if (sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
+		{
+			return;
+		}
 
-		const int ppiGateID = pCircuit_->numPI_ + i;
 		std::vector<int> stack;
-		std::vector<char> visited(pCircuit_->numGate_, 0);
-		stack.push_back(ppiGateID);
-		visited[ppiGateID] = 1;
+		std::vector<char> visited(pCircuit_->totalGate_, 0);
+		stack.push_back(sourceGateID);
+		visited[sourceGateID] = 1;
 		while (!stack.empty())
 		{
 			const int gateID = stack.back();
@@ -4618,7 +4639,84 @@ void Atpg::initializePowerFillOrder()
 			const Gate &gate = pCircuit_->circuitGates_[gateID];
 			for (const int &fanoutID : gate.fanoutVector_)
 			{
-				if (fanoutID < 0 || fanoutID >= pCircuit_->numGate_ || visited[fanoutID])
+				if (fanoutID < 0 || fanoutID >= pCircuit_->totalGate_ || visited[fanoutID])
+				{
+					continue;
+				}
+				visited[fanoutID] = 1;
+				fanoutCone.push_back(fanoutID);
+				stack.push_back(fanoutID);
+			}
+		}
+		std::sort(fanoutCone.begin(), fanoutCone.end());
+	};
+	auto addAffectedPpoIndex = [&](const int &ppoIndex, std::vector<int> &responseEdges, std::vector<int> &captureBits) {
+		if (ppoIndex < 0 || ppoIndex >= pCircuit_->numPPI_)
+		{
+			return;
+		}
+		captureBits.push_back(ppoIndex);
+		if (ppoIndex > 0)
+		{
+			responseEdges.push_back(ppoIndex);
+		}
+		if (ppoIndex + 1 < pCircuit_->numPPI_)
+		{
+			responseEdges.push_back(ppoIndex + 1);
+		}
+	};
+	auto buildAffectedScoreWindows = [&](const std::vector<int> &fanoutCone, std::vector<int> &responseEdges, std::vector<int> &captureBits) {
+		responseEdges.clear();
+		captureBits.clear();
+		const int finalFrame = pCircuit_->numFrame_ > 0 ? pCircuit_->numFrame_ - 1 : 0;
+		for (const int &gateID : fanoutCone)
+		{
+			if (gateID < 0 || gateID >= pCircuit_->totalGate_)
+			{
+				continue;
+			}
+			const Gate &gate = pCircuit_->circuitGates_[gateID];
+			if (gate.gateType_ != Gate::PPO)
+			{
+				continue;
+			}
+			const int frame = pCircuit_->numGate_ > 0 ? gateID / pCircuit_->numGate_ : 0;
+			const int localGateID = pCircuit_->numGate_ > 0 ? gateID % pCircuit_->numGate_ : gateID;
+			const int ppoIndex = localGateID - (pCircuit_->numGate_ - pCircuit_->numPPI_);
+			if (ppoIndex < 0 || ppoIndex >= pCircuit_->numPPI_)
+			{
+				continue;
+			}
+			if (frame == finalFrame)
+			{
+				addAffectedPpoIndex(ppoIndex, responseEdges, captureBits);
+			}
+			else if (frame == 0 && pCircuit_->numFrame_ > 1)
+			{
+				captureBits.push_back(ppoIndex);
+			}
+		}
+		sortUnique(responseEdges);
+		sortUnique(captureBits);
+	};
+	auto addResponseImpactFromFanout = [&](const int &sourceGateID, size_t &impact) {
+		if (sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
+		{
+			return;
+		}
+
+		std::vector<int> stack;
+		std::vector<char> visited(pCircuit_->totalGate_, 0);
+		stack.push_back(sourceGateID);
+		visited[sourceGateID] = 1;
+		while (!stack.empty())
+		{
+			const int gateID = stack.back();
+			stack.pop_back();
+			const Gate &gate = pCircuit_->circuitGates_[gateID];
+			for (const int &fanoutID : gate.fanoutVector_)
+			{
+				if (fanoutID < 0 || fanoutID >= pCircuit_->totalGate_ || visited[fanoutID])
 				{
 					continue;
 				}
@@ -4626,386 +4724,414 @@ void Atpg::initializePowerFillOrder()
 				const Gate &fanoutGate = pCircuit_->circuitGates_[fanoutID];
 				if (fanoutGate.gateType_ == Gate::PPO)
 				{
-					const int ppoIndex = fanoutID - (pCircuit_->numGate_ - pCircuit_->numPPI_);
+					const int localGateID = pCircuit_->numGate_ > 0 ? fanoutID % pCircuit_->numGate_ : fanoutID;
+					const int ppoIndex = localGateID - (pCircuit_->numGate_ - pCircuit_->numPPI_);
 					if (ppoIndex >= 0 && ppoIndex < pCircuit_->numPPI_)
 					{
-						powerFillSImpact_[i] += static_cast<size_t>(pCircuit_->numPPI_ - ppoIndex);
+						impact += static_cast<size_t>(pCircuit_->numPPI_ - ppoIndex);
 					}
 				}
-				else
-				{
-					stack.push_back(fanoutID);
-				}
+				stack.push_back(fanoutID);
 			}
+		}
+	};
+	for (int i = 0; i < pCircuit_->numPI_; ++i)
+	{
+		powerFillPiOrder_[i] = i;
+		powerFillPiImpact_[i] = 0;
+		buildFanoutCone(i, powerFillPi1FanoutCones_[i]);
+		buildAffectedScoreWindows(powerFillPi1FanoutCones_[i], powerFillPi1ResponseEdges_[i], powerFillPi1CaptureBits_[i]);
+		addResponseImpactFromFanout(i, powerFillPiImpact_[i]);
+		if (pCircuit_->numFrame_ > 1)
+		{
+			const int frame2PiGateID = i + pCircuit_->numGate_;
+			buildFanoutCone(frame2PiGateID, powerFillPi2FanoutCones_[i]);
+			buildAffectedScoreWindows(powerFillPi2FanoutCones_[i], powerFillPi2ResponseEdges_[i], powerFillPi2CaptureBits_[i]);
+			addResponseImpactFromFanout(frame2PiGateID, powerFillPiImpact_[i]);
 		}
 	}
 
-	std::stable_sort(powerFillOrder_.begin(), powerFillOrder_.end(),
+	std::stable_sort(powerFillPiOrder_.begin(), powerFillPiOrder_.end(),
 	                 [&](const int &lhs, const int &rhs) {
-		                 if (powerFillSImpact_[lhs] != powerFillSImpact_[rhs])
+		                 if (powerFillPiImpact_[lhs] != powerFillPiImpact_[rhs])
 		                 {
-			                 return powerFillSImpact_[lhs] > powerFillSImpact_[rhs];
+			                 return powerFillPiImpact_[lhs] > powerFillPiImpact_[rhs];
 		                 }
 		                 return lhs < rhs;
 	                 });
 }
 
-const std::vector<int> &Atpg::getPowerFillOrder()
+void Atpg::powerFill(Pattern &pattern)
 {
-	initializePowerFillOrder();
-	return powerFillOrder_;
+	pattern.PI1OriginalX_.assign(pCircuit_->numPI_, 0);
+	pattern.PI2OriginalX_.assign(pCircuit_->numPI_, 0);
+	pattern.PPIOriginalX_.assign(pCircuit_->numPPI_, 0);
+	for (int i = 0; i < pCircuit_->numPI_; ++i)
+	{
+		if (pattern.PI1_[i] == X)
+		{
+			pattern.PI1OriginalX_[i] = 1;
+		}
+		if (!pattern.PI2_.empty() && pattern.PI2_[i] == X)
+		{
+			pattern.PI2OriginalX_[i] = 1;
+		}
+	}
+	for (int i = 0; i < pCircuit_->numPPI_; ++i)
+	{
+		if (pattern.PPI_[i] == X)
+		{
+			pattern.PPIOriginalX_[i] = 1;
+		}
+	}
+
+	adjacentFill(pattern);
 }
 
-void Atpg::sFill(PatternProcessor *pPatternProcessor, Pattern &pattern)
+void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 {
-	(void)pPatternProcessor;
-
-	struct SignalProbability
+	if (!pPatternProcessor || pCircuit_->numPPI_ <= 0)
 	{
-		double p0;
-		double p1;
-	};
+		return;
+	}
 
-	auto clampProbability = [](const double &probability) -> double {
-		return probability < 0.0 ? 0.0 : (probability > 1.0 ? 1.0 : probability);
-	};
-	auto makeProbability = [&](const double &p0, const double &p1) -> SignalProbability {
-		SignalProbability probability = {clampProbability(p0), clampProbability(p1)};
-		const double sum = probability.p0 + probability.p1;
-		if (sum > 0.0)
-		{
-			probability.p0 /= sum;
-			probability.p1 /= sum;
-		}
-		else
-		{
-			probability.p0 = 0.5;
-			probability.p1 = 0.5;
-		}
-		return probability;
-	};
-	auto valueProbability = [&](const Value &value) -> SignalProbability {
+	const size_t scanLength = static_cast<size_t>(pCircuit_->numPPI_);
+	if (pPatternProcessor->patternVector_.empty())
+	{
+		return;
+	}
+
+	auto normalizeBinaryValue = [](const Value &value) -> Value {
 		if (value == L || value == B)
 		{
-			return makeProbability(1.0, 0.0);
+			return L;
 		}
 		if (value == H || value == D)
 		{
-			return makeProbability(0.0, 1.0);
+			return H;
 		}
-		return makeProbability(0.5, 0.5);
+		return X;
 	};
-	auto getValueOrUnknown = [](const std::vector<Value> &values, const int &index) -> Value {
-		return index >= 0 && index < static_cast<int>(values.size()) ? values[index] : X;
+	auto isBinaryValue = [](const Value &value) -> bool {
+		return value == L || value == H;
 	};
-	auto transitionProbability = [](const SignalProbability &fromProbability, const SignalProbability &toProbability) -> double {
-		return fromProbability.p1 * toProbability.p0 + fromProbability.p0 * toProbability.p1;
-	};
-	auto xorProbability = [&](const Gate &gate, const std::vector<SignalProbability> &probabilities) -> SignalProbability {
-		double evenProbability = 1.0;
-		double oddProbability = 0.0;
-		for (int i = 0; i < gate.numFI_; ++i)
+	auto transitionCost = [&](const Value &fromValue, const Value &toValue) -> double {
+		const Value normalizedFrom = normalizeBinaryValue(fromValue);
+		const Value normalizedTo = normalizeBinaryValue(toValue);
+		if (!isBinaryValue(normalizedFrom) || !isBinaryValue(normalizedTo))
 		{
-			const SignalProbability &faninProbability = probabilities[gate.faninVector_[i]];
-			const double nextEvenProbability = evenProbability * faninProbability.p0 + oddProbability * faninProbability.p1;
-			const double nextOddProbability = oddProbability * faninProbability.p0 + evenProbability * faninProbability.p1;
-			evenProbability = nextEvenProbability;
-			oddProbability = nextOddProbability;
+			return 1.0;
 		}
-		return makeProbability(evenProbability, oddProbability);
+		return normalizedFrom == normalizedTo ? 0.0 : 1.0;
 	};
-	auto estimateGateProbabilities = [&](const Pattern &candidate) -> std::vector<SignalProbability> {
-		std::vector<SignalProbability> probabilities(pCircuit_->totalGate_, makeProbability(0.5, 0.5));
-		for (int gateID = 0; gateID < pCircuit_->totalGate_; ++gateID)
+	auto getValueOrUnknown = [](const std::vector<Value> &values, const size_t &index) -> Value {
+		return index < values.size() ? values[index] : X;
+	};
+	auto getScanStateBeforePattern = [&](const size_t &patternIndex) -> std::vector<Value> {
+		std::vector<Value> scanState(scanLength, L);
+		if (patternIndex == 0)
 		{
-			const Gate &gate = pCircuit_->circuitGates_[gateID];
-			const int localGateID = pCircuit_->numGate_ > 0 ? gateID % pCircuit_->numGate_ : gateID;
-			const int frame = pCircuit_->numGate_ > 0 ? gateID / pCircuit_->numGate_ : 0;
-			SignalProbability result = makeProbability(0.5, 0.5);
-			switch (gate.gateType_)
-			{
-				case Gate::PI:
-					result = frame == 0 ? valueProbability(getValueOrUnknown(candidate.PI1_, localGateID))
-					                    : valueProbability(getValueOrUnknown(candidate.PI2_, localGateID));
-					break;
-				case Gate::PPI:
-					if (frame == 0)
-					{
-						result = valueProbability(getValueOrUnknown(candidate.PPI_, localGateID - pCircuit_->numPI_));
-					}
-					else if (pCircuit_->timeFrameConnectType_ == Circuit::CAPTURE && gate.numFI_ > 0)
-					{
-						result = probabilities[gate.faninVector_[0]];
-					}
-					else if (pCircuit_->timeFrameConnectType_ == Circuit::SHIFT)
-					{
-						const int ppiIndex = localGateID - pCircuit_->numPI_;
-						result = ppiIndex == 0 ? valueProbability(getValueOrUnknown(candidate.SI_, 0))
-						                       : valueProbability(getValueOrUnknown(candidate.PPI_, ppiIndex - 1));
-					}
-					break;
-				case Gate::INV:
-					if (gate.numFI_ > 0)
-					{
-						const SignalProbability &faninProbability = probabilities[gate.faninVector_[0]];
-						result = makeProbability(faninProbability.p1, faninProbability.p0);
-					}
-					break;
-				case Gate::PO:
-				case Gate::PPO:
-				case Gate::BUF:
-				case Gate::PPI_IN:
-				case Gate::PPO_IN:
-					if (gate.numFI_ > 0)
-					{
-						result = probabilities[gate.faninVector_[0]];
-					}
-					break;
-				case Gate::AND2:
-				case Gate::AND3:
-				case Gate::AND4:
-				{
-					double p1 = 1.0;
-					for (int i = 0; i < gate.numFI_; ++i)
-					{
-						p1 *= probabilities[gate.faninVector_[i]].p1;
-					}
-					result = makeProbability(1.0 - p1, p1);
-					break;
-				}
-				case Gate::NAND2:
-				case Gate::NAND3:
-				case Gate::NAND4:
-				{
-					double p0 = 1.0;
-					for (int i = 0; i < gate.numFI_; ++i)
-					{
-						p0 *= probabilities[gate.faninVector_[i]].p1;
-					}
-					result = makeProbability(p0, 1.0 - p0);
-					break;
-				}
-				case Gate::OR2:
-				case Gate::OR3:
-				case Gate::OR4:
-				{
-					double p0 = 1.0;
-					for (int i = 0; i < gate.numFI_; ++i)
-					{
-						p0 *= probabilities[gate.faninVector_[i]].p0;
-					}
-					result = makeProbability(p0, 1.0 - p0);
-					break;
-				}
-				case Gate::NOR2:
-				case Gate::NOR3:
-				case Gate::NOR4:
-				{
-					double p1 = 1.0;
-					for (int i = 0; i < gate.numFI_; ++i)
-					{
-						p1 *= probabilities[gate.faninVector_[i]].p0;
-					}
-					result = makeProbability(1.0 - p1, p1);
-					break;
-				}
-				case Gate::XOR2:
-				case Gate::XOR3:
-					result = xorProbability(gate, probabilities);
-					break;
-				case Gate::XNOR2:
-				case Gate::XNOR3:
-				{
-					const SignalProbability xorResult = xorProbability(gate, probabilities);
-					result = makeProbability(xorResult.p1, xorResult.p0);
-					break;
-				}
-				case Gate::TIE0:
-					result = makeProbability(1.0, 0.0);
-					break;
-				case Gate::TIE1:
-					result = makeProbability(0.0, 1.0);
-					break;
-				default:
-					break;
-			}
-			probabilities[gateID] = result;
+			return scanState;
 		}
-		return probabilities;
-	};
-	auto calculateStimulusShiftCost = [&](const Pattern &candidate) -> double {
-		double cost = 0.0;
-		for (int i = 1; i < pCircuit_->numPPI_; ++i)
-		{
-			const SignalProbability fromProbability = valueProbability(getValueOrUnknown(candidate.PPI_, i));
-			const SignalProbability toProbability = valueProbability(getValueOrUnknown(candidate.PPI_, i - 1));
-			cost += transitionProbability(fromProbability, toProbability) * static_cast<double>(i);
-		}
-		return cost;
-	};
-	auto calculateResponseShiftCost = [&](const std::vector<SignalProbability> &probabilities) -> double {
-		double cost = 0.0;
-		int ppoOffset = pCircuit_->numGate_ - pCircuit_->numPPI_;
-		if (pCircuit_->numFrame_ > 1)
-		{
-			ppoOffset += pCircuit_->numGate_;
-		}
-		for (int i = 1; i < pCircuit_->numPPI_; ++i)
-		{
-			cost += transitionProbability(probabilities[ppoOffset + i], probabilities[ppoOffset + i - 1]) *
-			        static_cast<double>(pCircuit_->numPPI_ - i);
-		}
-		return cost;
-	};
-	auto calculateSTP = [&](const int &forcedPpiIndex, const Value &forcedValue) -> double {
-		Pattern candidate = pattern;
-		candidate.PPI_[forcedPpiIndex] = forcedValue;
-		const std::vector<SignalProbability> probabilities = estimateGateProbabilities(candidate);
-		return calculateStimulusShiftCost(candidate) + calculateResponseShiftCost(probabilities);
-	};
 
-	const std::vector<int> &fillOrder = getPowerFillOrder();
-	for (const int &targetIndex : fillOrder)
+		const Pattern &previousPattern = pPatternProcessor->patternVector_[patternIndex - 1];
+		for (size_t i = 0; i < scanLength; ++i)
+		{
+			scanState[i] = normalizeBinaryValue(getValueOrUnknown(previousPattern.PPO_, i));
+		}
+		return scanState;
+	};
+	auto getScanStateAfterPattern = [&](const Pattern &pattern) -> std::vector<Value> {
+		std::vector<Value> scanState(scanLength, X);
+		for (size_t i = 0; i < scanLength; ++i)
+		{
+			scanState[i] = normalizeBinaryValue(getValueOrUnknown(pattern.PPO_, i));
+		}
+		return scanState;
+	};
+	auto calculateShiftLoadCost = [&](const std::vector<Value> &scanState, const std::vector<Value> &scanInput) -> double {
+		double cost = 0.0;
+		for (size_t i = 1; i < scanLength; ++i)
+		{
+			cost += transitionCost(getValueOrUnknown(scanState, i), getValueOrUnknown(scanState, i - 1)) *
+			        static_cast<double>(scanLength - i);
+		}
+		cost += transitionCost(getValueOrUnknown(scanState, 0), getValueOrUnknown(scanInput, scanLength - 1)) *
+		        static_cast<double>(scanLength);
+		for (size_t i = 1; i < scanLength; ++i)
+		{
+			cost += transitionCost(getValueOrUnknown(scanInput, i), getValueOrUnknown(scanInput, i - 1)) *
+			        static_cast<double>(i);
+		}
+		return cost;
+	};
+	auto calculateCaptureCost = [&](const Pattern &pattern) -> double {
+		double cost = 0.0;
+		if (!pattern.PPO1_.empty())
+		{
+			for (size_t i = 0; i < scanLength; ++i)
+			{
+				cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO1_, i));
+				cost += transitionCost(getValueOrUnknown(pattern.PPO1_, i), getValueOrUnknown(pattern.PPO_, i));
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < scanLength; ++i)
+			{
+				cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO_, i));
+			}
+		}
+		return cost;
+	};
+	auto calculatePostFillScore = [&](const size_t &patternIndex) -> double {
+		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
+		double score = calculateShiftLoadCost(getScanStateBeforePattern(patternIndex), pattern.PPI_);
+		score += calculateCaptureCost(pattern);
+		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
+		{
+			score += calculateShiftLoadCost(getScanStateAfterPattern(pattern), pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
+		}
+		return score;
+	};
+	auto getPreviousScanHead = [&](const size_t &patternIndex) -> Value {
+		if (patternIndex == 0)
+		{
+			return L;
+		}
+		const Pattern &previousPattern = pPatternProcessor->patternVector_[patternIndex - 1];
+		if (previousPattern.PPO_.empty())
+		{
+			return L;
+		}
+		const Value previousValue = normalizeBinaryValue(previousPattern.PPO_[0]);
+		return isBinaryValue(previousValue) ? previousValue : L;
+	};
+	auto applyWeightedSegmentPpiCandidate = [&](Pattern &pattern, const size_t &patternIndex) -> bool {
+		if (pattern.PPIOriginalX_.size() != scanLength)
+		{
+			return false;
+		}
+
+		bool changed = false;
+		const Value previousScanHead = getPreviousScanHead(patternIndex);
+		int segmentStart = -1;
+		for (int i = 0; i <= pCircuit_->numPPI_; ++i)
+		{
+			const bool inOriginalX = i < pCircuit_->numPPI_ && pattern.PPIOriginalX_[i];
+			if (inOriginalX && segmentStart < 0)
+			{
+				segmentStart = i;
+			}
+			if (inOriginalX || segmentStart < 0)
+			{
+				continue;
+			}
+
+			const int segmentEnd = i - 1;
+			const Value leftValue = segmentStart > 0 ? normalizeBinaryValue(pattern.PPI_[segmentStart - 1]) : X;
+			const Value rightValue = segmentEnd + 1 < pCircuit_->numPPI_ ? normalizeBinaryValue(pattern.PPI_[segmentEnd + 1])
+			                                                             : previousScanHead;
+
+			auto assignSegment = [&](const Value &value) {
+				for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
+				{
+					if (pattern.PPI_[ppiIndex] != value)
+					{
+						changed = true;
+					}
+					pattern.PPI_[ppiIndex] = value;
+				}
+			};
+
+			if (!isBinaryValue(leftValue) && !isBinaryValue(rightValue))
+			{
+				assignSegment(L);
+			}
+			else if (!isBinaryValue(leftValue))
+			{
+				assignSegment(rightValue);
+			}
+			else if (!isBinaryValue(rightValue) || leftValue == rightValue)
+			{
+				assignSegment(leftValue);
+			}
+			else
+			{
+				int bestEdge = segmentStart > 0 ? segmentStart : segmentStart + 1;
+				int bestWeight = bestEdge;
+				const int rightEdge = segmentEnd + 1 < pCircuit_->numPPI_ ? segmentEnd + 1 : pCircuit_->numPPI_;
+				for (int edge = segmentStart > 0 ? segmentStart : segmentStart + 1; edge <= rightEdge; ++edge)
+				{
+					const int weight = edge;
+					if (weight < bestWeight)
+					{
+						bestWeight = weight;
+						bestEdge = edge;
+					}
+				}
+				for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
+				{
+					const Value value = ppiIndex < bestEdge ? leftValue : rightValue;
+					if (pattern.PPI_[ppiIndex] != value)
+					{
+						changed = true;
+					}
+					pattern.PPI_[ppiIndex] = value;
+				}
+			}
+
+			segmentStart = -1;
+		}
+		return changed;
+	};
+	auto simulateGoodOutputs = [&](Pattern &pattern) {
+		pSimulator_->assignPatternToCircuitInputs(pattern);
+		pSimulator_->goodSim();
+		writeGoodSimValToPatternPO(pattern);
+	};
+	auto setInputGoodSimValue = [&](const int &gateID, const Value &value) {
+		pCircuit_->circuitGates_[gateID].goodSimLow_ = PARA_L;
+		pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_L;
+		if (value == L)
+		{
+			pCircuit_->circuitGates_[gateID].goodSimLow_ = PARA_H;
+		}
+		else if (value == H)
+		{
+			pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_H;
+		}
+	};
+	const double acceptMargin = 0.01;
+	initializePowerFillOrder();
+	const std::vector<int> &piFillOrder = powerFillPiOrder_;
+	size_t maxPiFlipTrials = static_cast<size_t>(pCircuit_->numPI_);
+	if (maxPiFlipTrials > 128)
 	{
-		if (pattern.PPI_[targetIndex] != X)
+		maxPiFlipTrials = 128;
+	}
+	auto tryPiFlip = [&](Pattern &pattern, const size_t &patternIndex, double &currentScore, std::vector<Value> &values, const int &targetIndex, const int &sourceGateID, const std::vector<int> &fanoutCone) -> bool {
+		if (targetIndex < 0 || targetIndex >= static_cast<int>(values.size()) ||
+		    sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
+		{
+			return false;
+		}
+		const Value currentValue = values[targetIndex];
+		if (currentValue != L && currentValue != H)
+		{
+			return false;
+		}
+
+		const std::vector<Value> savedPO1 = pattern.PO1_;
+		const std::vector<Value> savedPO2 = pattern.PO2_;
+		const std::vector<Value> savedPPO1 = pattern.PPO1_;
+		const std::vector<Value> savedPPO = pattern.PPO_;
+		const ParallelValue savedSourceLow = pCircuit_->circuitGates_[sourceGateID].goodSimLow_;
+		const ParallelValue savedSourceHigh = pCircuit_->circuitGates_[sourceGateID].goodSimHigh_;
+		std::vector<ParallelValue> savedFanoutLow;
+		std::vector<ParallelValue> savedFanoutHigh;
+		savedFanoutLow.reserve(fanoutCone.size());
+		savedFanoutHigh.reserve(fanoutCone.size());
+		for (const int &gateID : fanoutCone)
+		{
+			savedFanoutLow.push_back(pCircuit_->circuitGates_[gateID].goodSimLow_);
+			savedFanoutHigh.push_back(pCircuit_->circuitGates_[gateID].goodSimHigh_);
+		}
+
+		values[targetIndex] = currentValue == L ? H : L;
+		setInputGoodSimValue(sourceGateID, values[targetIndex]);
+		for (const int &gateID : fanoutCone)
+		{
+			pSimulator_->goodValueEvaluation(gateID);
+		}
+		writeGoodSimValToPatternPO(pattern);
+		const double candidateScore = calculatePostFillScore(patternIndex);
+		if (candidateScore + acceptMargin < currentScore)
+		{
+			currentScore = candidateScore;
+			return true;
+		}
+
+		values[targetIndex] = currentValue;
+		pCircuit_->circuitGates_[sourceGateID].goodSimLow_ = savedSourceLow;
+		pCircuit_->circuitGates_[sourceGateID].goodSimHigh_ = savedSourceHigh;
+		for (size_t i = 0; i < fanoutCone.size(); ++i)
+		{
+			pCircuit_->circuitGates_[fanoutCone[i]].goodSimLow_ = savedFanoutLow[i];
+			pCircuit_->circuitGates_[fanoutCone[i]].goodSimHigh_ = savedFanoutHigh[i];
+		}
+		pattern.PO1_ = savedPO1;
+		pattern.PO2_ = savedPO2;
+		pattern.PPO1_ = savedPPO1;
+		pattern.PPO_ = savedPPO;
+		return false;
+	};
+	for (size_t patternIndex = 0; patternIndex < pPatternProcessor->patternVector_.size(); ++patternIndex)
+	{
+		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
+		double currentScore = calculatePostFillScore(patternIndex);
+		const bool canRepairPi1 = pattern.PI1OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) &&
+		                          std::find(pattern.PI1OriginalX_.begin(), pattern.PI1OriginalX_.end(), 1) != pattern.PI1OriginalX_.end();
+		const bool canRepairPi2 = pattern.PI2OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) && !pattern.PI2_.empty() &&
+		                          std::find(pattern.PI2OriginalX_.begin(), pattern.PI2OriginalX_.end(), 1) != pattern.PI2OriginalX_.end();
+		if (canRepairPi1 || canRepairPi2)
+		{
+			simulateGoodOutputs(pattern);
+			currentScore = calculatePostFillScore(patternIndex);
+
+			size_t flipTrials = 0;
+			for (const int &targetIndex : piFillOrder)
+			{
+				if (flipTrials >= maxPiFlipTrials || powerFillPiImpact_[targetIndex] == 0)
+				{
+					break;
+				}
+				if (!canRepairPi1 || !pattern.PI1OriginalX_[targetIndex])
+				{
+					continue;
+				}
+				++flipTrials;
+				tryPiFlip(pattern, patternIndex, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
+			}
+
+			flipTrials = 0;
+			for (const int &targetIndex : piFillOrder)
+			{
+				if (flipTrials >= maxPiFlipTrials || powerFillPiImpact_[targetIndex] == 0)
+				{
+					break;
+				}
+				if (!canRepairPi2 || !pattern.PI2OriginalX_[targetIndex])
+				{
+					continue;
+				}
+				++flipTrials;
+				tryPiFlip(pattern, patternIndex, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
+			}
+		}
+
+		const std::vector<Value> savedPPI = pattern.PPI_;
+		const std::vector<Value> savedPO1 = pattern.PO1_;
+		const std::vector<Value> savedPO2 = pattern.PO2_;
+		const std::vector<Value> savedPPO1 = pattern.PPO1_;
+		const std::vector<Value> savedPPO = pattern.PPO_;
+		if (!applyWeightedSegmentPpiCandidate(pattern, patternIndex))
 		{
 			continue;
 		}
 
-		// S-filling only: compare STP = SITP + SOTP. Capture-power
-		// limits are intentionally not applied here.
-		const double stpL = calculateSTP(targetIndex, L);
-		const double stpH = calculateSTP(targetIndex, H);
-		pattern.PPI_[targetIndex] = stpH < stpL ? H : L;
-	}
-
-	if (!pattern.PI1_.empty() && pattern.PI1_[0] == X)
-	{
-		pattern.PI1_[0] = L;
-	}
-	for (int i = 1; i < pCircuit_->numPI_; ++i)
-	{
-		if (pattern.PI1_[i] == X)
-		{
-			pattern.PI1_[i] = pattern.PI1_[i - 1];
-		}
-	}
-
-	if (!pattern.PI2_.empty())
-	{
-		for (int i = 0; i < pCircuit_->numPI_; ++i)
-		{
-			if (pattern.PI2_[i] == X)
-			{
-				pattern.PI2_[i] = pattern.PI1_[i];
-			}
-		}
-	}
-	if (!pattern.SI_.empty() && pattern.SI_[0] == X)
-	{
-		pattern.SI_[0] = L;
-	}
-}
-
-void Atpg::powerFill(PatternProcessor *pPatternProcessor, Pattern &pattern)
-{
-	(void)pPatternProcessor;
-
-	if (!pattern.PI1_.empty() && pattern.PI1_[0] == X)
-	{
-		pattern.PI1_[0] = L;
-	}
-	for (int i = 1; i < pCircuit_->numPI_; ++i)
-	{
-		if (pattern.PI1_[i] == X)
-		{
-			pattern.PI1_[i] = pattern.PI1_[i - 1];
-		}
-	}
-
-	auto transitionCost = [](const Value &fromValue, const Value &toValue) -> double {
-		if ((fromValue != L && fromValue != H) || (toValue != L && toValue != H))
-		{
-			return 0.5;
-		}
-		return fromValue == toValue ? 0.0 : 1.0;
-	};
-	auto completePatternForLookahead = [&](const int &forcedPpiIndex, const Value &forcedValue) -> Pattern {
-		Pattern candidate = pattern;
-		candidate.PPI_[forcedPpiIndex] = forcedValue;
-		adjacentFill(candidate);
-		return candidate;
-	};
-	auto calculateStimulusShiftCost = [&](const Pattern &candidate) -> double {
-		double cost = 0.0;
-		for (int i = 1; i < pCircuit_->numPPI_; ++i)
-		{
-			cost += transitionCost(candidate.PPI_[i], candidate.PPI_[i - 1]) * static_cast<double>(i);
-		}
-		return cost;
-	};
-	auto calculateResponseShiftCost = [&](const std::vector<Value> &ppoValues) -> double {
-		double cost = 0.0;
-		for (int i = 1; i < pCircuit_->numPPI_; ++i)
-		{
-			cost += transitionCost(ppoValues[i], ppoValues[i - 1]) * static_cast<double>(pCircuit_->numPPI_ - i);
-		}
-		return cost;
-	};
-	auto calculateSTP = [&](const int &forcedPpiIndex, const Value &forcedValue) -> double {
-		const Pattern candidate = completePatternForLookahead(forcedPpiIndex, forcedValue);
-		std::vector<Value> ppoValues(pCircuit_->numPPI_, X);
-		if (pSimulator_)
-		{
-			pSimulator_->assignPatternToCircuitInputs(candidate);
-			pSimulator_->goodSim();
-			int ppoOffset = pCircuit_->numGate_ - pCircuit_->numPPI_;
-			if (pCircuit_->numFrame_ > 1)
-			{
-				ppoOffset += pCircuit_->numGate_ * (pCircuit_->numFrame_ - 1);
-			}
-			for (int i = 0; i < pCircuit_->numPPI_; ++i)
-			{
-				const Gate &ppoGate = pCircuit_->circuitGates_[ppoOffset + i];
-				if (ppoGate.goodSimLow_ == PARA_H)
-				{
-					ppoValues[i] = L;
-				}
-				else if (ppoGate.goodSimHigh_ == PARA_H)
-				{
-					ppoValues[i] = H;
-				}
-			}
-		}
-		return calculateStimulusShiftCost(candidate) + calculateResponseShiftCost(ppoValues);
-	};
-
-	const std::vector<int> &fillOrder = getPowerFillOrder();
-	for (const int &targetIndex : fillOrder)
-	{
-		if (pattern.PPI_[targetIndex] != X)
+		simulateGoodOutputs(pattern);
+		const double candidateScore = calculatePostFillScore(patternIndex);
+		if (candidateScore + acceptMargin < currentScore)
 		{
 			continue;
 		}
 
-		const double stpL = calculateSTP(targetIndex, L);
-		const double stpH = calculateSTP(targetIndex, H);
-		pattern.PPI_[targetIndex] = stpH < stpL ? H : L;
-	}
-
-	if (!pattern.PI2_.empty())
-	{
-		for (int i = 0; i < pCircuit_->numPI_; ++i)
-		{
-			if (pattern.PI2_[i] == X)
-			{
-				pattern.PI2_[i] = pattern.PI1_[i];
-			}
-		}
-	}
-	if (!pattern.SI_.empty() && pattern.SI_[0] == X)
-	{
-		pattern.SI_[0] = L;
+		pattern.PPI_ = savedPPI;
+		pattern.PO1_ = savedPO1;
+		pattern.PO2_ = savedPO2;
+		pattern.PPO1_ = savedPPO1;
+		pattern.PPO_ = savedPPO;
 	}
 }
 
@@ -5021,11 +5147,8 @@ void Atpg::xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern)
 		case PatternProcessor::XFILL_ADJACENT:
 			adjacentFill(pattern);
 			break;
-		case PatternProcessor::XFILL_SFILL:
-			sFill(pPatternProcessor, pattern);
-			break;
 		case PatternProcessor::XFILL_POWER:
-			powerFill(pPatternProcessor, pattern);
+			powerFill(pattern);
 			break;
 		case PatternProcessor::XFILL_RANDOM:
 		default:

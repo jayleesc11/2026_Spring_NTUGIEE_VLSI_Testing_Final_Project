@@ -6,13 +6,13 @@ Contains all the packages and their source code for this command line tool. Ever
 
 ## Package - Namespace
 #### Common - `CommonNs`
-* `C++11`
+* `C++17`
 #### Core - `CoreNs`
-* `C++11`
+* `C++17`
 #### Fan - `FanNs`
-* `C++11`
+* `C++17`
 #### Interface - `IntfNs`
-* `C++11`, `Lex`, `Yacc`
+* `C++17`, `Lex`, `Yacc`
 
 ## Contact
 Wang Wei-Shen - b08901051@ntu.edu.tw

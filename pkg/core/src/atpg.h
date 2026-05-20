@@ -96,8 +96,14 @@ namespace CoreNs
 		std::vector<int> unjustifiedGateIDs_;											// J-frontier list
 		std::vector<int> dFrontiers_;															// D-frontier list
 		std::vector<int> isInEventStack_;													// 1 if a gate is in an event stack, 0 otherwise
-		std::vector<size_t> powerFillSImpact_;										// cached iFill S-impact for each PPI
-		std::vector<int> powerFillOrder_;												// PPIs sorted by descending S-impact
+		std::vector<size_t> powerFillPiImpact_;									// cached response impact for each PI
+		std::vector<int> powerFillPiOrder_;											// PIs sorted by descending response impact
+		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
+		std::vector<std::vector<int>> powerFillPi2FanoutCones_;			// affected gates for incremental PI2 power fill simulation
+		std::vector<std::vector<int>> powerFillPi1ResponseEdges_;		// affected final PPO shift edges for PI1
+		std::vector<std::vector<int>> powerFillPi2ResponseEdges_;		// affected final PPO shift edges for PI2
+		std::vector<std::vector<int>> powerFillPi1CaptureBits_;			// affected capture bits for PI1
+		std::vector<std::vector<int>> powerFillPi2CaptureBits_;			// affected capture bits for PI2
 		Gate *firstTimeFrameHeadLine_;														// this parameter is for multiple time frame
 
 		// ---------------private methods----------------- //
@@ -205,10 +211,10 @@ namespace CoreNs
 		void randomFill(Pattern &pattern);
 		void adjacentFill(Pattern &pattern); // currently not used, added by WANG, WEI-SHEN
 		void initializePowerFillOrder();
-		const std::vector<int> &getPowerFillOrder();
-		void sFill(PatternProcessor *pPatternProcessor, Pattern &pattern);
-		void powerFill(PatternProcessor *pPatternProcessor, Pattern &pattern);
+		void powerFill(Pattern &pattern);
+		void postProcessPowerFill(PatternProcessor *pPatternProcessor);
 		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
+		void XFill(PatternProcessor *pPatternProcessor); // final X-fill pass for compressed pattern sets
 
 		// function not used or removed
 		void checkLevelInfo();																		// for debug use
@@ -216,7 +222,6 @@ namespace CoreNs
 		void calSCOAP();																					// heuristic not effective, currently not used, added by Wang Wei-Shen
 		void testClearFaultEffect(FaultPtrList &faultListToTest); // removed from generatePatternSet() for now seems like debug usage
 		void resetIsInEventStack();																// not used
-		void XFill(PatternProcessor *pPatternProcessor);					// redundant function, removed by wang
 	};
 
 	// --------------inline methods----------------- //

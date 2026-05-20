@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
-NO_COMPRESSION=0
+NO_COMPRESSION=1
 CIRCUITS=(
   s27
   s208
@@ -22,10 +22,10 @@ CIRCUITS=(
 )
 
 usage() {
-  echo "Usage: $0 [--nocomp] [all|circuit ...]"
+  echo "Usage: $0 [--comp] [all|circuit ...]"
   echo "Examples:"
   echo "  $0 all"
-  echo "  $0 --nocomp all"
+  echo "  $0 --comp all"
   echo "  $0 s27"
   echo "  $0 s27 s208 s9234"
 }
@@ -33,8 +33,8 @@ usage() {
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --nocomp)
-      NO_COMPRESSION=1
+    --comp)
+      NO_COMPRESSION=0
       ;;
     -h|--help)
       usage

@@ -82,7 +82,7 @@ YOBJS     = $(addsuffix .tab.o, $(basename $(addprefix \
 # Compiler variables
 LEX          = flex
 YACC         = bison
-CXX          = g++ -std=c++11
+CXX          = g++ -std=c++17
 CC           = gcc
 OBJS         = $(COBJS) $(LOBJS) $(YOBJS)
 DEPS         = $(CDEPS) $(LDEPS) $(YDEPS)

@@ -88,7 +88,7 @@ We would also be extremely grateful if you star this project!
 ### Prerequisites
 
 - Operating System : *Linux*<br>
-- Compiler : *Support std C++11*<br>
+- Compiler : *Support std C++17*<br>
 - Other tools : *Bison, Lex*<br>
 
 ### Requisites Installation

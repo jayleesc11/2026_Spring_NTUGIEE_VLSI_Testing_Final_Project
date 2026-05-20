@@ -26,8 +26,7 @@ This folder contains some scripts the users might want to use for convenience.
 - `off`: disable X-fill.
 - `on` or `random`: use the original random X-fill.
 - `adjacent`: use adjacent fill to reduce neighboring input/scan transitions.
-- `sfill`: use the original iFill-style probability-based S-filling.
-- `power`: use our power-aware fill. It currently optimizes shift FFTC and does not enforce a capture-power limit.
+- `power`: use the iFill-style probability-based shift filling. It optimizes shift FFTC and does not enforce a capture-power limit.
 
 ## Power Scripts
 
