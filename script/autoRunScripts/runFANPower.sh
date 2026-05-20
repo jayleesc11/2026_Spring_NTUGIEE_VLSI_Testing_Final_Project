@@ -101,7 +101,7 @@ add_fault --all
 set_static_compression ${STATIC_COMPRESSION}
 set_dynamic_compression ${DYNAMIC_COMPRESSION}
 set_X-Fill power
-run_atpg
+run_atpg -power
 report_statistics > power_rpt/FAN_power_${circuit}.rpt
 write_pattern power_pat/FAN_power_${circuit}.pat
 write_to_STIL power_pat/FAN_power_${circuit}.stil

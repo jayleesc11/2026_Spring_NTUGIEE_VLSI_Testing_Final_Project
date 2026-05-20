@@ -68,7 +68,7 @@ namespace CoreNs
 		};
 
 		// class Atpg main method
-		void generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool isMFO);
+		void generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool isMFO, bool powerAware = false);
 
 	private:
 		Circuit *pCircuit_;																				// the circuit built on read verilog
@@ -209,6 +209,7 @@ namespace CoreNs
 		void initializePowerFillOrder();
 		void powerFill(Pattern &pattern);
 		void postProcessPowerFill(PatternProcessor *pPatternProcessor);
+		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);
 		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
 		void XFill(PatternProcessor *pPatternProcessor); // final X-fill pass for compressed pattern sets
 

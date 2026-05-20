@@ -1327,13 +1327,24 @@ RunAtpgCmd::RunAtpgCmd(const std::string &name, FanMgr *fanMgr) : Cmd(name)
 	opt->addFlag("h");
 	opt->addFlag("help");
 	optMgr_.regOpt(opt);
+	opt = new Opt(Opt::BOOL, "enable power-aware ATPG post-processing", "");
+	opt->addFlag("power");
+	optMgr_.regOpt(opt);
 }
 
 RunAtpgCmd::~RunAtpgCmd() {}
 
 bool RunAtpgCmd::exec(const std::vector<std::string> &argv)
 {
-	optMgr_.parse(argv);
+	std::vector<std::string> normalizedArgv = argv;
+	for (std::string &arg : normalizedArgv)
+	{
+		if (arg == "-power")
+		{
+			arg = "--power";
+		}
+	}
+	optMgr_.parse(normalizedArgv);
 
 	if (optMgr_.isFlagSet("h"))
 	{
@@ -1369,7 +1380,8 @@ bool RunAtpgCmd::exec(const std::vector<std::string> &argv)
 	std::cout << "#  Performing pattern generation ...\n";
 	fanMgr_->tmusg.periodStart();
 
-	fanMgr_->atpg->generatePatternSet(fanMgr_->pcoll, fanMgr_->fListExtract, true);
+	const bool powerAware = optMgr_.isFlagSet("power");
+	fanMgr_->atpg->generatePatternSet(fanMgr_->pcoll, fanMgr_->fListExtract, true, powerAware);
 
 	fanMgr_->tmusg.getPeriodUsage(fanMgr_->atpgStat);
 	std::cout << "#  Finished pattern generation";

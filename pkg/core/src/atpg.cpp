@@ -39,7 +39,7 @@ using namespace CoreNs;
 // 						]
 // Date       [ Ver. 1.0 started 2013/08/13	last modified 2023/01/05 ]
 // **************************************************************************
-void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool isMFO)
+void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool isMFO, bool powerAware)
 {
 	Fault *pCurrentFault = NULL;
 	FaultPtrList originalFaultPtrList, faultPtrListForSTC;
@@ -104,9 +104,13 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			XFill(pPatternProcessor);
 		}
 	}
-	if (pPatternProcessor->XFill_ == PatternProcessor::ON && pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
+	if (powerAware || ((pPatternProcessor->XFill_ == PatternProcessor::ON) && (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)))
 	{
 		postProcessPowerFill(pPatternProcessor);
+		if (powerAware)
+		{
+			reorderPatternsForShiftPower(pPatternProcessor);
+		}
 	}
 
 	// finish calculation equivalent faults left
@@ -5066,6 +5070,245 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		pattern.PPO1_ = savedPPO1;
 		pattern.PPO_ = savedPPO;
 	}
+}
+
+void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
+{
+	if (!pPatternProcessor || pCircuit_->numPPI_ <= 0 || pPatternProcessor->patternVector_.size() < 2)
+	{
+		return;
+	}
+
+	const size_t scanLength = static_cast<size_t>(pCircuit_->numPPI_);
+	auto normalizeBinaryValue = [](const Value &value) -> Value {
+		if (value == L || value == B)
+		{
+			return L;
+		}
+		if (value == H || value == D)
+		{
+			return H;
+		}
+		return X;
+	};
+	auto isBinaryValue = [](const Value &value) -> bool {
+		return value == L || value == H;
+	};
+	auto transitionCost = [&](const Value &fromValue, const Value &toValue) -> double {
+		const Value normalizedFrom = normalizeBinaryValue(fromValue);
+		const Value normalizedTo = normalizeBinaryValue(toValue);
+		if (!isBinaryValue(normalizedFrom) || !isBinaryValue(normalizedTo))
+		{
+			return 1.0;
+		}
+		return normalizedFrom == normalizedTo ? 0.0 : 1.0;
+	};
+	auto getValueOrUnknown = [](const std::vector<Value> &values, const size_t &index) -> Value {
+		return index < values.size() ? values[index] : X;
+	};
+	auto calculatePatternUnloadCost = [&](const Pattern &pattern) -> size_t {
+		size_t cost = 0;
+		for (size_t i = 1; i < scanLength; ++i)
+		{
+			const Value currentValue = getValueOrUnknown(pattern.PPO_, i);
+			const Value nextValue = getValueOrUnknown(pattern.PPO_, i - 1);
+			if (!isBinaryValue(currentValue) || !isBinaryValue(nextValue) || currentValue != nextValue)
+			{
+				cost += scanLength - i;
+			}
+		}
+		return cost;
+	};
+	auto calculatePatternLoadCost = [&](const Pattern &pattern) -> size_t {
+		size_t cost = 0;
+		for (size_t i = 1; i < scanLength; ++i)
+		{
+			const Value currentValue = getValueOrUnknown(pattern.PPI_, i);
+			const Value nextValue = getValueOrUnknown(pattern.PPI_, i - 1);
+			if (!isBinaryValue(currentValue) || !isBinaryValue(nextValue) || currentValue != nextValue)
+			{
+				cost += i;
+			}
+		}
+		return cost;
+	};
+	auto patternTailBit = [&](const Pattern &pattern) -> int {
+		if (pattern.PPI_.empty())
+		{
+			return 0;
+		}
+		return normalizeBinaryValue(getValueOrUnknown(pattern.PPI_, scanLength - 1)) == H ? 1 : 0;
+	};
+	auto patternHeadBit = [&](const Pattern &pattern) -> int {
+		if (pattern.PPO_.empty())
+		{
+			return 0;
+		}
+		return normalizeBinaryValue(getValueOrUnknown(pattern.PPO_, 0)) == H ? 1 : 0;
+	};
+
+	const size_t patternCount = pPatternProcessor->patternVector_.size();
+	std::vector<size_t> loadCostByPattern(patternCount, 0);
+	std::vector<size_t> unloadCostByPattern(patternCount, 0);
+	std::vector<int> tailBitByPattern(patternCount, 0);
+	std::vector<int> headBitByPattern(patternCount, 0);
+	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
+	{
+		const Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
+		loadCostByPattern[patternIndex] = calculatePatternLoadCost(pattern);
+		unloadCostByPattern[patternIndex] = calculatePatternUnloadCost(pattern);
+		tailBitByPattern[patternIndex] = patternTailBit(pattern);
+		headBitByPattern[patternIndex] = patternHeadBit(pattern);
+	}
+
+	auto boundaryCost = [&](const Value &previousHead, const Value &nextTail) -> size_t {
+		return static_cast<size_t>(transitionCost(previousHead, nextTail) * static_cast<double>(scanLength));
+	};
+	auto calculateShiftCostForCachedOrder = [&](const std::vector<size_t> &order) -> size_t {
+		size_t cost = 0;
+		bool hasPreviousPattern = false;
+		size_t previousPatternIndex = 0;
+		for (const size_t &patternIndex : order)
+		{
+			const Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
+			if (pattern.PPI_.empty())
+			{
+				continue;
+			}
+			cost += loadCostByPattern[patternIndex];
+			if (hasPreviousPattern)
+			{
+				const Pattern &previousPattern = pPatternProcessor->patternVector_[previousPatternIndex];
+				cost += unloadCostByPattern[previousPatternIndex];
+				cost += boundaryCost(getValueOrUnknown(previousPattern.PPO_, 0), getValueOrUnknown(pattern.PPI_, scanLength - 1));
+			}
+			else
+			{
+				cost += boundaryCost(L, getValueOrUnknown(pattern.PPI_, scanLength - 1));
+			}
+			hasPreviousPattern = true;
+			previousPatternIndex = patternIndex;
+		}
+		return cost;
+	};
+
+	std::vector<size_t> currentOrder(patternCount);
+	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
+	{
+		currentOrder[patternIndex] = patternIndex;
+	}
+	const size_t currentShiftCost = calculateShiftCostForCachedOrder(currentOrder);
+	size_t bestShiftCost = currentShiftCost;
+	std::vector<size_t> bestOrder;
+
+	std::vector<std::vector<size_t>> lastCandidatesByBucket(4);
+	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
+	{
+		const int bucket = tailBitByPattern[patternIndex] * 2 + headBitByPattern[patternIndex];
+		lastCandidatesByBucket[bucket].push_back(patternIndex);
+	}
+	for (std::vector<size_t> &candidates : lastCandidatesByBucket)
+	{
+		std::stable_sort(candidates.begin(), candidates.end(),
+		                 [&](const size_t &lhs, const size_t &rhs) {
+			                 const size_t lhsCost = unloadCostByPattern[lhs];
+			                 const size_t rhsCost = unloadCostByPattern[rhs];
+			                 if (lhsCost != rhsCost)
+			                 {
+				                 return lhsCost > rhsCost;
+			                 }
+			                 return lhs < rhs;
+		                 });
+		if (candidates.size() > 2)
+		{
+			candidates.resize(2);
+		}
+	}
+
+	auto buildCandidateOrder = [&](const int &startHead, const size_t &lastPatternIndex) -> std::vector<size_t> {
+		std::vector<std::vector<size_t>> buckets(4);
+		for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
+		{
+			if (patternIndex == lastPatternIndex)
+			{
+				continue;
+			}
+			const int bucket = tailBitByPattern[patternIndex] * 2 + headBitByPattern[patternIndex];
+			buckets[bucket].push_back(patternIndex);
+		}
+
+		std::vector<size_t> candidateOrder;
+		candidateOrder.reserve(patternCount);
+		int previousHead = startHead;
+		while (candidateOrder.size() + 1 < patternCount)
+		{
+			int selectedBucket = -1;
+			const int preferredSameHeadBucket = previousHead * 2 + previousHead;
+			const int preferredOtherHeadBucket = previousHead * 2 + (1 - previousHead);
+			if (!buckets[preferredSameHeadBucket].empty())
+			{
+				selectedBucket = preferredSameHeadBucket;
+			}
+			else if (!buckets[preferredOtherHeadBucket].empty())
+			{
+				selectedBucket = preferredOtherHeadBucket;
+			}
+			else
+			{
+				for (int bucket = 0; bucket < 4; ++bucket)
+				{
+					if (!buckets[bucket].empty())
+					{
+						selectedBucket = bucket;
+						break;
+					}
+				}
+			}
+			if (selectedBucket < 0)
+			{
+				break;
+			}
+			const size_t patternIndex = buckets[selectedBucket].back();
+			buckets[selectedBucket].pop_back();
+			candidateOrder.push_back(patternIndex);
+			previousHead = selectedBucket % 2;
+		}
+		candidateOrder.push_back(lastPatternIndex);
+		return candidateOrder;
+	};
+
+	for (int lastBucket = 0; lastBucket < 4; ++lastBucket)
+	{
+		for (const size_t &lastPatternIndex : lastCandidatesByBucket[lastBucket])
+		{
+			for (int startHead = 0; startHead <= 1; ++startHead)
+			{
+				std::vector<size_t> candidateOrder = buildCandidateOrder(startHead, lastPatternIndex);
+				if (candidateOrder.size() != patternCount)
+				{
+					continue;
+				}
+				const size_t candidateShiftCost = calculateShiftCostForCachedOrder(candidateOrder);
+				if (candidateShiftCost < bestShiftCost)
+				{
+					bestShiftCost = candidateShiftCost;
+					bestOrder = std::move(candidateOrder);
+				}
+			}
+		}
+	}
+	if (bestOrder.empty())
+	{
+		return;
+	}
+
+	std::vector<Pattern> reorderedPatterns;
+	reorderedPatterns.reserve(patternCount);
+	for (const size_t &patternIndex : bestOrder)
+	{
+		reorderedPatterns.push_back(std::move(pPatternProcessor->patternVector_[patternIndex]));
+	}
+	pPatternProcessor->patternVector_ = std::move(reorderedPatterns);
 }
 
 void Atpg::xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern)
