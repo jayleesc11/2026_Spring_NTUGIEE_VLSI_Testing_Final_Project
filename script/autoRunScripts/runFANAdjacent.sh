@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
+FAN_BIN="${FAN_BIN:-./bin_old/fan_old}"
 NO_COMPRESSION=1
 CIRCUITS=(
   s27
