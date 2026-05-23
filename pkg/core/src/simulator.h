@@ -47,8 +47,9 @@ namespace CoreNs
 		Circuit *pCircuit_;                   // The circuit use in simulator.
 		int numDetection_;                    // For n-detect.
 		int numRecover_;                      // Number of recovers needed.
-		std::vector<std::stack<int>> events_; // The event stacks for every circuit levels.
+		std::vector<std::vector<int>> events_; // The event stacks for every circuit levels.
 		std::vector<int> processed_;          // Array of processed flags. 1 means this gate is processed.
+		std::vector<int> processedGateIDs_;   // Gates marked processed since the last reset.
 		std::vector<int> recoverGates_;       // Array of gates to be recovered from the last fault injection.
 		// This is to inject fault into the circuit.
 		// faultInjectLow_ = 1 faultInjectHigh_ = 0 means we inject a stuck-at zero fault.
@@ -56,6 +57,7 @@ namespace CoreNs
 		// We use 5 ParallelValues since a gate have 1 fanout and at most 4 fanins.
 		std::vector<std::array<ParallelValue, 5>> faultInjectLow_;
 		std::vector<std::array<ParallelValue, 5>> faultInjectHigh_;
+		std::vector<int> faultInjectedGateIDs_; // Gates with non-zero fault injection masks.
 
 		// Used by parallel fault simulation.
 		FaultPtrListIter injectedFaults_[WORD_SIZE]; // The injected faults, used for erase detected faults.
@@ -89,6 +91,8 @@ namespace CoreNs
 				numInjectedFaults_(0),
 				activated_(PARA_L)
 	{
+		processedGateIDs_.reserve(pCircuit->totalGate_);
+		faultInjectedGateIDs_.reserve(WORD_SIZE);
 	}
 
 	// **************************************************************************

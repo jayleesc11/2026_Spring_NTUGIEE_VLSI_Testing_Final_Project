@@ -109,8 +109,8 @@ void Simulator::eventFaultSim()
 	{
 		while (!events_[i].empty())
 		{
-			int gateID = events_[i].top(); // Get gate's ID.
-			events_[i].pop();
+			int gateID = events_[i].back(); // Get gate's ID.
+			events_[i].pop_back();
 			processed_[gateID] = 0;
 			faultyValueEvaluation(gateID);
 			recoverGates_[numRecover_] = gateID; // Record gate's ID for later recovering.
@@ -131,8 +131,9 @@ void Simulator::eventFaultSim()
 				{
 					continue;
 				}
-				events_[pCircuit_->circuitGates_[fanoutGateID].numLevel_].push(fanoutGateID);
+				events_[pCircuit_->circuitGates_[fanoutGateID].numLevel_].push_back(fanoutGateID);
 				processed_[fanoutGateID] = 1;
+				processedGateIDs_.push_back(fanoutGateID);
 			}
 		}
 	}
@@ -454,9 +455,17 @@ void Simulator::parallelFaultReset()
 		pCircuit_->circuitGates_[recoverGates_[i]].faultSimHigh_ = pCircuit_->circuitGates_[recoverGates_[i]].goodSimHigh_;
 	}
 	numRecover_ = 0;
-	std::fill(processed_.begin(), processed_.end(), 0);
-	std::fill(faultInjectLow_.begin(), faultInjectLow_.end(), std::array<ParallelValue, 5>({0, 0, 0, 0, 0}));
-	std::fill(faultInjectHigh_.begin(), faultInjectHigh_.end(), std::array<ParallelValue, 5>({0, 0, 0, 0, 0}));
+	for (const int &gateID : processedGateIDs_)
+	{
+		processed_[gateID] = 0;
+	}
+	processedGateIDs_.clear();
+	for (const int &gateID : faultInjectedGateIDs_)
+	{
+		faultInjectLow_[gateID].fill(0);
+		faultInjectHigh_[gateID].fill(0);
+	}
+	faultInjectedGateIDs_.clear();
 
 	numInjectedFaults_ = 0;
 }
@@ -543,12 +552,14 @@ void Simulator::parallelFaultFaultInjection(const Fault *const pfault, const siz
 		default:
 			break;
 	}
+	faultInjectedGateIDs_.push_back(faultyGate);
 
 	// Put gate into event list.
 	if (!processed_[faultyGate])
 	{
-		events_[pCircuit_->circuitGates_[faultyGate].numLevel_].push(faultyGate);
+		events_[pCircuit_->circuitGates_[faultyGate].numLevel_].push_back(faultyGate);
 		processed_[faultyGate] = 1;
+		processedGateIDs_.push_back(faultyGate);
 	}
 }
 
@@ -608,9 +619,17 @@ void Simulator::parallelPatternReset()
 		pCircuit_->circuitGates_[recoverGates_[i]].faultSimHigh_ = pCircuit_->circuitGates_[recoverGates_[i]].goodSimHigh_;
 	}
 	numRecover_ = 0;
-	std::fill(processed_.begin(), processed_.end(), 0);
-	std::fill(faultInjectLow_.begin(), faultInjectLow_.end(), std::array<ParallelValue, 5>({0, 0, 0, 0, 0}));
-	std::fill(faultInjectHigh_.begin(), faultInjectHigh_.end(), std::array<ParallelValue, 5>({0, 0, 0, 0, 0}));
+	for (const int &gateID : processedGateIDs_)
+	{
+		processed_[gateID] = 0;
+	}
+	processedGateIDs_.clear();
+	for (const int &gateID : faultInjectedGateIDs_)
+	{
+		faultInjectLow_[gateID].fill(0);
+		faultInjectHigh_[gateID].fill(0);
+	}
+	faultInjectedGateIDs_.clear();
 	activated_ = PARA_L;
 }
 
@@ -699,12 +718,14 @@ void Simulator::parallelPatternFaultInjection(const Fault *const pfault)
 		default:
 			break;
 	}
+	faultInjectedGateIDs_.push_back(faultyGate);
 
 	// Put gate into event list.
 	if (!processed_[faultyGate])
 	{
-		events_[pCircuit_->circuitGates_[faultyGate].numLevel_].push(faultyGate);
+		events_[pCircuit_->circuitGates_[faultyGate].numLevel_].push_back(faultyGate);
 		processed_[faultyGate] = 1;
+		processedGateIDs_.push_back(faultyGate);
 	}
 }
 

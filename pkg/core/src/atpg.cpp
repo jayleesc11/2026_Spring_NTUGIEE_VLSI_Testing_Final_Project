@@ -319,8 +319,8 @@ void Atpg::identifyGateDominator()
 			// if next level's output isn't empty
 			while (!circuitLevel_to_EventStack_[j].empty())
 			{
-				Gate &gDom = pCircuit_->circuitGates_[circuitLevel_to_EventStack_[j].top()];
-				circuitLevel_to_EventStack_[j].pop();
+				Gate &gDom = pCircuit_->circuitGates_[circuitLevel_to_EventStack_[j].back()];
+				circuitLevel_to_EventStack_[j].pop_back();
 				gateID_to_valModified_[gDom.gateId_] = 0; // set the gDom to not handle
 				// Because the gateCount is zero while the circuitLevel_to_EventStack_ is not zero, we
 				// only need to pop without other operations. That is, continue operation.
@@ -365,7 +365,7 @@ void Atpg::identifyGateDominator()
 						Gate &gTmp = pCircuit_->circuitGates_[gateID_to_uniquePath_[gDom.gateId_][0]];
 						if (!gateID_to_valModified_[gTmp.gateId_])
 						{
-							circuitLevel_to_EventStack_[gTmp.numLevel_].push(gTmp.gateId_);
+							circuitLevel_to_EventStack_[gTmp.numLevel_].push_back(gTmp.gateId_);
 							gateID_to_valModified_[gTmp.gateId_] = 1;
 							++gateCount;
 						}
@@ -374,7 +374,7 @@ void Atpg::identifyGateDominator()
 				else if (!gateID_to_valModified_[gDom.fanoutVector_[0]])
 				{
 					Gate &gTmp = pCircuit_->circuitGates_[gDom.fanoutVector_[0]];
-					circuitLevel_to_EventStack_[gTmp.numLevel_].push(gTmp.gateId_);
+					circuitLevel_to_EventStack_[gTmp.numLevel_].push_back(gTmp.gateId_);
 					gateID_to_valModified_[gTmp.gateId_] = 1;
 					++gateCount;
 				}
@@ -445,8 +445,8 @@ void Atpg::identifyGateUniquePath()
 		{
 			while (!circuitLevel_to_EventStack_[j].empty())
 			{ // if fanout gate was not empty
-				Gate &gTmp = pCircuit_->circuitGates_[circuitLevel_to_EventStack_[j].top()];
-				circuitLevel_to_EventStack_[j].pop();
+				Gate &gTmp = pCircuit_->circuitGates_[circuitLevel_to_EventStack_[j].back()];
+				circuitLevel_to_EventStack_[j].pop_back();
 				gateID_to_valModified_[gTmp.gateId_] = 0;
 				reachableByDominator[gTmp.gateId_] = i;
 				--count;
@@ -760,7 +760,7 @@ void Atpg::setGateAtpgValAndRunImplication(Gate &gate, const Value &val)
 		Gate &og = pCircuit_->circuitGates_[fanoutID];
 		if (isInEventStack_[og.gateId_] == 0)
 		{
-			circuitLevel_to_EventStack_[og.numLevel_].push(og.gateId_);
+			circuitLevel_to_EventStack_[og.numLevel_].push_back(og.gateId_);
 			isInEventStack_[og.gateId_] = 1;
 		}
 	}
@@ -770,8 +770,8 @@ void Atpg::setGateAtpgValAndRunImplication(Gate &gate, const Value &val)
 	{
 		while (!circuitLevel_to_EventStack_[i].empty())
 		{
-			int gateID = circuitLevel_to_EventStack_[i].top();
-			circuitLevel_to_EventStack_[i].pop();
+			int gateID = circuitLevel_to_EventStack_[i].back();
+			circuitLevel_to_EventStack_[i].pop_back();
 			isInEventStack_[gateID] = 0;
 			Gate &currGate = pCircuit_->circuitGates_[gateID];
 			Value newValue = evaluateGoodVal(currGate);
@@ -783,7 +783,7 @@ void Atpg::setGateAtpgValAndRunImplication(Gate &gate, const Value &val)
 					Gate &og = pCircuit_->circuitGates_[currGate.fanoutVector_[j]];
 					if (isInEventStack_[og.gateId_] == 0)
 					{
-						circuitLevel_to_EventStack_[og.numLevel_].push(og.gateId_);
+						circuitLevel_to_EventStack_[og.numLevel_].push_back(og.gateId_);
 						isInEventStack_[og.gateId_] = 1;
 					}
 				}
@@ -1419,15 +1419,14 @@ void Atpg::clearEventStack(bool isDebug)
 {
 
 	// pop and remove mark
-	for (std::stack<int> &eventStack : circuitLevel_to_EventStack_)
+	for (std::vector<int> &eventStack : circuitLevel_to_EventStack_)
 	{
-		while (!eventStack.empty())
+		for (const int &gateID : eventStack)
 		{
-			int gateID = eventStack.top();
-			eventStack.pop();
 			gateID_to_valModified_[gateID] = 0;
 			isInEventStack_[gateID] = 0;
 		}
+		eventStack.clear();
 	}
 
 	// expect all gates in circuit must be unmarked
@@ -4613,6 +4612,9 @@ void Atpg::initializePowerFillOrder()
 	powerFillPiOrder_.resize(pCircuit_->numPI_);
 	powerFillPi1FanoutCones_.assign(pCircuit_->numPI_, std::vector<int>());
 	powerFillPi2FanoutCones_.assign(pCircuit_->numPI_, std::vector<int>());
+	std::vector<int> stack;
+	std::vector<int> visited(pCircuit_->totalGate_, 0);
+	int visitEpoch = 1;
 	auto buildFanoutCone = [&](const int &sourceGateID, std::vector<int> &fanoutCone) {
 		fanoutCone.clear();
 		if (sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
@@ -4620,10 +4622,10 @@ void Atpg::initializePowerFillOrder()
 			return;
 		}
 
-		std::vector<int> stack;
-		std::vector<char> visited(pCircuit_->totalGate_, 0);
+		stack.clear();
+		const int currentEpoch = visitEpoch++;
 		stack.push_back(sourceGateID);
-		visited[sourceGateID] = 1;
+		visited[sourceGateID] = currentEpoch;
 		while (!stack.empty())
 		{
 			const int gateID = stack.back();
@@ -4631,11 +4633,11 @@ void Atpg::initializePowerFillOrder()
 			const Gate &gate = pCircuit_->circuitGates_[gateID];
 			for (const int &fanoutID : gate.fanoutVector_)
 			{
-				if (fanoutID < 0 || fanoutID >= pCircuit_->totalGate_ || visited[fanoutID])
+				if (fanoutID < 0 || fanoutID >= pCircuit_->totalGate_ || visited[fanoutID] == currentEpoch)
 				{
 					continue;
 				}
-				visited[fanoutID] = 1;
+				visited[fanoutID] = currentEpoch;
 				fanoutCone.push_back(fanoutID);
 				stack.push_back(fanoutID);
 			}
@@ -4717,16 +4719,13 @@ void Atpg::powerFill(Pattern &pattern)
 
 void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 {
-	if (!pPatternProcessor || pCircuit_->numPPI_ <= 0)
+	// if no scan FF or no pattern
+	if (!pPatternProcessor || pCircuit_->numPPI_ <= 0 || pPatternProcessor->patternVector_.empty())
 	{
 		return;
 	}
 
 	const size_t scanLength = static_cast<size_t>(pCircuit_->numPPI_);
-	if (pPatternProcessor->patternVector_.empty())
-	{
-		return;
-	}
 
 	auto normalizeBinaryValue = [](const Value &value) -> Value {
 		if (value == L || value == B)
@@ -4754,36 +4753,25 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	auto getValueOrUnknown = [](const std::vector<Value> &values, const size_t &index) -> Value {
 		return index < values.size() ? values[index] : X;
 	};
-	auto getScanStateBeforePattern = [&](const size_t &patternIndex) -> std::vector<Value> {
-		std::vector<Value> scanState(scanLength, L);
+	auto getScanStateBeforePatternValue = [&](const size_t &patternIndex, const size_t &index) -> Value {
 		if (patternIndex == 0)
 		{
-			return scanState;
+			return L;
 		}
-
 		const Pattern &previousPattern = pPatternProcessor->patternVector_[patternIndex - 1];
-		for (size_t i = 0; i < scanLength; ++i)
-		{
-			scanState[i] = normalizeBinaryValue(getValueOrUnknown(previousPattern.PPO_, i));
-		}
-		return scanState;
+		return normalizeBinaryValue(getValueOrUnknown(previousPattern.PPO_, index));
 	};
-	auto getScanStateAfterPattern = [&](const Pattern &pattern) -> std::vector<Value> {
-		std::vector<Value> scanState(scanLength, X);
-		for (size_t i = 0; i < scanLength; ++i)
-		{
-			scanState[i] = normalizeBinaryValue(getValueOrUnknown(pattern.PPO_, i));
-		}
-		return scanState;
+	auto getScanStateAfterPatternValue = [&](const Pattern &pattern, const size_t &index) -> Value {
+		return normalizeBinaryValue(getValueOrUnknown(pattern.PPO_, index));
 	};
-	auto calculateShiftLoadCost = [&](const std::vector<Value> &scanState, const std::vector<Value> &scanInput) -> double {
+	auto calculateShiftLoadCost = [&](const auto &getScanStateValue, const std::vector<Value> &scanInput) -> double {
 		double cost = 0.0;
 		for (size_t i = 1; i < scanLength; ++i)
 		{
-			cost += transitionCost(getValueOrUnknown(scanState, i), getValueOrUnknown(scanState, i - 1)) *
+			cost += transitionCost(getScanStateValue(i), getScanStateValue(i - 1)) *
 			        static_cast<double>(scanLength - i);
 		}
-		cost += transitionCost(getValueOrUnknown(scanState, 0), getValueOrUnknown(scanInput, scanLength - 1)) *
+		cost += transitionCost(getScanStateValue(0), getValueOrUnknown(scanInput, scanLength - 1)) *
 		        static_cast<double>(scanLength);
 		for (size_t i = 1; i < scanLength; ++i)
 		{
@@ -4791,6 +4779,20 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			        static_cast<double>(i);
 		}
 		return cost;
+	};
+	auto calculateShiftLoadCostBeforePattern = [&](const size_t &patternIndex, const std::vector<Value> &scanInput) -> double {
+		return calculateShiftLoadCost(
+				[&](const size_t &index) -> Value {
+					return getScanStateBeforePatternValue(patternIndex, index);
+				},
+				scanInput);
+	};
+	auto calculateShiftLoadCostAfterPattern = [&](const Pattern &pattern, const std::vector<Value> &scanInput) -> double {
+		return calculateShiftLoadCost(
+				[&](const size_t &index) -> Value {
+					return getScanStateAfterPatternValue(pattern, index);
+				},
+				scanInput);
 	};
 	auto calculateCaptureCost = [&](const Pattern &pattern) -> double {
 		double cost = 0.0;
@@ -4813,20 +4815,22 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	};
 	auto calculatePostFillScore = [&](const size_t &patternIndex) -> double {
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
-		double score = calculateShiftLoadCost(getScanStateBeforePattern(patternIndex), pattern.PPI_);
+		double score = calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
 		score += calculateCaptureCost(pattern);
+		// if next pattern exists, consider shift out cost
 		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
 		{
-			score += calculateShiftLoadCost(getScanStateAfterPattern(pattern), pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
+			score += calculateShiftLoadCostAfterPattern(pattern, pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
 		}
 		return score;
 	};
 	auto calculatePiRepairScore = [&](const size_t &patternIndex, const double &fixedShiftLoadCost) -> double {
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		double score = fixedShiftLoadCost + calculateCaptureCost(pattern);
+		// if next pattern exists, consider shift out cost
 		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
 		{
-			score += calculateShiftLoadCost(getScanStateAfterPattern(pattern), pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
+			score += calculateShiftLoadCostAfterPattern(pattern, pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
 		}
 		return score;
 	};
@@ -4938,14 +4942,14 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_H;
 		}
 	};
-	const double acceptMargin = 0.01;
-	initializePowerFillOrder();
-	const std::vector<int> &piFillOrder = powerFillPiOrder_;
-	size_t maxPiFlipTrials = static_cast<size_t>(pCircuit_->numPI_);
-	if (maxPiFlipTrials > 128)
-	{
-		maxPiFlipTrials = 128;
-	}
+
+	std::vector<Value> savedPPI;
+	std::vector<Value> savedPO1;
+	std::vector<Value> savedPO2;
+	std::vector<Value> savedPPO1;
+	std::vector<Value> savedPPO;
+	std::vector<ParallelValue> savedFanoutLow;
+	std::vector<ParallelValue> savedFanoutHigh;
 	auto tryPiFlip = [&](Pattern &pattern, const size_t &patternIndex, const double &fixedShiftLoadCost, double &currentScore, std::vector<Value> &values, const int &targetIndex, const int &sourceGateID, const std::vector<int> &fanoutCone) -> bool {
 		if (targetIndex < 0 || targetIndex >= static_cast<int>(values.size()) ||
 		    sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
@@ -4958,20 +4962,19 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			return false;
 		}
 
-		const std::vector<Value> savedPO1 = pattern.PO1_;
-		const std::vector<Value> savedPO2 = pattern.PO2_;
-		const std::vector<Value> savedPPO1 = pattern.PPO1_;
-		const std::vector<Value> savedPPO = pattern.PPO_;
+		savedPO1 = pattern.PO1_;
+		savedPO2 = pattern.PO2_;
+		savedPPO1 = pattern.PPO1_;
+		savedPPO = pattern.PPO_;
 		const ParallelValue savedSourceLow = pCircuit_->circuitGates_[sourceGateID].goodSimLow_;
 		const ParallelValue savedSourceHigh = pCircuit_->circuitGates_[sourceGateID].goodSimHigh_;
-		std::vector<ParallelValue> savedFanoutLow;
-		std::vector<ParallelValue> savedFanoutHigh;
-		savedFanoutLow.reserve(fanoutCone.size());
-		savedFanoutHigh.reserve(fanoutCone.size());
-		for (const int &gateID : fanoutCone)
+		savedFanoutLow.resize(fanoutCone.size());
+		savedFanoutHigh.resize(fanoutCone.size());
+		for (size_t i = 0; i < fanoutCone.size(); ++i)
 		{
-			savedFanoutLow.push_back(pCircuit_->circuitGates_[gateID].goodSimLow_);
-			savedFanoutHigh.push_back(pCircuit_->circuitGates_[gateID].goodSimHigh_);
+			const int gateID = fanoutCone[i];
+			savedFanoutLow[i] = pCircuit_->circuitGates_[gateID].goodSimLow_;
+			savedFanoutHigh[i] = pCircuit_->circuitGates_[gateID].goodSimHigh_;
 		}
 
 		values[targetIndex] = currentValue == L ? H : L;
@@ -4981,13 +4984,15 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			pSimulator_->goodValueEvaluation(gateID);
 		}
 		writeGoodSimValToPatternPO(pattern);
+		// keep if improved
 		const double candidateScore = calculatePiRepairScore(patternIndex, fixedShiftLoadCost);
-		if (candidateScore + acceptMargin < currentScore)
+		if (candidateScore < currentScore)
 		{
 			currentScore = candidateScore;
 			return true;
 		}
 
+		// rollback if not improved
 		values[targetIndex] = currentValue;
 		pCircuit_->circuitGates_[sourceGateID].goodSimLow_ = savedSourceLow;
 		pCircuit_->circuitGates_[sourceGateID].goodSimHigh_ = savedSourceHigh;
@@ -5002,11 +5007,12 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		pattern.PPO_ = savedPPO;
 		return false;
 	};
+
+	initializePowerFillOrder();
 	for (size_t patternIndex = 0; patternIndex < pPatternProcessor->patternVector_.size(); ++patternIndex)
 	{
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		double currentScore = calculatePostFillScore(patternIndex);
-		const double fixedPiShiftLoadCost = calculateShiftLoadCost(getScanStateBeforePattern(patternIndex), pattern.PPI_);
 		const bool canRepairPi1 = pattern.PI1OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) &&
 		                          std::find(pattern.PI1OriginalX_.begin(), pattern.PI1OriginalX_.end(), 1) != pattern.PI1OriginalX_.end();
 		const bool canRepairPi2 = pattern.PI2OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) && !pattern.PI2_.empty() &&
@@ -5014,56 +5020,61 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		if (canRepairPi1 || canRepairPi2)
 		{
 			simulateGoodOutputs(pattern);
+			const double fixedPiShiftLoadCost = calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
 			currentScore = calculatePiRepairScore(patternIndex, fixedPiShiftLoadCost);
 
-			size_t flipTrials = 0;
-			for (const int &targetIndex : piFillOrder)
+			if (canRepairPi1)
 			{
-				if (flipTrials >= maxPiFlipTrials || powerFillPiImpact_[targetIndex] == 0)
+				for (const int &targetIndex : powerFillPiOrder_)
 				{
-					break;
+					if (powerFillPiImpact_[targetIndex] == 0)
+					{
+						break;
+					}
+					if (!pattern.PI1OriginalX_[targetIndex])
+					{
+						continue;
+					}
+					tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
 				}
-				if (!canRepairPi1 || !pattern.PI1OriginalX_[targetIndex])
-				{
-					continue;
-				}
-				++flipTrials;
-				tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
 			}
 
-			flipTrials = 0;
-			for (const int &targetIndex : piFillOrder)
+			if (canRepairPi2)
 			{
-				if (flipTrials >= maxPiFlipTrials || powerFillPiImpact_[targetIndex] == 0)
+				for (const int &targetIndex : powerFillPiOrder_)
 				{
-					break;
+					if (powerFillPiImpact_[targetIndex] == 0)
+					{
+						break;
+					}
+					if (!pattern.PI2OriginalX_[targetIndex])
+					{
+						continue;
+					}
+					tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
 				}
-				if (!canRepairPi2 || !pattern.PI2OriginalX_[targetIndex])
-				{
-					continue;
-				}
-				++flipTrials;
-				tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
 			}
 		}
 
-		const std::vector<Value> savedPPI = pattern.PPI_;
-		const std::vector<Value> savedPO1 = pattern.PO1_;
-		const std::vector<Value> savedPO2 = pattern.PO2_;
-		const std::vector<Value> savedPPO1 = pattern.PPO1_;
-		const std::vector<Value> savedPPO = pattern.PPO_;
+		savedPPI = pattern.PPI_;
+		savedPO1 = pattern.PO1_;
+		savedPO2 = pattern.PO2_;
+		savedPPO1 = pattern.PPO1_;
+		savedPPO = pattern.PPO_;
 		if (!applyWeightedSegmentPpiCandidate(pattern, patternIndex))
 		{
 			continue;
 		}
 
 		simulateGoodOutputs(pattern);
-		const double candidateScore = calculatePostFillScore(patternIndex);
-		if (candidateScore + acceptMargin < currentScore)
+
+		// keep if improved
+		if (calculatePostFillScore(patternIndex) < currentScore)
 		{
 			continue;
 		}
 
+		// rollback if not improved
 		pattern.PPI_ = savedPPI;
 		pattern.PO1_ = savedPO1;
 		pattern.PO2_ = savedPO2;

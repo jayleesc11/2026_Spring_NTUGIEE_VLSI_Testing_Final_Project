@@ -84,7 +84,7 @@ namespace CoreNs
 		std::vector<GATE_LINE_TYPE> gateID_to_lineType_;					// array of line types for all gates, i.e. FREE, HEAD, BOUND
 		std::vector<XPATH_STATE> gateID_to_xPathStatus_;					// gateID to its xPathStatus, i.e. XPATH_EXIST, NO_XPATH_EXIST, UNKNOWN
 		std::vector<std::vector<int>> gateID_to_uniquePath_;			// list of gates on the unique path associated with a D-frontier, when there is only one gate in D-frontier, xPathTracing will update this information.
-		std::vector<std::stack<int>> circuitLevel_to_EventStack_; // every circuit level has its own corresponding event stack
+		std::vector<std::vector<int>> circuitLevel_to_EventStack_; // every circuit level has its own corresponding event stack
 		DecisionTree backtrackDecisionTree_;											// the whole tree store the order for later possible backtracking, DecisionTreeNode store the starting point in backtrackImplicatedGateIDs_
 		std::vector<int> backtrackImplicatedGateIDs_;							// backtrackImplicatedGateIDs_[backTrackPoint] = start point of associated gateID
 		std::vector<int> gateIDsToResetAfterBackTrace_;						// the gate that need to have gate.n0_ and gate.n1_ reset after backtrace
@@ -855,15 +855,15 @@ namespace CoreNs
 		const Gate &gate = pCircuit_->circuitGates_[gateID];
 		if (!gateID_to_valModified_[gateID])
 		{
-			circuitLevel_to_EventStack_[gate.numLevel_].push(gateID);
+			circuitLevel_to_EventStack_[gate.numLevel_].push_back(gateID);
 			gateID_to_valModified_[gateID] = 1;
 		}
 	}
 
 	inline int Atpg::popEventStack(const int &level)
 	{
-		const int &gateID = circuitLevel_to_EventStack_[level].top();
-		circuitLevel_to_EventStack_[level].pop();
+		const int gateID = circuitLevel_to_EventStack_[level].back();
+		circuitLevel_to_EventStack_[level].pop_back();
 		return gateID;
 	}
 
@@ -876,7 +876,7 @@ namespace CoreNs
 			const int &outputGateLevel = pCircuit_->circuitGates_[fanoutID].numLevel_;
 			if (!gateID_to_valModified_[fanoutID])
 			{
-				circuitLevel_to_EventStack_[outputGateLevel].push(fanoutID);
+				circuitLevel_to_EventStack_[outputGateLevel].push_back(fanoutID);
 				gateID_to_valModified_[fanoutID] = 1;
 				++pushedGateCount;
 			}
@@ -886,16 +886,13 @@ namespace CoreNs
 
 	inline void Atpg::clearAllEvents()
 	{
-		int gateID;
-		// change old for loop to range-based for loop
-		for (std::stack<int> &eventStack : circuitLevel_to_EventStack_)
+		for (std::vector<int> &eventStack : circuitLevel_to_EventStack_)
 		{
-			while (!eventStack.empty())
+			for (const int &gateID : eventStack)
 			{
-				gateID = eventStack.top();
-				eventStack.pop();
 				gateID_to_valModified_[gateID] = 0;
 			}
+			eventStack.clear();
 		}
 	}
 
