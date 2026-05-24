@@ -39,13 +39,13 @@
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                                 24
+#      total FFTC                                 27
 #      capture cycles evaluated                   26
-#      average FFTC                             0.92
-#      maximum FFTC                                2
+#      average FFTC                             1.04
+#      maximum FFTC                                3
 #      unknown transitions                         0
 #    -----------------------------------------------
-#    overall average FFTC                     0.6615
+#    overall average FFTC                     0.7077
 #  -------------------------------------------------
-#  ATPG runtime                           0.000159 s
+#  ATPG runtime                           0.000173 s
 #  -------------------------------------------------

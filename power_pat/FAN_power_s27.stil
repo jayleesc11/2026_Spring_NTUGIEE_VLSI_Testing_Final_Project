@@ -184,40 +184,14 @@ Pattern "_pattern_" {
            "test_si"=000;
        }
        Call "capture_CK" {
-           "_pi"=0001111;
-           "_po"=LH;
+           "_pi"=0000001;
+           "_po"=LL;
        }
        Call "capture_CK" {
-           "_pi"=0000001;
+           "_pi"=0001111;
            "_po"=LH;
        }
    "pattern 7":
-       Call "load_unload" {
-           "test_so"=LLL;
-           "test_si"=000;
-       }
-       Call "capture_CK" {
-           "_pi"=0000011;
-           "_po"=LL;
-       }
-       Call "capture_CK" {
-           "_pi"=0000101;
-           "_po"=LL;
-       }
-   "pattern 8":
-       Call "load_unload" {
-           "test_so"=HHL;
-           "test_si"=000;
-       }
-       Call "capture_CK" {
-           "_pi"=0000001;
-           "_po"=LL;
-       }
-       Call "capture_CK" {
-           "_pi"=0001111;
-           "_po"=LH;
-       }
-   "pattern 9":
        Call "load_unload" {
            "test_so"=LLH;
            "test_si"=111;
@@ -230,7 +204,7 @@ Pattern "_pattern_" {
            "_pi"=0000110;
            "_po"=LH;
        }
-   "pattern 10":
+   "pattern 8":
        Call "load_unload" {
            "test_so"=LLL;
            "test_si"=000;
@@ -241,6 +215,32 @@ Pattern "_pattern_" {
        }
        Call "capture_CK" {
            "_pi"=0001010;
+           "_po"=LH;
+       }
+   "pattern 9":
+       Call "load_unload" {
+           "test_so"=LLH;
+           "test_si"=111;
+       }
+       Call "capture_CK" {
+           "_pi"=0001111;
+           "_po"=LH;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001;
+           "_po"=LH;
+       }
+   "pattern 10":
+       Call "load_unload" {
+           "test_so"=LLL;
+           "test_si"=001;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000;
+           "_po"=LH;
+       }
+       Call "capture_CK" {
+           "_pi"=0001000;
            "_po"=LH;
        }
    "pattern 11":
@@ -259,18 +259,18 @@ Pattern "_pattern_" {
    "pattern 12":
        Call "load_unload" {
            "test_so"=LLL;
-           "test_si"=001;
+           "test_si"=000;
        }
        Call "capture_CK" {
-           "_pi"=0000000;
-           "_po"=LH;
+           "_pi"=0001011;
+           "_po"=LL;
        }
        Call "capture_CK" {
-           "_pi"=0001000;
+           "_pi"=0001101;
            "_po"=LH;
        }
    "end 12 unload":
        Call "load_unload" {
-           "test_so"=LLH;
+           "test_so"=HLH;
        }
 }

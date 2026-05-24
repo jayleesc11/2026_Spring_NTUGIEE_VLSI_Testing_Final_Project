@@ -4813,10 +4813,42 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		}
 		return cost;
 	};
+	auto calculateCaptureStateCost = [&](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) -> double {
+		double cost = 0.0;
+		for (size_t i = 0; i < scanLength; ++i)
+		{
+			cost += transitionCost(getValueOrUnknown(fromValues, i), getValueOrUnknown(toValues, i));
+		}
+		return cost;
+	};
+	auto calculateCapturePeakCost = [&](const Pattern &pattern) -> double {
+		if (!pattern.PPO1_.empty())
+		{
+			const double launchCaptureCost = calculateCaptureStateCost(pattern.PPI_, pattern.PPO1_);
+			const double captureResponseCost = calculateCaptureStateCost(pattern.PPO1_, pattern.PPO_);
+			return launchCaptureCost > captureResponseCost ? launchCaptureCost : captureResponseCost;
+		}
+		return calculateCaptureStateCost(pattern.PPI_, pattern.PPO_);
+	};
+	double captureBudget = 0.0;
+	for (const Pattern &pattern : pPatternProcessor->patternVector_)
+	{
+		const double baselineCapturePeakCost = calculateCapturePeakCost(pattern);
+		if (baselineCapturePeakCost > captureBudget)
+		{
+			captureBudget = baselineCapturePeakCost;
+		}
+	}
+	captureBudget *= CAPTURE_PEAK_BUDGET_RATIO;
+	auto calculateCapturePeakPenalty = [&](const Pattern &pattern) -> double {
+		const double overflow = calculateCapturePeakCost(pattern) - captureBudget;
+		return overflow > 0.0 ? overflow * overflow : 0.0;
+	};
 	auto calculatePostFillScore = [&](const size_t &patternIndex) -> double {
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		double score = calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
 		score += calculateCaptureCost(pattern);
+		score += CAPTURE_PEAK_PENALTY_WEIGHT * calculateCapturePeakPenalty(pattern);
 		// if next pattern exists, consider shift out cost
 		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
 		{
@@ -4827,6 +4859,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	auto calculatePiRepairScore = [&](const size_t &patternIndex, const double &fixedShiftLoadCost) -> double {
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		double score = fixedShiftLoadCost + calculateCaptureCost(pattern);
+		score += CAPTURE_PEAK_PENALTY_WEIGHT * calculateCapturePeakPenalty(pattern);
 		// if next pattern exists, consider shift out cost
 		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
 		{
