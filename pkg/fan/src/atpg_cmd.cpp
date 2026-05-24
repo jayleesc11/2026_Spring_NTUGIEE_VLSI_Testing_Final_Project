@@ -1111,6 +1111,8 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 		std::cout << "#      maximum FFTC              " << std::setw(19) << fftcStats.maxCaptureFFTC_ << "\n";
 		std::cout << "#      unknown transitions       " << std::setw(19) << fftcStats.totalUnknownCapturePairs_ << "\n";
 	}
+	std::cout << "#    -----------------------------------------------\n";
+	std::cout << "#    overall average FFTC        " << std::setw(19) << double(fftcStats.totalCaptureFFTC_ + shiftFftcStats.totalShiftFFTC_) / (fftcStats.captureCycleCount_ + shiftFftcStats.shiftCycleCount_) << "\n";
 	std::cout << "#  -------------------------------------------------\n";
 	std::cout << "#  ATPG runtime                  " << std::setw(17) << rtime;
 	std::cout << " s\n";

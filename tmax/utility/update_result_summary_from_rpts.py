@@ -14,12 +14,14 @@ CSV_PATH = os.path.join(TMAX_DIR, 'result_summary.csv')
 
 def ensure_header(header, rows):
     derived_columns = (
-        'total_fftc',
-        'power_total_fftc_delta_pct_vs_method',
+        'overall_avg_fftc',
+        'poweroverall_avg_fftc_delta_pct_vs_method',
         'runtime_sec',
         'power_runtime_delta_pct_vs_method',
     )
     old_derived_columns = (
+        'total_fftc',
+        'power_total_fftc_delta_pct_vs_method',
         'total_fftc_delta_pct_vs_power',
         'runtime_delta_pct_vs_power',
     )
@@ -101,6 +103,10 @@ def parse_rpt(path):
     if cap_max:
         data['capture_max_fftc_per_pattern'] = cap_max
 
+    overall_avg = find_regex(r'overall average FFTC\s+([0-9]+(?:\.[0-9]+)?(?:e[+\-]?[0-9]+)?)', re.IGNORECASE)
+    if overall_avg:
+        data['overall_avg_fftc'] = overall_avg
+
     runtime = find_regex(r'ATPG runtime\s+([0-9]+(?:\.[0-9]+)?(?:e[+\-]?[0-9]+)?)\s*s', re.IGNORECASE)
     if runtime:
         data['runtime_sec'] = runtime
@@ -132,16 +138,6 @@ def tmax_log_path_for_rpt(rpt):
         return os.path.join(directory, match.group(1) + '_tmax.log')
     return None
 
-def add_total_fftc(data):
-    shift_total = data.get('shift_total_fftc')
-    capture_total = data.get('capture_total_fftc')
-    if shift_total is None or capture_total is None:
-        return
-    try:
-        data['total_fftc'] = str(int(shift_total) + int(capture_total))
-    except ValueError:
-        return
-
 def format_power_delta_pct(power_value, method_value):
     try:
         power_value = float(power_value)
@@ -162,8 +158,8 @@ def update_delta_columns(rows):
         power_row = power_by_circuit.get(row.get('circuit'))
         if not power_row:
             continue
-        row['power_total_fftc_delta_pct_vs_method'] = format_power_delta_pct(
-            power_row.get('total_fftc'), row.get('total_fftc')
+        row['poweroverall_avg_fftc_delta_pct_vs_method'] = format_power_delta_pct(
+            power_row.get('overall_avg_fftc'), row.get('overall_avg_fftc')
         )
         row['power_runtime_delta_pct_vs_method'] = format_power_delta_pct(
             power_row.get('runtime_sec'), row.get('runtime_sec')
@@ -219,8 +215,6 @@ def main():
             runtime = parse_tmax_log_runtime(log_path) if log_path else None
             if runtime is not None:
                 parsed['runtime_sec'] = runtime
-        add_total_fftc(parsed)
-
         key = (circuit, method)
         if key in lookup:
             row = lookup[key]
@@ -241,7 +235,7 @@ def main():
     update_delta_columns(rows)
 
     with open(CSV_PATH, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=header)
+        writer = csv.DictWriter(f, fieldnames=header, lineterminator='\n')
         writer.writeheader()
         writer.writerows(rows)
 

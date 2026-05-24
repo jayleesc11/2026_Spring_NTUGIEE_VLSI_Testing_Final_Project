@@ -99,14 +99,14 @@ TCL
   case "${ATPG_MODE}" in
     normal)
       cat >> "${script}" <<TCL
-puts "ATPG: normal LOC/TDF"
+puts "ATPG mode: normal LOC/TDF"
 set_atpg -fill 0
 
 TCL
       ;;
     power)
       cat >> "${script}" <<TCL
-puts "ATPG: power LOC/TDF"
+puts "ATPG mode: power LOC/TDF"
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
 
