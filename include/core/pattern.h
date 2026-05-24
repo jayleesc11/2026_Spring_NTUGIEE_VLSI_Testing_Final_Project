@@ -388,7 +388,61 @@ namespace CoreNs
 			return stats;
 		}
 
+		auto edgeCost = [&](const Value &fromValue, const Value &toValue, size_t *unknownPairs) -> size_t {
+			if (!isBinaryValue(fromValue) || !isBinaryValue(toValue))
+			{
+				if (unknownPairs)
+				{
+					++(*unknownPairs);
+				}
+				return 1;
+			}
+			return fromValue == toValue ? 0 : 1;
+		};
+
 		std::vector<Value> scanState(stats.scanFlipFlopCount_, L);
+		auto accumulateShiftOperation = [&](const auto &getScanInValue) {
+			size_t cycleFftc = 0;
+			size_t cycleUnknown = 0;
+			Value previousValue = getScanInValue(0);
+			for (size_t scanIndex = 0; scanIndex < stats.scanFlipFlopCount_; ++scanIndex)
+			{
+				const Value currentValue = scanState[scanIndex];
+				cycleFftc += edgeCost(currentValue, previousValue, &cycleUnknown);
+				previousValue = currentValue;
+			}
+
+			++stats.shiftCycleCount_;
+			stats.totalShiftFFTC_ += cycleFftc;
+			stats.totalUnknownShiftPairs_ += cycleUnknown;
+			if (cycleFftc > stats.maxShiftFFTC_)
+			{
+				stats.maxShiftFFTC_ = cycleFftc;
+			}
+
+			for (size_t cycle = 1; cycle < stats.scanFlipFlopCount_; ++cycle)
+			{
+				size_t removedUnknown = 0;
+				const size_t removedFftc = edgeCost(scanState[stats.scanFlipFlopCount_ - cycle],
+				                                    scanState[stats.scanFlipFlopCount_ - cycle - 1],
+				                                    &removedUnknown);
+				size_t addedUnknown = 0;
+				const size_t addedFftc = edgeCost(getScanInValue(cycle), getScanInValue(cycle - 1), &addedUnknown);
+				cycleFftc += addedFftc;
+				cycleFftc -= removedFftc;
+				cycleUnknown += addedUnknown;
+				cycleUnknown -= removedUnknown;
+
+				++stats.shiftCycleCount_;
+				stats.totalShiftFFTC_ += cycleFftc;
+				stats.totalUnknownShiftPairs_ += cycleUnknown;
+				if (cycleFftc > stats.maxShiftFFTC_)
+				{
+					stats.maxShiftFFTC_ = cycleFftc;
+				}
+			}
+		};
+
 		bool hasShiftData = false;
 		for (const Pattern &pattern : patternVector_)
 		{
@@ -399,20 +453,10 @@ namespace CoreNs
 
 			hasShiftData = true;
 			++stats.shiftOperationCount_;
-			for (size_t cycle = 0; cycle < stats.scanFlipFlopCount_; ++cycle)
-			{
+			accumulateShiftOperation([&](const size_t &cycle) -> Value {
 				const size_t ppiIndex = stats.scanFlipFlopCount_ - 1 - cycle;
-				const Value scanInValue = getValueOrUnknown(pattern.PPI_, ppiIndex);
-				size_t unknownPairs = 0;
-				const size_t fftc = shiftScanState(scanState, scanInValue, &unknownPairs);
-				++stats.shiftCycleCount_;
-				stats.totalShiftFFTC_ += fftc;
-				stats.totalUnknownShiftPairs_ += unknownPairs;
-				if (fftc > stats.maxShiftFFTC_)
-				{
-					stats.maxShiftFFTC_ = fftc;
-				}
-			}
+				return getValueOrUnknown(pattern.PPI_, ppiIndex);
+			});
 
 			for (size_t i = 0; i < stats.scanFlipFlopCount_; ++i)
 			{
@@ -423,18 +467,9 @@ namespace CoreNs
 		if (includeFinalUnload && hasShiftData)
 		{
 			++stats.shiftOperationCount_;
-			for (size_t cycle = 0; cycle < stats.scanFlipFlopCount_; ++cycle)
-			{
-				size_t unknownPairs = 0;
-				const size_t fftc = shiftScanState(scanState, L, &unknownPairs);
-				++stats.shiftCycleCount_;
-				stats.totalShiftFFTC_ += fftc;
-				stats.totalUnknownShiftPairs_ += unknownPairs;
-				if (fftc > stats.maxShiftFFTC_)
-				{
-					stats.maxShiftFFTC_ = fftc;
-				}
-			}
+			accumulateShiftOperation([](const size_t &) -> Value {
+				return L;
+			});
 		}
 
 		if (stats.shiftCycleCount_ > 0)
