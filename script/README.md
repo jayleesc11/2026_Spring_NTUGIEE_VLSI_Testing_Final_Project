@@ -12,12 +12,14 @@ This folder contains some scripts the users might want to use for convenience.
     |  |-- averageAllTL.sh        # Calculate and log the average Test Length of all the circuits that have report in the rpt/ folder.
     |  |
     |  `-- runFAN.sh              # Execute all the script in a  user specified folder, e.g. fanScripts/ or fanScriptsNoDTC/
+    |  |
+    |  `-- runFANAdjacent.sh      # Run LOC/TDF adjacent-fill ATPG experiments.
+    |  |
+    |  `-- runFANPower.sh         # Run LOC/TDF power-aware ATPG experiments.
     |
     |-- fanScripts/               # Contains scripts for ATPG and Fault Simulation with Dynamic Test Compression turned ON for ATPG.
     |
     |-- fanScriptsNoDTC/          # Contains scripts for ATPG and Fault Simulation with Dynamic Test Compression turned OFF for ATPG.
-    |
-    `-- powerFANScripts/          # Contains LOC/TDF two-frame power-aware ATPG experiments.
 
 ## Power-aware X-Fill
 
@@ -30,18 +32,20 @@ This folder contains some scripts the users might want to use for convenience.
 
 ## Power Scripts
 
-`powerFANScripts/` runs transition-delay ATPG in launch-on-capture mode:
+`autoRunScripts/runFANPower.sh` and `autoRunScripts/runFANAdjacent.sh` run transition-delay ATPG in launch-on-capture mode. By default, compression is enabled:
 
 ```
 set_pattern_type LOC
 build_circuit --frame 2
 set_fault_type tdf
-set_static_compression off
-set_dynamic_compression off
+set_static_compression on
+set_dynamic_compression on
 set_X-Fill power
 ```
 
-Reports are written to `power_rpt/`, and generated patterns are written to `power_pat/`.
+`runFANAdjacent.sh` uses `set_X-Fill adjacent` instead of `power`, and writes files with the `_ad` suffix.
+
+Reports are written to `power_rpt/`, and generated patterns are written to `power_pat/`. Add `--nocomp` to disable compression; no-compression outputs are written to `power_rpt_nocomp/` and `power_pat_nocomp/`.
 
 ## Contact
 

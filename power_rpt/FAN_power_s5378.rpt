@@ -23,29 +23,29 @@
 #    fault coverage                           88.07%
 #    atpg effectiveness                       95.56%
 #  -------------------------------------------------
-#  #Patterns                                     996
+#  #Patterns                                     746
 #  -------------------------------------------------
 #  Power metric
 #    -----------------------------------------------
 #    scan flip-flops                             179
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                          996
-#      shift cycles evaluated                 178284
-#      total FFTC                            3640646
-#      average FFTC                            20.42
-#      maximum FFTC                               61
+#      shift operations                          746
+#      shift cycles evaluated                 133534
+#      total FFTC                            3483588
+#      average FFTC                            26.09
+#      maximum FFTC                               73
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                             145111
-#      capture cycles evaluated                 1992
-#      average FFTC                            72.85
-#      maximum FFTC                              146
+#      total FFTC                             114191
+#      capture cycles evaluated                 1492
+#      average FFTC                            76.54
+#      maximum FFTC                              161
 #      unknown transitions                         0
 #    -----------------------------------------------
-#    overall average FFTC                         21
+#    overall average FFTC                      26.65
 #  -------------------------------------------------
-#  ATPG runtime                              4.985 s
+#  ATPG runtime                              4.682 s
 #  -------------------------------------------------

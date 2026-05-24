@@ -24,7 +24,7 @@ TMAX_BIN="${TMAX_BIN:-tmax}"
 PYTHON="${PYTHON:-python3}"
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
 ATPG_MODE=""
-NO_COMPRESSION=1
+NO_COMPRESSION=0
 TMP_FILES=()
 
 cleanup() {
@@ -37,7 +37,7 @@ trap cleanup EXIT
 usage() {
   cat <<USAGE
 Usage:
-  $0 [--comp] <normal|power> <circuit|all>
+  $0 [--nocomp] <normal|power> <circuit|all>
 
 Circuits:
   ${CIRCUITS[*]}
@@ -45,8 +45,9 @@ Circuits:
 ATPG:
   normal       TestMAX LOC/TDF ATPG: set_atpg -fill 0
   power        TestMAX LOC/TDF ATPG: adjacent fill + shift power effort
-  --comp
-               Enable TestMAX ATPG merge/compression with auto-compression.
+  --nocomp
+               Disable compression and output to tmax/*_<mode>_nocomp folders.
+               Default is compression on.
 
 Environment overrides:
   TMAX_SETUP=/path/to/tmax.cshrc
@@ -74,8 +75,12 @@ write_tmax_script() {
   local circuit="$1"
   local script
   local netlist="mod_netlist/${circuit}.v"
-  local rpt_dir="tmax/rpt_${ATPG_MODE}"
-  local pat_dir="tmax/pat_${ATPG_MODE}"
+  local output_mode="${ATPG_MODE}"
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    output_mode="${ATPG_MODE}_nocomp"
+  fi
+  local rpt_dir="tmax/rpt_${output_mode}"
+  local pat_dir="tmax/pat_${output_mode}"
 
   [[ -f "${netlist}" ]] || die "missing ${netlist}"
   script="$(mktemp "${TMPDIR:-/tmp}/tmax_${circuit}.tcl.XXXXXX")"
@@ -106,7 +111,7 @@ TCL
       ;;
     power)
       cat >> "${script}" <<TCL
-puts "ATPG mode: power LOC/TDF"
+puts "ATPG mode: power-aware LOC/TDF"
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
 
@@ -147,8 +152,12 @@ TCL
 write_fsim_script() {
   local circuit="$1"
   local script
-  local rpt_dir="tmax/rpt_${ATPG_MODE}"
-  local pat_dir="tmax/pat_${ATPG_MODE}"
+  local output_mode="${ATPG_MODE}"
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    output_mode="${ATPG_MODE}_nocomp"
+  fi
+  local rpt_dir="tmax/rpt_${output_mode}"
+  local pat_dir="tmax/pat_${output_mode}"
 
   script="$(mktemp "${TMPDIR:-/tmp}/fsim_${circuit}.script.XXXXXX")"
   TMP_FILES+=("${script}")
@@ -173,8 +182,12 @@ run_one() {
   local circuit="$1"
   local tmax_script
   local fsim_script
-  local pat_dir="tmax/pat_${ATPG_MODE}"
-  local rpt_dir="tmax/rpt_${ATPG_MODE}"
+  local output_mode="${ATPG_MODE}"
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    output_mode="${ATPG_MODE}_nocomp"
+  fi
+  local pat_dir="tmax/pat_${output_mode}"
+  local rpt_dir="tmax/rpt_${output_mode}"
   local stil="${pat_dir}/${circuit}.stil"
   local pat="${pat_dir}/${circuit}.pat"
 
@@ -203,8 +216,8 @@ main() {
   local args=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --comp)
-        NO_COMPRESSION="0"
+      --nocomp)
+        NO_COMPRESSION="1"
         ;;
       -h|--help)
         usage
@@ -243,7 +256,11 @@ main() {
   esac
 
   cd "${ROOT_DIR}"
-  mkdir -p "tmax/pat_${ATPG_MODE}" "tmax/rpt_${ATPG_MODE}"
+  local output_mode="${ATPG_MODE}"
+  if [[ "${NO_COMPRESSION}" == "1" ]]; then
+    output_mode="${ATPG_MODE}_nocomp"
+  fi
+  mkdir -p "tmax/pat_${output_mode}" "tmax/rpt_${output_mode}"
 
   local target="$2"
   if [[ "${target}" == "all" ]]; then

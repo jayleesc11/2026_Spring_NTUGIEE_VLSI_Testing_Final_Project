@@ -166,9 +166,7 @@ def update_delta_columns(rows):
         )
 
 def method_from_path(path):
-    # tmax/rpt_normal -> tmax_normal
-    if '/rpt_normal/' in path:
-        return 'tmax_normal'
+    # tmax/rpt_power/ -> tmax_power
     if '/rpt_power/' in path:
         return 'tmax_power'
     # power_rpt/FAN_power_sXXX_ad.rpt -> adjacent
@@ -196,7 +194,6 @@ def main():
 
     # gather rpt files
     rpt_files = []
-    rpt_files += glob.glob(os.path.join(TMAX_DIR, 'rpt_normal', '*.rpt'))
     rpt_files += glob.glob(os.path.join(TMAX_DIR, 'rpt_power', '*.rpt'))
     rpt_files += glob.glob(os.path.join(PROJECT_ROOT, 'power_rpt', '*.rpt'))
 

@@ -498,10 +498,12 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		pPatternProcessor->patternVector_.push_back(pattern);
 		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
 
-		if ((pPatternProcessor->staticCompression_ == PatternProcessor::OFF) && (pPatternProcessor->XFill_ == PatternProcessor::ON))
+		if (pPatternProcessor->dynamicCompression_ == PatternProcessor::ON)
 		{
-			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
+			// TODO: implement dynamic test compression for transition delay faults.
 		}
+
+		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 
 		pSimulator_->parallelFaultFaultSimWithOnePattern(pPatternProcessor->patternVector_.back(), faultPtrListForGen);
 		pSimulator_->goodSim();

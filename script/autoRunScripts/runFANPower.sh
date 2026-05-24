@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
-NO_COMPRESSION=1
+NO_COMPRESSION=0
 CIRCUITS=(
   s27
   s208
@@ -22,10 +22,12 @@ CIRCUITS=(
 )
 
 usage() {
-  echo "Usage: $0 [--comp] [all|circuit ...]"
+  echo "Usage: $0 [--nocomp] [all|circuit ...]"
+  echo "  Default: compression on, outputs to power_rpt/ and power_pat/"
+  echo "  --nocomp: no compression, outputs to power_rpt_nocomp/ and power_pat_nocomp/"
   echo "Examples:"
   echo "  $0 all"
-  echo "  $0 --comp all"
+  echo "  $0 --nocomp all"
   echo "  $0 s27"
   echo "  $0 s27 s208 s9234"
 }
@@ -33,8 +35,8 @@ usage() {
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --comp)
-      NO_COMPRESSION=0
+    --nocomp)
+      NO_COMPRESSION=1
       ;;
     -h|--help)
       usage
@@ -70,14 +72,18 @@ else
   SELECTED=("$@")
 fi
 
+RPT_DIR="power_rpt"
+PAT_DIR="power_pat"
 STATIC_COMPRESSION="on"
 DYNAMIC_COMPRESSION="on"
 if [[ "$NO_COMPRESSION" -eq 1 ]]; then
+  RPT_DIR="power_rpt_nocomp"
+  PAT_DIR="power_pat_nocomp"
   STATIC_COMPRESSION="off"
   DYNAMIC_COMPRESSION="off"
 fi
 
-mkdir -p power_rpt power_pat
+mkdir -p "$RPT_DIR" "$PAT_DIR"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/fan_power.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -102,15 +108,15 @@ set_static_compression ${STATIC_COMPRESSION}
 set_dynamic_compression ${DYNAMIC_COMPRESSION}
 set_X-Fill power
 run_atpg -power
-report_statistics > power_rpt/FAN_power_${circuit}.rpt
-write_pattern power_pat/FAN_power_${circuit}.pat
-write_to_STIL power_pat/FAN_power_${circuit}.stil
+report_statistics > ${RPT_DIR}/FAN_power_${circuit}.rpt
+write_pattern ${PAT_DIR}/FAN_power_${circuit}.pat
+write_to_STIL ${PAT_DIR}/FAN_power_${circuit}.stil
 exit
 EOF
 
   echo "[power] ${circuit}"
   "$FAN_BIN" -f "$script_file"
-  echo "  report: power_rpt/FAN_power_${circuit}.rpt"
-  echo "  pattern: power_pat/FAN_power_${circuit}.pat"
-  echo "  stil: power_pat/FAN_power_${circuit}.stil"
+  echo "  report: ${RPT_DIR}/FAN_power_${circuit}.rpt"
+  echo "  pattern: ${PAT_DIR}/FAN_power_${circuit}.pat"
+  echo "  stil: ${PAT_DIR}/FAN_power_${circuit}.stil"
 done

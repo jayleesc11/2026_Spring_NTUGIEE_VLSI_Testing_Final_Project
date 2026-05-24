@@ -1,0 +1,51 @@
+#                 Statistics Report
+#  Circuit name                               s38417
+#  Fault model                                   TDF
+#  Pattern type                                  LOC
+#  -------------------------------------------------
+#  Fault classes                             #faults
+#    --------------------------  -------------------
+#    FU (full)                                 67954
+#    FU (collapsed)                            67954
+#    --------------------------  -------------------
+#    UD (undetected)                            3272
+#    PT (possibly testable)                        0
+#    AU (atpg untestable)                       1067
+#    RE (redundant)                                0
+#    AB (atpg abort)                             475
+#    TI (tied)                                     0
+#    --------------------------  -------------------
+#    DT (detected)                             63140
+#  -------------------------------------------------
+#  Coverage                               percentage
+#    --------------------------  -------------------
+#    test coverage                             94.4%
+#    fault coverage                           92.92%
+#    atpg effectiveness                       94.49%
+#  -------------------------------------------------
+#  #Patterns                                    5622
+#  -------------------------------------------------
+#  Power metric
+#    -----------------------------------------------
+#    scan flip-flops                            1636
+#    shift FFTC
+#      ---------------------------------------------
+#      shift operations                         5622
+#      shift cycles evaluated                9197592
+#      total FFTC                          826899277
+#      average FFTC                            89.90
+#      maximum FFTC                              366
+#      unknown transitions                         0
+#    -----------------------------------------------
+#    capture FFTC
+#      ---------------------------------------------
+#      total FFTC                            2292936
+#      capture cycles evaluated                11244
+#      average FFTC                           203.93
+#      maximum FFTC                              620
+#      unknown transitions                         0
+#    -----------------------------------------------
+#    overall average FFTC                      90.04
+#  -------------------------------------------------
+#  ATPG runtime                              40.27 s
+#  -------------------------------------------------

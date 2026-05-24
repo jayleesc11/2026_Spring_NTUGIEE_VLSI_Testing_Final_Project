@@ -23,29 +23,29 @@
 #    fault coverage                           78.24%
 #    atpg effectiveness                       78.24%
 #  -------------------------------------------------
-#  #Patterns                                      71
+#  #Patterns                                      51
 #  -------------------------------------------------
 #  Power metric
 #    -----------------------------------------------
 #    scan flip-flops                               8
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                           71
-#      shift cycles evaluated                    568
-#      total FFTC                               1089
-#      average FFTC                             1.92
-#      maximum FFTC                                4
+#      shift operations                           51
+#      shift cycles evaluated                    408
+#      total FFTC                                843
+#      average FFTC                             2.07
+#      maximum FFTC                                5
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                                403
-#      capture cycles evaluated                  142
-#      average FFTC                             2.84
+#      total FFTC                                301
+#      capture cycles evaluated                  101
+#      average FFTC                             2.98
 #      maximum FFTC                                8
 #      unknown transitions                         0
 #    -----------------------------------------------
-#    overall average FFTC                      2.101
+#    overall average FFTC                      2.248
 #  -------------------------------------------------
-#  ATPG runtime                           0.000359 s
+#  ATPG runtime                           0.000306 s
 #  -------------------------------------------------
