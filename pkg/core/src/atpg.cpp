@@ -4729,334 +4729,388 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 
 	const size_t scanLength = static_cast<size_t>(pCircuit_->numPPI_);
 
-	auto normalizeBinaryValue = [](const Value &value) -> Value {
-		if (value == L || value == B)
-		{
-			return L;
-		}
-		if (value == H || value == D)
-		{
-			return H;
-		}
-		return X;
-	};
-	auto isBinaryValue = [](const Value &value) -> bool {
-		return value == L || value == H;
-	};
-	auto transitionCost = [&](const Value &fromValue, const Value &toValue) -> double {
-		const Value normalizedFrom = normalizeBinaryValue(fromValue);
-		const Value normalizedTo = normalizeBinaryValue(toValue);
-		if (!isBinaryValue(normalizedFrom) || !isBinaryValue(normalizedTo))
-		{
-			return 1.0;
-		}
-		return normalizedFrom == normalizedTo ? 0.0 : 1.0;
-	};
-	auto getValueOrUnknown = [](const std::vector<Value> &values, const size_t &index) -> Value {
-		return index < values.size() ? values[index] : X;
-	};
-	auto getScanStateBeforePatternValue = [&](const size_t &patternIndex, const size_t &index) -> Value {
-		if (patternIndex == 0)
-		{
-			return L;
-		}
-		const Pattern &previousPattern = pPatternProcessor->patternVector_[patternIndex - 1];
-		return normalizeBinaryValue(getValueOrUnknown(previousPattern.PPO_, index));
-	};
-	auto getScanStateAfterPatternValue = [&](const Pattern &pattern, const size_t &index) -> Value {
-		return normalizeBinaryValue(getValueOrUnknown(pattern.PPO_, index));
-	};
-	auto calculateShiftLoadCost = [&](const auto &getScanStateValue, const std::vector<Value> &scanInput) -> double {
-		double cost = 0.0;
-		for (size_t i = 1; i < scanLength; ++i)
-		{
-			cost += transitionCost(getScanStateValue(i), getScanStateValue(i - 1)) *
-			        static_cast<double>(scanLength - i);
-		}
-		cost += transitionCost(getScanStateValue(0), getValueOrUnknown(scanInput, scanLength - 1)) *
-		        static_cast<double>(scanLength);
-		for (size_t i = 1; i < scanLength; ++i)
-		{
-			cost += transitionCost(getValueOrUnknown(scanInput, i), getValueOrUnknown(scanInput, i - 1)) *
-			        static_cast<double>(i);
-		}
-		return cost;
-	};
-	auto calculateShiftLoadCostBeforePattern = [&](const size_t &patternIndex, const std::vector<Value> &scanInput) -> double {
-		return calculateShiftLoadCost(
-				[&](const size_t &index) -> Value {
-					return getScanStateBeforePatternValue(patternIndex, index);
-				},
-				scanInput);
-	};
-	auto calculateShiftLoadCostAfterPattern = [&](const Pattern &pattern, const std::vector<Value> &scanInput) -> double {
-		return calculateShiftLoadCost(
-				[&](const size_t &index) -> Value {
-					return getScanStateAfterPatternValue(pattern, index);
-				},
-				scanInput);
-	};
-	auto calculateCaptureCost = [&](const Pattern &pattern) -> double {
-		double cost = 0.0;
-		if (!pattern.PPO1_.empty())
-		{
-			for (size_t i = 0; i < scanLength; ++i)
-			{
-				cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO1_, i));
-				cost += transitionCost(getValueOrUnknown(pattern.PPO1_, i), getValueOrUnknown(pattern.PPO_, i));
-			}
-		}
-		else
-		{
-			for (size_t i = 0; i < scanLength; ++i)
-			{
-				cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO_, i));
-			}
-		}
-		return cost;
-	};
-	auto calculateCaptureStateCost = [&](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) -> double {
-		double cost = 0.0;
-		for (size_t i = 0; i < scanLength; ++i)
-		{
-			cost += transitionCost(getValueOrUnknown(fromValues, i), getValueOrUnknown(toValues, i));
-		}
-		return cost;
-	};
-	auto calculateCapturePeakCost = [&](const Pattern &pattern) -> double {
-		if (!pattern.PPO1_.empty())
-		{
-			const double launchCaptureCost = calculateCaptureStateCost(pattern.PPI_, pattern.PPO1_);
-			const double captureResponseCost = calculateCaptureStateCost(pattern.PPO1_, pattern.PPO_);
-			return launchCaptureCost > captureResponseCost ? launchCaptureCost : captureResponseCost;
-		}
-		return calculateCaptureStateCost(pattern.PPI_, pattern.PPO_);
-	};
-	double captureBudget = 0.0;
-	for (const Pattern &pattern : pPatternProcessor->patternVector_)
+	struct PowerFillPostProcessContext
 	{
-		const double baselineCapturePeakCost = calculateCapturePeakCost(pattern);
-		if (baselineCapturePeakCost > captureBudget)
-		{
-			captureBudget = baselineCapturePeakCost;
-		}
-	}
-	captureBudget *= CAPTURE_PEAK_BUDGET_RATIO;
-	auto calculateCapturePeakPenalty = [&](const Pattern &pattern) -> double {
-		const double overflow = calculateCapturePeakCost(pattern) - captureBudget;
-		return overflow > 0.0 ? overflow * overflow : 0.0;
-	};
-	auto calculatePostFillScore = [&](const size_t &patternIndex) -> double {
-		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
-		double score = calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
-		score += calculateCaptureCost(pattern);
-		score += CAPTURE_PEAK_PENALTY_WEIGHT * calculateCapturePeakPenalty(pattern);
-		// if next pattern exists, consider shift out cost
-		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
-		{
-			score += calculateShiftLoadCostAfterPattern(pattern, pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
-		}
-		return score;
-	};
-	auto calculatePiRepairScore = [&](const size_t &patternIndex, const double &fixedShiftLoadCost) -> double {
-		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
-		double score = fixedShiftLoadCost + calculateCaptureCost(pattern);
-		score += CAPTURE_PEAK_PENALTY_WEIGHT * calculateCapturePeakPenalty(pattern);
-		// if next pattern exists, consider shift out cost
-		if (patternIndex + 1 < pPatternProcessor->patternVector_.size())
-		{
-			score += calculateShiftLoadCostAfterPattern(pattern, pPatternProcessor->patternVector_[patternIndex + 1].PPI_);
-		}
-		return score;
-	};
-	auto getPreviousScanHead = [&](const size_t &patternIndex) -> Value {
-		if (patternIndex == 0)
-		{
-			return L;
-		}
-		const Pattern &previousPattern = pPatternProcessor->patternVector_[patternIndex - 1];
-		if (previousPattern.PPO_.empty())
-		{
-			return L;
-		}
-		const Value previousValue = normalizeBinaryValue(previousPattern.PPO_[0]);
-		return isBinaryValue(previousValue) ? previousValue : L;
-	};
-	auto applyWeightedSegmentPpiCandidate = [&](Pattern &pattern, const size_t &patternIndex) -> bool {
-		if (pattern.PPIOriginalX_.size() != scanLength)
-		{
-			return false;
-		}
+		Atpg *atpg_;
+		PatternProcessor *pPatternProcessor_;
+		const size_t scanLength_;
+		double captureBudget_;
+		std::vector<Value> savedPO1_;
+		std::vector<Value> savedPO2_;
+		std::vector<Value> savedPPO1_;
+		std::vector<Value> savedPPO_;
+		std::vector<ParallelValue> savedFanoutLow_;
+		std::vector<ParallelValue> savedFanoutHigh_;
 
-		bool changed = false;
-		const Value previousScanHead = getPreviousScanHead(patternIndex);
-		int segmentStart = -1;
-		for (int i = 0; i <= pCircuit_->numPPI_; ++i)
+		Value normalizeBinaryValue(const Value &value) const
 		{
-			const bool inOriginalX = i < pCircuit_->numPPI_ && pattern.PPIOriginalX_[i];
-			if (inOriginalX && segmentStart < 0)
+			if (value == L || value == B)
 			{
-				segmentStart = i;
+				return L;
 			}
-			if (inOriginalX || segmentStart < 0)
+			if (value == H || value == D)
 			{
-				continue;
+				return H;
 			}
+			return X;
+		}
 
-			const int segmentEnd = i - 1;
-			const Value leftValue = segmentStart > 0 ? normalizeBinaryValue(pattern.PPI_[segmentStart - 1]) : X;
-			const Value rightValue = segmentEnd + 1 < pCircuit_->numPPI_ ? normalizeBinaryValue(pattern.PPI_[segmentEnd + 1])
-			                                                             : previousScanHead;
+		bool isBinaryValue(const Value &value) const
+		{
+			return value == L || value == H;
+		}
 
-			auto assignSegment = [&](const Value &value) {
-				for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
+		double transitionCost(const Value &fromValue, const Value &toValue) const
+		{
+			const Value normalizedFrom = normalizeBinaryValue(fromValue);
+			const Value normalizedTo = normalizeBinaryValue(toValue);
+			if (!isBinaryValue(normalizedFrom) || !isBinaryValue(normalizedTo))
+			{
+				return 1.0;
+			}
+			return normalizedFrom == normalizedTo ? 0.0 : 1.0;
+		}
+
+		Value getValueOrUnknown(const std::vector<Value> &values, const size_t &index) const
+		{
+			return index < values.size() ? values[index] : X;
+		}
+
+		Value getScanStateBeforePatternValue(const size_t &patternIndex, const size_t &index) const
+		{
+			if (patternIndex == 0)
+			{
+				return L;
+			}
+			const Pattern &previousPattern = pPatternProcessor_->patternVector_[patternIndex - 1];
+			return normalizeBinaryValue(getValueOrUnknown(previousPattern.PPO_, index));
+		}
+
+		Value getScanStateAfterPatternValue(const Pattern &pattern, const size_t &index) const
+		{
+			return normalizeBinaryValue(getValueOrUnknown(pattern.PPO_, index));
+		}
+
+		double calculateShiftLoadCostBeforePattern(const size_t &patternIndex, const std::vector<Value> &scanInput) const
+		{
+			double cost = 0.0;
+			for (size_t i = 1; i < scanLength_; ++i)
+			{
+				cost += transitionCost(getScanStateBeforePatternValue(patternIndex, i), getScanStateBeforePatternValue(patternIndex, i - 1)) *
+				        static_cast<double>(scanLength_ - i);
+			}
+			cost += transitionCost(getScanStateBeforePatternValue(patternIndex, 0), getValueOrUnknown(scanInput, scanLength_ - 1)) *
+			        static_cast<double>(scanLength_);
+			for (size_t i = 1; i < scanLength_; ++i)
+			{
+				cost += transitionCost(getValueOrUnknown(scanInput, i), getValueOrUnknown(scanInput, i - 1)) *
+				        static_cast<double>(i);
+			}
+			return cost;
+		}
+
+		double calculateShiftLoadCostAfterPattern(const Pattern &pattern, const std::vector<Value> &scanInput) const
+		{
+			double cost = 0.0;
+			for (size_t i = 1; i < scanLength_; ++i)
+			{
+				cost += transitionCost(getScanStateAfterPatternValue(pattern, i), getScanStateAfterPatternValue(pattern, i - 1)) *
+				        static_cast<double>(scanLength_ - i);
+			}
+			cost += transitionCost(getScanStateAfterPatternValue(pattern, 0), getValueOrUnknown(scanInput, scanLength_ - 1)) *
+			        static_cast<double>(scanLength_);
+			for (size_t i = 1; i < scanLength_; ++i)
+			{
+				cost += transitionCost(getValueOrUnknown(scanInput, i), getValueOrUnknown(scanInput, i - 1)) *
+				        static_cast<double>(i);
+			}
+			return cost;
+		}
+
+		double calculateCaptureCost(const Pattern &pattern) const
+		{
+			double cost = 0.0;
+			if (!pattern.PPO1_.empty())
+			{
+				for (size_t i = 0; i < scanLength_; ++i)
 				{
-					if (pattern.PPI_[ppiIndex] != value)
-					{
-						changed = true;
-					}
-					pattern.PPI_[ppiIndex] = value;
+					cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO1_, i));
+					cost += transitionCost(getValueOrUnknown(pattern.PPO1_, i), getValueOrUnknown(pattern.PPO_, i));
 				}
-			};
-
-			if (!isBinaryValue(leftValue) && !isBinaryValue(rightValue))
-			{
-				assignSegment(L);
-			}
-			else if (!isBinaryValue(leftValue))
-			{
-				assignSegment(rightValue);
-			}
-			else if (!isBinaryValue(rightValue) || leftValue == rightValue)
-			{
-				assignSegment(leftValue);
 			}
 			else
 			{
-				int bestEdge = segmentStart > 0 ? segmentStart : segmentStart + 1;
-				int bestWeight = bestEdge;
-				const int rightEdge = segmentEnd + 1 < pCircuit_->numPPI_ ? segmentEnd + 1 : pCircuit_->numPPI_;
-				for (int edge = segmentStart > 0 ? segmentStart : segmentStart + 1; edge <= rightEdge; ++edge)
+				for (size_t i = 0; i < scanLength_; ++i)
 				{
-					const int weight = edge;
-					if (weight < bestWeight)
-					{
-						bestWeight = weight;
-						bestEdge = edge;
-					}
-				}
-				for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
-				{
-					const Value value = ppiIndex < bestEdge ? leftValue : rightValue;
-					if (pattern.PPI_[ppiIndex] != value)
-					{
-						changed = true;
-					}
-					pattern.PPI_[ppiIndex] = value;
+					cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO_, i));
 				}
 			}
+			return cost;
+		}
 
-			segmentStart = -1;
-		}
-		return changed;
-	};
-	auto simulateGoodOutputs = [&](Pattern &pattern) {
-		pSimulator_->assignPatternToCircuitInputs(pattern);
-		pSimulator_->goodSim();
-		writeGoodSimValToPatternPO(pattern);
-	};
-	auto setInputGoodSimValue = [&](const int &gateID, const Value &value) {
-		pCircuit_->circuitGates_[gateID].goodSimLow_ = PARA_L;
-		pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_L;
-		if (value == L)
+		double calculateCaptureStateCost(const std::vector<Value> &fromValues, const std::vector<Value> &toValues) const
 		{
-			pCircuit_->circuitGates_[gateID].goodSimLow_ = PARA_H;
+			double cost = 0.0;
+			for (size_t i = 0; i < scanLength_; ++i)
+			{
+				cost += transitionCost(getValueOrUnknown(fromValues, i), getValueOrUnknown(toValues, i));
+			}
+			return cost;
 		}
-		else if (value == H)
+
+		double calculateCapturePeakCost(const Pattern &pattern) const
 		{
-			pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_H;
+			if (!pattern.PPO1_.empty())
+			{
+				const double launchCaptureCost = calculateCaptureStateCost(pattern.PPI_, pattern.PPO1_);
+				const double captureResponseCost = calculateCaptureStateCost(pattern.PPO1_, pattern.PPO_);
+				return launchCaptureCost > captureResponseCost ? launchCaptureCost : captureResponseCost;
+			}
+			return calculateCaptureStateCost(pattern.PPI_, pattern.PPO_);
+		}
+
+		void initializeCaptureBudget()
+		{
+			captureBudget_ = 0.0;
+			for (const Pattern &pattern : pPatternProcessor_->patternVector_)
+			{
+				const double baselineCapturePeakCost = calculateCapturePeakCost(pattern);
+				if (baselineCapturePeakCost > captureBudget_)
+				{
+					captureBudget_ = baselineCapturePeakCost;
+				}
+			}
+			captureBudget_ *= CAPTURE_PEAK_BUDGET_RATIO;
+		}
+
+		double calculateCapturePeakPenalty(const Pattern &pattern) const
+		{
+			const double overflow = calculateCapturePeakCost(pattern) - captureBudget_;
+			return overflow > 0.0 ? overflow * overflow : 0.0;
+		}
+
+		double calculatePostFillScore(const size_t &patternIndex) const
+		{
+			Pattern &pattern = pPatternProcessor_->patternVector_[patternIndex];
+			double score = calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
+			score += calculateCaptureCost(pattern);
+			score += CAPTURE_PEAK_PENALTY_WEIGHT * calculateCapturePeakPenalty(pattern);
+			if (patternIndex + 1 < pPatternProcessor_->patternVector_.size())
+			{
+				score += calculateShiftLoadCostAfterPattern(pattern, pPatternProcessor_->patternVector_[patternIndex + 1].PPI_);
+			}
+			return score;
+		}
+
+		double calculatePiRepairScore(const size_t &patternIndex, const double &fixedShiftLoadCost) const
+		{
+			Pattern &pattern = pPatternProcessor_->patternVector_[patternIndex];
+			double score = fixedShiftLoadCost + calculateCaptureCost(pattern);
+			score += CAPTURE_PEAK_PENALTY_WEIGHT * calculateCapturePeakPenalty(pattern);
+			if (patternIndex + 1 < pPatternProcessor_->patternVector_.size())
+			{
+				score += calculateShiftLoadCostAfterPattern(pattern, pPatternProcessor_->patternVector_[patternIndex + 1].PPI_);
+			}
+			return score;
+		}
+
+		Value getPreviousScanHead(const size_t &patternIndex) const
+		{
+			if (patternIndex == 0)
+			{
+				return L;
+			}
+			const Pattern &previousPattern = pPatternProcessor_->patternVector_[patternIndex - 1];
+			if (previousPattern.PPO_.empty())
+			{
+				return L;
+			}
+			const Value previousValue = normalizeBinaryValue(previousPattern.PPO_[0]);
+			return isBinaryValue(previousValue) ? previousValue : L;
+		}
+
+		void assignPpiSegment(Pattern &pattern, const int &segmentStart, const int &segmentEnd, const Value &value, bool &changed) const
+		{
+			for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
+			{
+				if (pattern.PPI_[ppiIndex] != value)
+				{
+					changed = true;
+				}
+				pattern.PPI_[ppiIndex] = value;
+			}
+		}
+
+		bool applyWeightedSegmentPpiCandidate(Pattern &pattern, const size_t &patternIndex) const
+		{
+			if (pattern.PPIOriginalX_.size() != scanLength_)
+			{
+				return false;
+			}
+
+			bool changed = false;
+			const Value previousScanHead = getPreviousScanHead(patternIndex);
+			int segmentStart = -1;
+			for (int i = 0; i <= atpg_->pCircuit_->numPPI_; ++i)
+			{
+				const bool inOriginalX = i < atpg_->pCircuit_->numPPI_ && pattern.PPIOriginalX_[i];
+				if (inOriginalX && segmentStart < 0)
+				{
+					segmentStart = i;
+				}
+				if (inOriginalX || segmentStart < 0)
+				{
+					continue;
+				}
+
+				const int segmentEnd = i - 1;
+				const Value leftValue = segmentStart > 0 ? normalizeBinaryValue(pattern.PPI_[segmentStart - 1]) : X;
+				const Value rightValue = segmentEnd + 1 < atpg_->pCircuit_->numPPI_ ? normalizeBinaryValue(pattern.PPI_[segmentEnd + 1])
+				                                                                    : previousScanHead;
+
+				if (!isBinaryValue(leftValue) && !isBinaryValue(rightValue))
+				{
+					assignPpiSegment(pattern, segmentStart, segmentEnd, L, changed);
+				}
+				else if (!isBinaryValue(leftValue))
+				{
+					assignPpiSegment(pattern, segmentStart, segmentEnd, rightValue, changed);
+				}
+				else if (!isBinaryValue(rightValue) || leftValue == rightValue)
+				{
+					assignPpiSegment(pattern, segmentStart, segmentEnd, leftValue, changed);
+				}
+				else
+				{
+					int bestEdge = segmentStart > 0 ? segmentStart : segmentStart + 1;
+					int bestWeight = bestEdge;
+					const int rightEdge = segmentEnd + 1 < atpg_->pCircuit_->numPPI_ ? segmentEnd + 1 : atpg_->pCircuit_->numPPI_;
+					for (int edge = segmentStart > 0 ? segmentStart : segmentStart + 1; edge <= rightEdge; ++edge)
+					{
+						const int weight = edge;
+						if (weight < bestWeight)
+						{
+							bestWeight = weight;
+							bestEdge = edge;
+						}
+					}
+					for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
+					{
+						const Value value = ppiIndex < bestEdge ? leftValue : rightValue;
+						if (pattern.PPI_[ppiIndex] != value)
+						{
+							changed = true;
+						}
+						pattern.PPI_[ppiIndex] = value;
+					}
+				}
+
+				segmentStart = -1;
+			}
+			return changed;
+		}
+
+		void simulateGoodOutputs(Pattern &pattern)
+		{
+			atpg_->pSimulator_->assignPatternToCircuitInputs(pattern);
+			atpg_->pSimulator_->goodSim();
+			atpg_->writeGoodSimValToPatternPO(pattern);
+		}
+
+		void setInputGoodSimValue(const int &gateID, const Value &value)
+		{
+			atpg_->pCircuit_->circuitGates_[gateID].goodSimLow_ = PARA_L;
+			atpg_->pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_L;
+			if (value == L)
+			{
+				atpg_->pCircuit_->circuitGates_[gateID].goodSimLow_ = PARA_H;
+			}
+			else if (value == H)
+			{
+				atpg_->pCircuit_->circuitGates_[gateID].goodSimHigh_ = PARA_H;
+			}
+		}
+
+		bool tryPiFlip(Pattern &pattern, const size_t &patternIndex, const double &fixedShiftLoadCost, double &currentScore, std::vector<Value> &values, const int &targetIndex, const int &sourceGateID, const std::vector<int> &fanoutCone)
+		{
+			if (targetIndex < 0 || targetIndex >= static_cast<int>(values.size()) ||
+			    sourceGateID < 0 || sourceGateID >= atpg_->pCircuit_->totalGate_)
+			{
+				return false;
+			}
+			const Value currentValue = values[targetIndex];
+			if (currentValue != L && currentValue != H)
+			{
+				return false;
+			}
+
+			savedPO1_ = pattern.PO1_;
+			savedPO2_ = pattern.PO2_;
+			savedPPO1_ = pattern.PPO1_;
+			savedPPO_ = pattern.PPO_;
+			const ParallelValue savedSourceLow = atpg_->pCircuit_->circuitGates_[sourceGateID].goodSimLow_;
+			const ParallelValue savedSourceHigh = atpg_->pCircuit_->circuitGates_[sourceGateID].goodSimHigh_;
+			savedFanoutLow_.resize(fanoutCone.size());
+			savedFanoutHigh_.resize(fanoutCone.size());
+			for (size_t i = 0; i < fanoutCone.size(); ++i)
+			{
+				const int gateID = fanoutCone[i];
+				savedFanoutLow_[i] = atpg_->pCircuit_->circuitGates_[gateID].goodSimLow_;
+				savedFanoutHigh_[i] = atpg_->pCircuit_->circuitGates_[gateID].goodSimHigh_;
+			}
+
+			values[targetIndex] = currentValue == L ? H : L;
+			setInputGoodSimValue(sourceGateID, values[targetIndex]);
+			for (const int &gateID : fanoutCone)
+			{
+				atpg_->pSimulator_->goodValueEvaluation(gateID);
+			}
+			atpg_->writeGoodSimValToPatternPO(pattern);
+			const double candidateScore = calculatePiRepairScore(patternIndex, fixedShiftLoadCost);
+			if (candidateScore < currentScore)
+			{
+				currentScore = candidateScore;
+				return true;
+			}
+
+			values[targetIndex] = currentValue;
+			atpg_->pCircuit_->circuitGates_[sourceGateID].goodSimLow_ = savedSourceLow;
+			atpg_->pCircuit_->circuitGates_[sourceGateID].goodSimHigh_ = savedSourceHigh;
+			for (size_t i = 0; i < fanoutCone.size(); ++i)
+			{
+				atpg_->pCircuit_->circuitGates_[fanoutCone[i]].goodSimLow_ = savedFanoutLow_[i];
+				atpg_->pCircuit_->circuitGates_[fanoutCone[i]].goodSimHigh_ = savedFanoutHigh_[i];
+			}
+			pattern.PO1_ = savedPO1_;
+			pattern.PO2_ = savedPO2_;
+			pattern.PPO1_ = savedPPO1_;
+			pattern.PPO_ = savedPPO_;
+			return false;
 		}
 	};
 
+	PowerFillPostProcessContext postProcessContext = {this, pPatternProcessor, scanLength, 0.0};
+	postProcessContext.initializeCaptureBudget();
 	std::vector<Value> savedPPI;
 	std::vector<Value> savedPO1;
 	std::vector<Value> savedPO2;
 	std::vector<Value> savedPPO1;
 	std::vector<Value> savedPPO;
-	std::vector<ParallelValue> savedFanoutLow;
-	std::vector<ParallelValue> savedFanoutHigh;
-	auto tryPiFlip = [&](Pattern &pattern, const size_t &patternIndex, const double &fixedShiftLoadCost, double &currentScore, std::vector<Value> &values, const int &targetIndex, const int &sourceGateID, const std::vector<int> &fanoutCone) -> bool {
-		if (targetIndex < 0 || targetIndex >= static_cast<int>(values.size()) ||
-		    sourceGateID < 0 || sourceGateID >= pCircuit_->totalGate_)
-		{
-			return false;
-		}
-		const Value currentValue = values[targetIndex];
-		if (currentValue != L && currentValue != H)
-		{
-			return false;
-		}
-
-		savedPO1 = pattern.PO1_;
-		savedPO2 = pattern.PO2_;
-		savedPPO1 = pattern.PPO1_;
-		savedPPO = pattern.PPO_;
-		const ParallelValue savedSourceLow = pCircuit_->circuitGates_[sourceGateID].goodSimLow_;
-		const ParallelValue savedSourceHigh = pCircuit_->circuitGates_[sourceGateID].goodSimHigh_;
-		savedFanoutLow.resize(fanoutCone.size());
-		savedFanoutHigh.resize(fanoutCone.size());
-		for (size_t i = 0; i < fanoutCone.size(); ++i)
-		{
-			const int gateID = fanoutCone[i];
-			savedFanoutLow[i] = pCircuit_->circuitGates_[gateID].goodSimLow_;
-			savedFanoutHigh[i] = pCircuit_->circuitGates_[gateID].goodSimHigh_;
-		}
-
-		values[targetIndex] = currentValue == L ? H : L;
-		setInputGoodSimValue(sourceGateID, values[targetIndex]);
-		for (const int &gateID : fanoutCone)
-		{
-			pSimulator_->goodValueEvaluation(gateID);
-		}
-		writeGoodSimValToPatternPO(pattern);
-		// keep if improved
-		const double candidateScore = calculatePiRepairScore(patternIndex, fixedShiftLoadCost);
-		if (candidateScore < currentScore)
-		{
-			currentScore = candidateScore;
-			return true;
-		}
-
-		// rollback if not improved
-		values[targetIndex] = currentValue;
-		pCircuit_->circuitGates_[sourceGateID].goodSimLow_ = savedSourceLow;
-		pCircuit_->circuitGates_[sourceGateID].goodSimHigh_ = savedSourceHigh;
-		for (size_t i = 0; i < fanoutCone.size(); ++i)
-		{
-			pCircuit_->circuitGates_[fanoutCone[i]].goodSimLow_ = savedFanoutLow[i];
-			pCircuit_->circuitGates_[fanoutCone[i]].goodSimHigh_ = savedFanoutHigh[i];
-		}
-		pattern.PO1_ = savedPO1;
-		pattern.PO2_ = savedPO2;
-		pattern.PPO1_ = savedPPO1;
-		pattern.PPO_ = savedPPO;
-		return false;
-	};
 
 	initializePowerFillOrder();
 	for (size_t patternIndex = 0; patternIndex < pPatternProcessor->patternVector_.size(); ++patternIndex)
 	{
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
-		double currentScore = calculatePostFillScore(patternIndex);
+		double currentScore = postProcessContext.calculatePostFillScore(patternIndex);
 		const bool canRepairPi1 = pattern.PI1OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) &&
 		                          std::find(pattern.PI1OriginalX_.begin(), pattern.PI1OriginalX_.end(), 1) != pattern.PI1OriginalX_.end();
 		const bool canRepairPi2 = pattern.PI2OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) && !pattern.PI2_.empty() &&
 		                          std::find(pattern.PI2OriginalX_.begin(), pattern.PI2OriginalX_.end(), 1) != pattern.PI2OriginalX_.end();
 		if (canRepairPi1 || canRepairPi2)
 		{
-			simulateGoodOutputs(pattern);
-			const double fixedPiShiftLoadCost = calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
-			currentScore = calculatePiRepairScore(patternIndex, fixedPiShiftLoadCost);
+			postProcessContext.simulateGoodOutputs(pattern);
+			const double fixedPiShiftLoadCost = postProcessContext.calculateShiftLoadCostBeforePattern(patternIndex, pattern.PPI_);
+			currentScore = postProcessContext.calculatePiRepairScore(patternIndex, fixedPiShiftLoadCost);
 
 			if (canRepairPi1)
 			{
@@ -5070,7 +5124,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					{
 						continue;
 					}
-					tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
+					postProcessContext.tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI1_, targetIndex, targetIndex, powerFillPi1FanoutCones_[targetIndex]);
 				}
 			}
 
@@ -5086,7 +5140,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					{
 						continue;
 					}
-					tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
+					postProcessContext.tryPiFlip(pattern, patternIndex, fixedPiShiftLoadCost, currentScore, pattern.PI2_, targetIndex, targetIndex + pCircuit_->numGate_, powerFillPi2FanoutCones_[targetIndex]);
 				}
 			}
 		}
@@ -5096,15 +5150,15 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		savedPO2 = pattern.PO2_;
 		savedPPO1 = pattern.PPO1_;
 		savedPPO = pattern.PPO_;
-		if (!applyWeightedSegmentPpiCandidate(pattern, patternIndex))
+		if (!postProcessContext.applyWeightedSegmentPpiCandidate(pattern, patternIndex))
 		{
 			continue;
 		}
 
-		simulateGoodOutputs(pattern);
+		postProcessContext.simulateGoodOutputs(pattern);
 
 		// keep if improved
-		if (calculatePostFillScore(patternIndex) < currentScore)
+		if (postProcessContext.calculatePostFillScore(patternIndex) < currentScore)
 		{
 			continue;
 		}
