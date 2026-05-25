@@ -2031,7 +2031,11 @@ void Atpg::updateDFrontiers()
 		{
 			for (int j = 0; j < mGate.numFO_; ++j)
 			{
-				dFrontiers_.push_back(mGate.fanoutVector_[j]);
+				int fanoutID = mGate.fanoutVector_[j];
+                if (isGateConfined_.empty() || isGateConfined_[fanoutID]) 
+                {
+				    dFrontiers_.push_back(fanoutID);
+                }
 			}
 			vecDelete(dFrontiers_, i);
 		}
@@ -3674,9 +3678,9 @@ Gate *Atpg::findEasiestInput(Gate *pGate, Value atpgValOfpGate)
 				continue;
 			}
 
-			if (pFaninGate->cc0_ < easyControlVal)
+			if (dynamic_cc0_[pFaninGate->gateId_] < easyControlVal) 
 			{
-				easyControlVal = pFaninGate->cc0_;
+				easyControlVal = dynamic_cc0_[pFaninGate->gateId_];
 				pRetGate = pFaninGate;
 			}
 		}
@@ -3692,9 +3696,9 @@ Gate *Atpg::findEasiestInput(Gate *pGate, Value atpgValOfpGate)
 				continue;
 			}
 
-			if (pFaninGate->cc1_ < easyControlVal)
+			if (dynamic_cc1_[pFaninGate->gateId_] < easyControlVal) 
 			{
-				easyControlVal = pFaninGate->cc1_;
+				easyControlVal = dynamic_cc1_[pFaninGate->gateId_];
 				pRetGate = pFaninGate;
 			}
 		}
@@ -5397,4 +5401,142 @@ void Atpg::XFill(PatternProcessor *pPatternProcessor)
 		pSimulator_->goodSim();
 		writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.at(i));
 	}
+}
+
+// Parity Backtrace in Time Frame 2
+
+bool Atpg::isGateInverting(Gate::GateType type)
+{
+    switch (type) {
+        case Gate::INV:
+        case Gate::NAND2: case Gate::NAND3: case Gate::NAND4:
+        case Gate::NOR2: case Gate::NOR3: case Gate::NOR4:
+        case Gate::XNOR2: case Gate::XNOR3:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void Atpg::buildTDFParityMap()
+{
+    gateID_to_ffrStem_.assign(pCircuit_->totalGate_, -1);
+    gateID_to_parityToStem_.assign(pCircuit_->totalGate_, 0);
+    ffrStem_to_faults_.assign(pCircuit_->totalGate_, std::list<Fault*>());
+
+    // Only process TF2 (from totalGate_ - 1 down to numGate_)
+    for (int gateID = pCircuit_->totalGate_ - 1; gateID >= pCircuit_->numGate_; --gateID)
+    {
+        Gate &gate = pCircuit_->circuitGates_[gateID];
+        
+        if (gateID_to_lineType_[gateID] == HEAD_LINE || 
+            gate.gateType_ == Gate::PO || gate.gateType_ == Gate::PPO) 
+        {
+            gateID_to_ffrStem_[gateID] = gateID;
+            gateID_to_parityToStem_[gateID] = 0; 
+        }
+        else if (gate.numFO_ == 1) 
+        {
+            int fanoutID = gate.fanoutVector_[0];
+            // Ensure we don't accidentally pull parity from outside TF2 boundaries
+            if (fanoutID >= pCircuit_->numGate_) {
+                Gate &fanoutGate = pCircuit_->circuitGates_[fanoutID];
+                gateID_to_ffrStem_[gateID] = gateID_to_ffrStem_[fanoutID];
+                int isInverting = isGateInverting(fanoutGate.gateType_) ? 1 : 0;
+                gateID_to_parityToStem_[gateID] = gateID_to_parityToStem_[fanoutID] ^ isInverting;
+            }
+        }
+    }
+}
+
+// Confined Fault Propagation Across Both Frames
+
+void Atpg::markConfinedCone(int objectiveGateId)
+{
+    isGateConfined_.assign(pCircuit_->totalGate_, false);
+    std::vector<int> queue;
+    
+    queue.push_back(objectiveGateId);
+    isGateConfined_[objectiveGateId] = true;
+
+    int head = 0;
+    while (head < queue.size())
+    {
+        int currGateID = queue[head++];
+        Gate &currGate = pCircuit_->circuitGates_[currGateID];
+
+        for (int faninID : currGate.faninVector_)
+        {
+            if (!isGateConfined_[faninID])
+            {
+                isGateConfined_[faninID] = true;
+                queue.push_back(faninID);
+            }
+        }
+    }
+}
+
+// Dynamic Controllability
+
+void Atpg::updateDynamicControllability(Pattern &currentPattern)
+{
+    // Define high/low penalties as described in CASPR (e.g., NumPPI / 4 and NumPPI / 20)
+    int cc_high = pCircuit_->numPPI_ / 4;
+    int cc_low = pCircuit_->numPPI_ / 20;
+
+    // Evaluate PPIs in TF1 (which affect V1 state)
+    for (int i = 0; i < pCircuit_->numPPI_; ++i)
+    {
+        Value v1_state = currentPattern.PPI_[i];      // TF1 PPI
+        Value v2_state = currentPattern.PPO1_[i];     // TF2 PPI (simulated response from TF1)
+
+        // If flip-flop captured a transition to 1, make 0 highly expensive
+        if (v1_state == X && v2_state == H) {
+            dynamic_cc0_[i] = cc_high;
+            dynamic_cc1_[i] = 0;
+        }
+        // If flip-flop captured a transition to 0, make 1 highly expensive
+        else if (v1_state == X && v2_state == L) {
+            dynamic_cc0_[i] = 0;
+            dynamic_cc1_[i] = cc_high;
+        }
+        else {
+            dynamic_cc0_[i] = cc_low;
+            dynamic_cc1_[i] = cc_low;
+        }
+    }
+}
+
+bool Atpg::determinePowerAwareObjective(Pattern &currentPattern, int &outObjectiveGateId, Value &outObjectiveValue)
+{
+    // Iterate through all PPIs (Flip-Flops) to find a transition risk
+    for (int i = 0; i < pCircuit_->numPPI_; ++i)
+    {
+        Value v1_state = currentPattern.PPI_[i]; // The known shift-in state for this flip-flop
+        
+        // If the primary fault already forced this flip-flop to a known state (0 or 1)
+        if (v1_state == L || v1_state == H)
+        {
+            // Find the corresponding PPO gate in Time Frame 1
+            // In your circuit structure: PI -> PPI -> Comb -> PO -> PPO
+            int tf1_ppo_offset = pCircuit_->numPI_ + pCircuit_->numPPI_ + pCircuit_->numComb_ + pCircuit_->numPO_;
+            int tf1_ppo_gateID = tf1_ppo_offset + i;
+            
+            // The corresponding PPO in Time Frame 2
+            int tf2_ppo_gateID = tf1_ppo_gateID + pCircuit_->numGate_;
+            
+            Gate &tf2_ppo_gate = pCircuit_->circuitGates_[tf2_ppo_gateID];
+
+            // If the capture value is still unknown (X), we have our objective!
+            if (tf2_ppo_gate.atpgVal_ == X)
+            {
+                outObjectiveGateId = tf2_ppo_gateID;
+                outObjectiveValue = v1_state; // Force TF2 to match TF1
+                return true; 
+            }
+        }
+    }
+    
+    // No suitable objective found (all specified TF1 states have specified TF2 states)
+    return false; 
 }

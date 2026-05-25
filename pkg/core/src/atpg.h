@@ -102,7 +102,19 @@ namespace CoreNs
 		std::vector<int> powerFillPiOrder_;											// PIs sorted by descending response impact
 		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
 		std::vector<std::vector<int>> powerFillPi2FanoutCones_;			// affected gates for incremental PI2 power fill simulation
-		Gate *firstTimeFrameHeadLine_;														// this parameter is for multiple time frame
+		Gate *firstTimeFrameHeadLine_;
+		
+		// Parity Backtrace (TF2 focused)
+		std::vector<int> gateID_to_ffrStem_;
+		std::vector<int> gateID_to_parityToStem_; 
+		std::vector<std::list<Fault*>> ffrStem_to_faults_; 
+
+		// Confined Propagation (Cross-frame)
+		std::vector<bool> isGateConfined_; 
+
+		// Dynamic Controllability (Cross-frame)
+		std::vector<int> dynamic_cc0_;
+		std::vector<int> dynamic_cc1_;													// this parameter is for multiple time frame
 
 		// ---------------private methods----------------- //
 
@@ -215,6 +227,15 @@ namespace CoreNs
 		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
 		void XFill(PatternProcessor *pPatternProcessor); // final X-fill pass for compressed pattern sets
 
+		// phase 1 dynamic test compaction helper methods
+		bool isGateInverting(Gate::GateType type);
+		void buildTDFParityMap();
+		void groupFaultsByFFR(FaultPtrList &faultList);
+		Fault* selectPtfWithParityBacktrace(int objectiveGateId, Value objectiveValue, FaultPtrList &faultList);
+		void markConfinedCone(int objectiveGateId);
+		void updateDynamicControllability(Pattern &currentPattern);
+		bool determinePowerAwareObjective(Pattern &currentPattern, int &outObjectiveGateId, Value &outObjectiveValue);
+		
 		// function not used or removed
 		void checkLevelInfo();																		// for debug use
 		std::string getValStr(Value val);													// for debug use
