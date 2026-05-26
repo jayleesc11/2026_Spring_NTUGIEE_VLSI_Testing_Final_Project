@@ -1160,19 +1160,25 @@ namespace
 		keep.si_.assign(pattern.SI_.size(), 0);
 	}
 
-	void buildXidKeepFromAssignments(Circuit *const pCircuit,
-	                                 const Pattern &pattern,
-	                                 const std::vector<Value> &assignments,
-	                                 XidInputKeep &keep)
+	size_t buildXidKeepFromAssignedGates(Circuit *const pCircuit,
+	                                     const Pattern &pattern,
+	                                     const std::vector<Value> &assignments,
+	                                     const std::vector<int> &assignedGateIDs,
+	                                     XidInputKeep &keep)
 	{
 		initXidKeep(pattern, keep);
-		for (int gateID = 0; gateID < pCircuit->totalGate_; ++gateID)
+		size_t requiredInternalValues = 0;
+		for (const int &gateID : assignedGateIDs)
 		{
-			if (isXidBinaryValue(assignments[gateID]))
+			if (gateID >= 0 &&
+			    gateID < static_cast<int>(assignments.size()) &&
+			    isXidBinaryValue(assignments[gateID]))
 			{
+				++requiredInternalValues;
 				markXidPatternInput(pCircuit, pattern, gateID, assignments[gateID], keep);
 			}
 		}
+		return requiredInternalValues;
 	}
 
 	struct XidCalculationWorkspace
@@ -1245,14 +1251,11 @@ namespace
 			return false;
 		}
 
-		for (int gateID = 0; gateID < pCircuit->totalGate_; ++gateID)
-		{
-			if (isXidBinaryValue(workspace.assignments_[gateID]))
-			{
-				++requiredInternalValues;
-			}
-		}
-		buildXidKeepFromAssignments(pCircuit, originalPattern, workspace.assignments_, keep);
+		requiredInternalValues = buildXidKeepFromAssignedGates(pCircuit,
+		                                                       originalPattern,
+		                                                       workspace.assignments_,
+		                                                       workspace.justificationWorkspace_.assignedGateIDs_,
+		                                                       keep);
 		return true;
 	}
 
@@ -6564,18 +6567,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 				}
 				else
 				{
-					int bestEdge = segmentStart > 0 ? segmentStart : segmentStart + 1;
-					int bestWeight = bestEdge;
-					const int rightEdge = segmentEnd + 1 < atpg_->pCircuit_->numPPI_ ? segmentEnd + 1 : atpg_->pCircuit_->numPPI_;
-					for (int edge = segmentStart > 0 ? segmentStart : segmentStart + 1; edge <= rightEdge; ++edge)
-					{
-						const int weight = edge;
-						if (weight < bestWeight)
-						{
-							bestWeight = weight;
-							bestEdge = edge;
-						}
-					}
+					const int bestEdge = segmentStart > 0 ? segmentStart : segmentStart + 1;
 					for (int ppiIndex = segmentStart; ppiIndex <= segmentEnd; ++ppiIndex)
 					{
 						const Value value = ppiIndex < bestEdge ? leftValue : rightValue;
