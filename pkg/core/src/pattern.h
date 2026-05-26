@@ -89,6 +89,7 @@ namespace CoreNs
 		};
 		enum XFillMode
 		{
+			XFILL_OFF,
 			XFILL_RANDOM,
 			XFILL_ADJACENT,
 			XFILL_POWER
@@ -121,8 +122,7 @@ namespace CoreNs
 
 		State staticCompression_;	 // Flag; ON = need static compression
 		State dynamicCompression_; // Flag; ON = need dynamic compression
-		State XFill_;							 // Flag; ON = need X-Filling
-		XFillMode XFillMode_;		 // X-Fill strategy when XFill_ is ON.
+		XFillMode XFillMode_;		 // X-Fill strategy: off, random, adjacent, or power.
 
 		Type type_;
 		int numPI_;
@@ -175,8 +175,7 @@ namespace CoreNs
 	{
 		staticCompression_ = OFF;
 		dynamicCompression_ = OFF;
-		XFill_ = OFF;
-		XFillMode_ = XFILL_RANDOM;
+		XFillMode_ = XFILL_OFF;
 
 		type_ = BASIC_SCAN;
 		numPI_ = 0;

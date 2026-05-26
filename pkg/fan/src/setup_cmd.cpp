@@ -749,29 +749,25 @@ bool SetXFillCmd::exec(const std::vector<std::string> &argv)
 		std::cout << "#  X-Fill set to random"
 							<< "\n";
 
-		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
 		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_RANDOM;
 	}
 	else if (optMgr_.getParsedArg(0) == "adjacent")
 	{
 		std::cout << "#  X-Fill set to adjacent\n";
 
-		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
 		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_ADJACENT;
 	}
 	else if (optMgr_.getParsedArg(0) == "power")
 	{
 		std::cout << "#  X-Fill set to power\n";
 
-		fanMgr_->pcoll->XFill_ = PatternProcessor::ON;
 		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_POWER;
 	}
 	else if (optMgr_.getParsedArg(0) == "off")
 	{
 		std::cout << "#  X-Fill set to off\n";
 
-		fanMgr_->pcoll->XFill_ = PatternProcessor::OFF;
-		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_RANDOM;
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_OFF;
 	}
 	else
 	{

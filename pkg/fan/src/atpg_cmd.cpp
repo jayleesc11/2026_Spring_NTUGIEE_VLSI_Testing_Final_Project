@@ -1383,6 +1383,10 @@ bool RunAtpgCmd::exec(const std::vector<std::string> &argv)
 	fanMgr_->tmusg.periodStart();
 
 	const bool powerAware = optMgr_.isFlagSet("power");
+	if (powerAware)
+	{
+		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_POWER;
+	}
 	fanMgr_->atpg->generatePatternSet(fanMgr_->pcoll, fanMgr_->fListExtract, true, powerAware);
 
 	fanMgr_->tmusg.getPeriodUsage(fanMgr_->atpgStat);

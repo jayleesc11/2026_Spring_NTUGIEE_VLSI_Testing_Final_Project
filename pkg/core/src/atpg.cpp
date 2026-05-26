@@ -105,18 +105,18 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
 		originalFaultPtrList = faultPtrListForSTC;
 	}
-	if (pPatternProcessor->XFill_ == PatternProcessor::ON)
+	if (powerAware)
 	{
-		if (powerAware)
-		{
-			XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
-		}
+		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
+	}
+	if (pPatternProcessor->XFillMode_ != PatternProcessor::XFILL_OFF)
+	{
 		XFill(pPatternProcessor);
 	}
-	if (powerAware || ((pPatternProcessor->XFill_ == PatternProcessor::ON) && (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)))
+	if (powerAware || pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
 	{
 		postProcessPowerFill(pPatternProcessor);
-		if (powerAware && pPatternProcessor->XFill_ == PatternProcessor::ON)
+		if (powerAware)
 		{
 			reorderPatternsForShiftPower(pPatternProcessor);
 		}
@@ -512,7 +512,15 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 			// TODO: implement dynamic test compression for transition delay faults.
 		}
 
-		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
+		if (pPatternProcessor->staticCompression_ == PatternProcessor::ON &&
+			pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
+		{
+			adjacentFill(pPatternProcessor->patternVector_.back());
+		}
+		else
+		{
+			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
+		}
 
 		pSimulator_->parallelFaultFaultSimWithOnePattern(pPatternProcessor->patternVector_.back(), faultPtrListForGen);
 		pSimulator_->goodSim();
@@ -6750,7 +6758,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 {
 	if (!pPatternProcessor ||
-	    pPatternProcessor->XFill_ != PatternProcessor::ON ||
+	    pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_OFF ||
 	    pCircuit_->numPPI_ <= 0 ||
 	    pPatternProcessor->patternVector_.size() < 2)
 	{
@@ -6855,22 +6863,25 @@ void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 
 void Atpg::xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern)
 {
-	if (!pPatternProcessor || pPatternProcessor->XFill_ == PatternProcessor::OFF)
+	if (!pPatternProcessor || pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_OFF)
 	{
 		return;
 	}
 
 	switch (pPatternProcessor->XFillMode_)
 	{
+		case PatternProcessor::XFILL_RANDOM:
+			randomFill(pattern);
+			break;
 		case PatternProcessor::XFILL_ADJACENT:
 			adjacentFill(pattern);
 			break;
 		case PatternProcessor::XFILL_POWER:
 			powerFill(pattern);
 			break;
-		case PatternProcessor::XFILL_RANDOM:
 		default:
-			randomFill(pattern);
+			std::cerr << "Bug: reach switch case default while doing X-Fill\n";
+			std::cin.get();
 			break;
 	}
 }

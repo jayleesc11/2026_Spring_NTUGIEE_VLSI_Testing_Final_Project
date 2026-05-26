@@ -30,6 +30,8 @@ This folder contains some scripts the users might want to use for convenience.
 - `adjacent`: use adjacent fill to reduce neighboring input/scan transitions.
 - `power`: use the iFill-style probability-based shift filling. It optimizes shift FFTC and does not enforce a capture-power limit.
 
+`run_atpg -power` automatically enables `set_X-Fill power`.
+
 ## Power Scripts
 
 `autoRunScripts/runFANPower.sh` and `autoRunScripts/runFANAdjacent.sh` run transition-delay ATPG in launch-on-capture mode. By default, compression is enabled:
