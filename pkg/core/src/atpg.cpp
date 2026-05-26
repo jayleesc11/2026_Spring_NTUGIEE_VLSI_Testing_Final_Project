@@ -12,1375 +12,6 @@
 
 using namespace CoreNs;
 
-namespace
-{
-	enum class XidInputField
-	{
-		PI1,
-		PI2,
-		PPI,
-		SI
-	};
-
-	struct XidInputKeep
-	{
-		std::vector<char> pi1_;
-		std::vector<char> pi2_;
-		std::vector<char> ppi_;
-		std::vector<char> si_;
-	};
-
-	std::vector<char> *getXidKeepVector(XidInputKeep &keep, const XidInputField &field)
-	{
-		switch (field)
-		{
-			case XidInputField::PI1:
-				return &keep.pi1_;
-			case XidInputField::PI2:
-				return &keep.pi2_;
-			case XidInputField::PPI:
-				return &keep.ppi_;
-			case XidInputField::SI:
-				return &keep.si_;
-		}
-		return NULL;
-	}
-
-	bool isXidBinaryValue(const Value &value)
-	{
-		return value == L || value == H;
-	}
-
-	Value invertXidValue(const Value &value)
-	{
-		if (value == L)
-		{
-			return H;
-		}
-		if (value == H)
-		{
-			return L;
-		}
-		return X;
-	}
-
-	Value getSparseXidFaultyValue(const std::vector<std::pair<int, Value>> &faultyValues, const int &gateID)
-	{
-		for (const std::pair<int, Value> &faultyValue : faultyValues)
-		{
-			if (faultyValue.first == gateID)
-			{
-				return faultyValue.second;
-			}
-		}
-		return X;
-	}
-
-	bool gateHasSparseXidFaultEffect(const std::vector<Value> &goodValues, const std::vector<std::pair<int, Value>> &faultyValues, const int &gateID)
-	{
-		const Value faultyValue = getSparseXidFaultyValue(faultyValues, gateID);
-		return gateID >= 0 &&
-		       gateID < static_cast<int>(goodValues.size()) &&
-		       isXidBinaryValue(goodValues[gateID]) &&
-		       isXidBinaryValue(faultyValue) &&
-		       goodValues[gateID] != faultyValue;
-	}
-
-	int getXidFaultyLineGateID(Circuit *const pCircuit, const Fault &fault, const int &frameOffset)
-	{
-		const int gateID = fault.gateID_ + frameOffset;
-		if (gateID < 0 || gateID >= pCircuit->totalGate_)
-		{
-			return -1;
-		}
-		if (fault.faultyLine_ == 0)
-		{
-			return gateID;
-		}
-		const Gate &gate = pCircuit->circuitGates_[gateID];
-		const int faninIndex = fault.faultyLine_ - 1;
-		if (faninIndex < 0 || faninIndex >= gate.numFI_)
-		{
-			return -1;
-		}
-		return gate.faninVector_[faninIndex];
-	}
-
-	int getXidFaultEffectStartGateID(Circuit *const pCircuit, const Fault &fault)
-	{
-		int gateID = fault.gateID_;
-		if (fault.faultType_ == Fault::STR || fault.faultType_ == Fault::STF)
-		{
-			gateID += pCircuit->numGate_;
-		}
-		return (gateID >= 0 && gateID < pCircuit->totalGate_) ? gateID : -1;
-	}
-
-	bool markXidPatternInput(Circuit *const pCircuit, const Pattern &pattern, const int &gateID, const Value &value, XidInputKeep &keep)
-	{
-		if (!isXidBinaryValue(value) || gateID < 0 || gateID >= pCircuit->totalGate_ || pCircuit->numGate_ <= 0)
-		{
-			return false;
-		}
-
-		const int frame = gateID / pCircuit->numGate_;
-		const int localGateID = gateID % pCircuit->numGate_;
-		XidInputField field = XidInputField::PI1;
-		int index = -1;
-		if (localGateID >= 0 && localGateID < pCircuit->numPI_)
-		{
-			if (frame == 0)
-			{
-				field = XidInputField::PI1;
-				index = localGateID;
-			}
-			else if (!pattern.PI2_.empty())
-			{
-				field = XidInputField::PI2;
-				index = localGateID;
-			}
-		}
-		else if (localGateID >= pCircuit->numPI_ && localGateID < pCircuit->numPI_ + pCircuit->numPPI_)
-		{
-			if (frame == 0)
-			{
-				field = XidInputField::PPI;
-				index = localGateID - pCircuit->numPI_;
-			}
-			else if (pCircuit->timeFrameConnectType_ == Circuit::SHIFT && localGateID == pCircuit->numPI_)
-			{
-				field = XidInputField::SI;
-				index = frame - 1;
-			}
-		}
-
-		std::vector<char> *const keepVector = index >= 0 ? getXidKeepVector(keep, field) : NULL;
-		if (!keepVector || index >= static_cast<int>(keepVector->size()))
-		{
-			return false;
-		}
-		(*keepVector)[index] = 1;
-		return true;
-	}
-
-	size_t applyXidKeepMask(Pattern &pattern, const XidInputKeep &keep)
-	{
-		size_t relaxedBits = 0;
-		auto relaxUnkeptValues = [&](std::vector<Value> &values, const std::vector<char> &keepValues) {
-			for (size_t i = 0; i < values.size() && i < keepValues.size(); ++i)
-			{
-				if (!keepValues[i] && isXidBinaryValue(values[i]))
-				{
-					values[i] = X;
-					++relaxedBits;
-				}
-			}
-		};
-		relaxUnkeptValues(pattern.PI1_, keep.pi1_);
-		relaxUnkeptValues(pattern.PI2_, keep.pi2_);
-		relaxUnkeptValues(pattern.PPI_, keep.ppi_);
-		relaxUnkeptValues(pattern.SI_, keep.si_);
-		return relaxedBits;
-	}
-
-	size_t countXidCandidateBits(const Pattern &pattern)
-	{
-		size_t candidateBits = 0;
-		auto countBinary = [&](const std::vector<Value> &values) {
-			for (const Value &value : values)
-			{
-				if (isXidBinaryValue(value))
-				{
-					++candidateBits;
-				}
-			}
-		};
-		countBinary(pattern.PI1_);
-		countBinary(pattern.PI2_);
-		countBinary(pattern.PPI_);
-		countBinary(pattern.SI_);
-		return candidateBits;
-	}
-
-	size_t countXidRelaxedBits(const Pattern &originalPattern, const Pattern &relaxedPattern)
-	{
-		size_t relaxedBits = 0;
-		auto countRelaxed = [&](const std::vector<Value> &originalValues, const std::vector<Value> &relaxedValues) {
-			const size_t count = std::min(originalValues.size(), relaxedValues.size());
-			for (size_t i = 0; i < count; ++i)
-			{
-				if (isXidBinaryValue(originalValues[i]) && relaxedValues[i] == X)
-				{
-					++relaxedBits;
-				}
-			}
-		};
-		countRelaxed(originalPattern.PI1_, relaxedPattern.PI1_);
-		countRelaxed(originalPattern.PI2_, relaxedPattern.PI2_);
-		countRelaxed(originalPattern.PPI_, relaxedPattern.PPI_);
-		countRelaxed(originalPattern.SI_, relaxedPattern.SI_);
-		return relaxedBits;
-	}
-
-	struct XidFaultTrace
-	{
-		Fault *fault_;
-		std::vector<std::pair<int, Value>> faultyValues_;
-		std::vector<int> detectedOutputGateIDs_;
-		int selectedOutputGateID_;
-	};
-
-	struct XidJustificationCandidate
-	{
-		std::vector<std::pair<int, Value>> assignments_;
-		int cost_;
-	};
-
-	bool xidAssignmentCompatible(const std::vector<Value> &assignments,
-	                             const std::vector<Value> &originalGoodValues,
-	                             const int &gateID,
-	                             const Value &value)
-	{
-		return isXidBinaryValue(value) &&
-		       gateID >= 0 &&
-		       gateID < static_cast<int>(assignments.size()) &&
-		       gateID < static_cast<int>(originalGoodValues.size()) &&
-		       originalGoodValues[gateID] == value &&
-		       (assignments[gateID] == X || assignments[gateID] == value);
-	}
-
-	bool addXidAssignment(std::vector<Value> &assignments,
-	                      const std::vector<Value> &originalGoodValues,
-	                      const int &gateID,
-	                      const Value &value)
-	{
-		if (!isXidBinaryValue(value) || gateID < 0 || gateID >= static_cast<int>(assignments.size()))
-		{
-			return true;
-		}
-		if (gateID >= static_cast<int>(originalGoodValues.size()) || originalGoodValues[gateID] != value)
-		{
-			return false;
-		}
-		if (assignments[gateID] != X && assignments[gateID] != value)
-		{
-			return false;
-		}
-		assignments[gateID] = value;
-		return true;
-	}
-
-	bool appendXidCandidate(XidJustificationCandidate &candidate,
-	                        Circuit *const pCircuit,
-	                        const std::vector<Value> &assignments,
-	                        const std::vector<Value> &originalGoodValues,
-	                        const int &gateID,
-	                        const Value &value)
-	{
-		if (!xidAssignmentCompatible(assignments, originalGoodValues, gateID, value))
-		{
-			return false;
-		}
-		for (const std::pair<int, Value> &assignment : candidate.assignments_)
-		{
-			if (assignment.first == gateID)
-			{
-				return assignment.second == value;
-			}
-		}
-		candidate.assignments_.push_back(std::make_pair(gateID, value));
-		if (assignments[gateID] == X)
-		{
-			const Gate &gate = pCircuit->circuitGates_[gateID];
-			candidate.cost_ += value == L ? gate.cc0_ : gate.cc1_;
-		}
-		return true;
-	}
-
-	bool addXidAllFaninCandidate(std::vector<XidJustificationCandidate> &candidates,
-	                             Circuit *const pCircuit,
-	                             const Gate &gate,
-	                             const Value &value,
-	                             const std::vector<Value> &assignments,
-	                             const std::vector<Value> &originalGoodValues)
-	{
-		XidJustificationCandidate candidate;
-		candidate.cost_ = 0;
-		for (const int &faninID : gate.faninVector_)
-		{
-			if (!appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, faninID, value))
-			{
-				return false;
-			}
-		}
-		candidates.push_back(candidate);
-		return true;
-	}
-
-	void addXidOneFaninCandidates(std::vector<XidJustificationCandidate> &candidates,
-	                              Circuit *const pCircuit,
-	                              const Gate &gate,
-	                              const Value &value,
-	                              const std::vector<Value> &assignments,
-	                              const std::vector<Value> &originalGoodValues)
-	{
-		for (const int &faninID : gate.faninVector_)
-		{
-			XidJustificationCandidate candidate;
-			candidate.cost_ = 0;
-			if (appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, faninID, value))
-			{
-				candidates.push_back(candidate);
-			}
-		}
-	}
-
-	bool xidGateNeedsJustification(const Gate &gate)
-	{
-		switch (gate.gateType_)
-		{
-			case Gate::PI:
-			case Gate::TIE0:
-			case Gate::TIE1:
-			case Gate::TIEX:
-			case Gate::TIEZ:
-				return false;
-			case Gate::PPI:
-				return gate.numFI_ > 0;
-			default:
-				return gate.numFI_ > 0;
-		}
-	}
-
-	bool collectXidJustificationCandidates(Circuit *const pCircuit,
-	                                       const int &gateID,
-	                                       const Value &outputValue,
-	                                       const std::vector<Value> &assignments,
-	                                       const std::vector<Value> &originalGoodValues,
-	                                       std::vector<XidJustificationCandidate> &candidates)
-	{
-		candidates.clear();
-		if (!isXidBinaryValue(outputValue) || gateID < 0 || gateID >= pCircuit->totalGate_)
-		{
-			return false;
-		}
-
-		const Gate &gate = pCircuit->circuitGates_[gateID];
-		if (!xidGateNeedsJustification(gate))
-		{
-			return true;
-		}
-
-		switch (gate.gateType_)
-		{
-			case Gate::INV:
-			{
-				XidJustificationCandidate candidate;
-				candidate.cost_ = 0;
-				if (appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, gate.faninVector_[0], invertXidValue(outputValue)))
-				{
-					candidates.push_back(candidate);
-				}
-				break;
-			}
-			case Gate::BUF:
-			case Gate::PO:
-			case Gate::PPO:
-			case Gate::PPI:
-			{
-				XidJustificationCandidate candidate;
-				candidate.cost_ = 0;
-				if (appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, gate.faninVector_[0], outputValue))
-				{
-					candidates.push_back(candidate);
-				}
-				break;
-			}
-			case Gate::AND2:
-			case Gate::AND3:
-			case Gate::AND4:
-				if (outputValue == H)
-				{
-					addXidAllFaninCandidate(candidates, pCircuit, gate, H, assignments, originalGoodValues);
-				}
-				else
-				{
-					addXidOneFaninCandidates(candidates, pCircuit, gate, L, assignments, originalGoodValues);
-				}
-				break;
-			case Gate::NAND2:
-			case Gate::NAND3:
-			case Gate::NAND4:
-				if (outputValue == L)
-				{
-					addXidAllFaninCandidate(candidates, pCircuit, gate, H, assignments, originalGoodValues);
-				}
-				else
-				{
-					addXidOneFaninCandidates(candidates, pCircuit, gate, L, assignments, originalGoodValues);
-				}
-				break;
-			case Gate::OR2:
-			case Gate::OR3:
-			case Gate::OR4:
-				if (outputValue == L)
-				{
-					addXidAllFaninCandidate(candidates, pCircuit, gate, L, assignments, originalGoodValues);
-				}
-				else
-				{
-					addXidOneFaninCandidates(candidates, pCircuit, gate, H, assignments, originalGoodValues);
-				}
-				break;
-			case Gate::NOR2:
-			case Gate::NOR3:
-			case Gate::NOR4:
-				if (outputValue == H)
-				{
-					addXidAllFaninCandidate(candidates, pCircuit, gate, L, assignments, originalGoodValues);
-				}
-				else
-				{
-					addXidOneFaninCandidates(candidates, pCircuit, gate, H, assignments, originalGoodValues);
-				}
-				break;
-			case Gate::XOR2:
-			case Gate::XOR3:
-			case Gate::XNOR2:
-			case Gate::XNOR3:
-			case Gate::MUX:
-			default:
-			{
-				XidJustificationCandidate candidate;
-				candidate.cost_ = 0;
-				bool compatible = true;
-				for (const int &faninID : gate.faninVector_)
-				{
-					if (faninID < 0 || faninID >= static_cast<int>(originalGoodValues.size()) ||
-					    !appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, faninID, originalGoodValues[faninID]))
-					{
-						compatible = false;
-						break;
-					}
-				}
-				if (compatible)
-				{
-					candidates.push_back(candidate);
-				}
-				break;
-			}
-		}
-		return true;
-	}
-
-	Value evalXidGateValue(Circuit *const pCircuit, const int &gateID, const std::vector<Value> &assignments)
-	{
-		if (gateID < 0 || gateID >= pCircuit->totalGate_)
-		{
-			return X;
-		}
-		const Gate &gate = pCircuit->circuitGates_[gateID];
-		auto getFaninValue = [&](const int &index) -> Value {
-			if (index < 0 || index >= gate.numFI_)
-			{
-				return X;
-			}
-			const int faninID = gate.faninVector_[index];
-			return faninID >= 0 && faninID < static_cast<int>(assignments.size()) ? assignments[faninID] : X;
-		};
-		auto evalAnd = [&]() -> Value {
-			bool allHigh = true;
-			for (int i = 0; i < gate.numFI_; ++i)
-			{
-				const Value value = getFaninValue(i);
-				if (value == L)
-				{
-					return L;
-				}
-				if (value != H)
-				{
-					allHigh = false;
-				}
-			}
-			return allHigh ? H : X;
-		};
-		auto evalOr = [&]() -> Value {
-			bool allLow = true;
-			for (int i = 0; i < gate.numFI_; ++i)
-			{
-				const Value value = getFaninValue(i);
-				if (value == H)
-				{
-					return H;
-				}
-				if (value != L)
-				{
-					allLow = false;
-				}
-			}
-			return allLow ? L : X;
-		};
-		auto evalXor = [&]() -> Value {
-			int parity = 0;
-			for (int i = 0; i < gate.numFI_; ++i)
-			{
-				const Value value = getFaninValue(i);
-				if (!isXidBinaryValue(value))
-				{
-					return X;
-				}
-				parity ^= (value == H);
-			}
-			return parity ? H : L;
-		};
-
-		switch (gate.gateType_)
-		{
-			case Gate::PI:
-				return assignments[gateID];
-			case Gate::PPI:
-				return gate.numFI_ == 0 ? assignments[gateID] : getFaninValue(0);
-			case Gate::PO:
-			case Gate::PPO:
-			case Gate::BUF:
-				return getFaninValue(0);
-			case Gate::INV:
-				return invertXidValue(getFaninValue(0));
-			case Gate::AND2:
-			case Gate::AND3:
-			case Gate::AND4:
-				return evalAnd();
-			case Gate::NAND2:
-			case Gate::NAND3:
-			case Gate::NAND4:
-				return invertXidValue(evalAnd());
-			case Gate::OR2:
-			case Gate::OR3:
-			case Gate::OR4:
-				return evalOr();
-			case Gate::NOR2:
-			case Gate::NOR3:
-			case Gate::NOR4:
-				return invertXidValue(evalOr());
-			case Gate::XOR2:
-			case Gate::XOR3:
-				return evalXor();
-			case Gate::XNOR2:
-			case Gate::XNOR3:
-				return invertXidValue(evalXor());
-			case Gate::TIE0:
-				return L;
-			case Gate::TIE1:
-				return H;
-			default:
-				return gate.numFI_ == 1 ? getFaninValue(0) : X;
-		}
-	}
-
-	bool xidGateAssignmentIsJustified(Circuit *const pCircuit, const int &gateID, const std::vector<Value> &assignments)
-	{
-		const Gate &gate = pCircuit->circuitGates_[gateID];
-		if (!xidGateNeedsJustification(gate))
-		{
-			return true;
-		}
-		return evalXidGateValue(pCircuit, gateID, assignments) == assignments[gateID];
-	}
-
-	struct XidJustificationWorkspace
-	{
-		std::vector<int> assignedGateIDs_;
-		std::vector<int> reverseFrontier_;
-		std::vector<int> forwardFrontier_;
-		size_t forwardFrontierHead_;
-		std::vector<char> assignedQueued_;
-		std::vector<char> reverseQueued_;
-		std::vector<char> reverseProcessed_;
-		std::vector<char> forwardQueued_;
-		std::vector<char> justificationDirty_;
-		std::vector<char> justificationKnown_;
-		std::vector<char> justificationSatisfied_;
-		std::vector<XidJustificationCandidate> candidates_;
-
-		void reset(const size_t &gateCount)
-		{
-			assignedGateIDs_.clear();
-			reverseFrontier_.clear();
-			forwardFrontier_.clear();
-			forwardFrontierHead_ = 0;
-			assignedQueued_.assign(gateCount, 0);
-			reverseQueued_.assign(gateCount, 0);
-			reverseProcessed_.assign(gateCount, 0);
-			forwardQueued_.assign(gateCount, 0);
-			justificationDirty_.assign(gateCount, 0);
-			justificationKnown_.assign(gateCount, 0);
-			justificationSatisfied_.assign(gateCount, 0);
-			candidates_.clear();
-		}
-	};
-
-	struct XidJustificationContext
-	{
-		Circuit *pCircuit_;
-		std::vector<Value> &assignments_;
-		const std::vector<Value> &originalGoodValues_;
-		bool allowForwardImplication_;
-		XidJustificationWorkspace &workspace_;
-		std::vector<int> &assignedGateIDs_;
-		std::vector<int> &reverseFrontier_;
-		std::vector<int> &forwardFrontier_;
-		size_t &forwardFrontierHead_;
-		std::vector<char> &assignedQueued_;
-		std::vector<char> &reverseQueued_;
-		std::vector<char> &reverseProcessed_;
-		std::vector<char> &forwardQueued_;
-		std::vector<char> &justificationDirty_;
-		std::vector<char> &justificationKnown_;
-		std::vector<char> &justificationSatisfied_;
-		std::vector<XidJustificationCandidate> &candidates_;
-
-		XidJustificationContext(Circuit *const pCircuit,
-		                        std::vector<Value> &assignments,
-		                        const std::vector<Value> &originalGoodValues,
-		                        const bool &allowForwardImplication,
-		                        XidJustificationWorkspace &workspace)
-				: pCircuit_(pCircuit),
-				  assignments_(assignments),
-				  originalGoodValues_(originalGoodValues),
-				  allowForwardImplication_(allowForwardImplication),
-				  workspace_(workspace),
-				  assignedGateIDs_(workspace.assignedGateIDs_),
-				  reverseFrontier_(workspace.reverseFrontier_),
-				  forwardFrontier_(workspace.forwardFrontier_),
-				  forwardFrontierHead_(workspace.forwardFrontierHead_),
-				  assignedQueued_(workspace.assignedQueued_),
-				  reverseQueued_(workspace.reverseQueued_),
-				  reverseProcessed_(workspace.reverseProcessed_),
-				  forwardQueued_(workspace.forwardQueued_),
-				  justificationDirty_(workspace.justificationDirty_),
-				  justificationKnown_(workspace.justificationKnown_),
-				  justificationSatisfied_(workspace.justificationSatisfied_),
-				  candidates_(workspace.candidates_)
-		{
-			workspace_.reset(assignments.size());
-		}
-
-		bool validGateID(const int &gateID) const
-		{
-			return gateID >= 0 && gateID < static_cast<int>(assignments_.size());
-		}
-
-		void enqueueReverseImplication(const int &gateID)
-		{
-			if (!validGateID(gateID) ||
-			    reverseProcessed_[gateID] ||
-			    reverseQueued_[gateID] ||
-			    !isXidBinaryValue(assignments_[gateID]) ||
-			    !xidGateNeedsJustification(pCircuit_->circuitGates_[gateID]))
-			{
-				return;
-			}
-			reverseQueued_[gateID] = 1;
-			reverseFrontier_.push_back(gateID);
-		}
-
-		void enqueueForwardEvaluation(const int &gateID)
-		{
-			if (!allowForwardImplication_ ||
-			    !validGateID(gateID) ||
-			    forwardQueued_[gateID] ||
-			    assignments_[gateID] != X)
-			{
-				return;
-			}
-			forwardQueued_[gateID] = 1;
-			forwardFrontier_.push_back(gateID);
-		}
-
-		void markJustificationDirty(const int &gateID)
-		{
-			if (validGateID(gateID) && isXidBinaryValue(assignments_[gateID]))
-			{
-				justificationDirty_[gateID] = 1;
-			}
-		}
-
-		void registerAssignedGate(const int &gateID)
-		{
-			if (!validGateID(gateID) || !isXidBinaryValue(assignments_[gateID]))
-			{
-				return;
-			}
-			if (!assignedQueued_[gateID])
-			{
-				assignedQueued_[gateID] = 1;
-				assignedGateIDs_.push_back(gateID);
-			}
-			markJustificationDirty(gateID);
-			enqueueReverseImplication(gateID);
-
-			const Gate &gate = pCircuit_->circuitGates_[gateID];
-			for (const int &fanoutID : gate.fanoutVector_)
-			{
-				markJustificationDirty(fanoutID);
-				if (allowForwardImplication_)
-				{
-					enqueueForwardEvaluation(fanoutID);
-				}
-			}
-		}
-
-		bool addAssignment(const int &gateID, const Value &value, bool *const madeAssignment = NULL)
-		{
-			if (madeAssignment)
-			{
-				*madeAssignment = false;
-			}
-			const bool wasUnassigned = validGateID(gateID) && assignments_[gateID] == X && isXidBinaryValue(value);
-			if (!addXidAssignment(assignments_, originalGoodValues_, gateID, value))
-			{
-				return false;
-			}
-			if (wasUnassigned)
-			{
-				if (madeAssignment)
-				{
-					*madeAssignment = true;
-				}
-				registerAssignedGate(gateID);
-			}
-			return true;
-		}
-
-		void initialize()
-		{
-			for (int gateID = 0; gateID < static_cast<int>(assignments_.size()); ++gateID)
-			{
-				if (isXidBinaryValue(assignments_[gateID]))
-				{
-					registerAssignedGate(gateID);
-				}
-				else if (allowForwardImplication_)
-				{
-					const Gate::GateType gateType = pCircuit_->circuitGates_[gateID].gateType_;
-					if (gateType == Gate::TIE0 || gateType == Gate::TIE1)
-					{
-						enqueueForwardEvaluation(gateID);
-					}
-				}
-			}
-		}
-
-		bool processReverseImplication(const int &gateID)
-		{
-			if (!collectXidJustificationCandidates(pCircuit_, gateID, assignments_[gateID], assignments_, originalGoodValues_, candidates_))
-			{
-				return false;
-			}
-			if (candidates_.empty())
-			{
-				return false;
-			}
-
-			for (const std::pair<int, Value> &assignment : candidates_.front().assignments_)
-			{
-				bool appearsInAllCandidates = true;
-				for (size_t i = 1; i < candidates_.size(); ++i)
-				{
-					bool found = false;
-					for (const std::pair<int, Value> &candidateAssignment : candidates_[i].assignments_)
-					{
-						if (candidateAssignment.first == assignment.first && candidateAssignment.second == assignment.second)
-						{
-							found = true;
-							break;
-						}
-					}
-					if (!found)
-					{
-						appearsInAllCandidates = false;
-						break;
-					}
-				}
-				if (appearsInAllCandidates && assignments_[assignment.first] == X)
-				{
-					if (!addAssignment(assignment.first, assignment.second))
-					{
-						return false;
-					}
-				}
-			}
-			return true;
-		}
-
-		bool processForwardEvaluation(const int &gateID)
-		{
-			if (assignments_[gateID] != X)
-			{
-				return true;
-			}
-			const Value value = evalXidGateValue(pCircuit_, gateID, assignments_);
-			if (isXidBinaryValue(value) &&
-			    gateID < static_cast<int>(originalGoodValues_.size()) &&
-			    originalGoodValues_[gateID] == value)
-			{
-				return addAssignment(gateID, value);
-			}
-			return true;
-		}
-
-		bool propagate()
-		{
-			while (!reverseFrontier_.empty() || forwardFrontierHead_ < forwardFrontier_.size())
-			{
-				while (!reverseFrontier_.empty())
-				{
-					const int gateID = reverseFrontier_.back();
-					reverseFrontier_.pop_back();
-					reverseQueued_[gateID] = 0;
-					if (reverseProcessed_[gateID])
-					{
-						continue;
-					}
-					reverseProcessed_[gateID] = 1;
-					if (!processReverseImplication(gateID))
-					{
-						return false;
-					}
-				}
-				while (forwardFrontierHead_ < forwardFrontier_.size())
-				{
-					const int gateID = forwardFrontier_[forwardFrontierHead_++];
-					forwardQueued_[gateID] = 0;
-					if (!processForwardEvaluation(gateID))
-					{
-						return false;
-					}
-					if (!reverseFrontier_.empty())
-					{
-						break;
-					}
-				}
-			}
-			return true;
-		}
-
-		bool gateIsJustified(const int &gateID)
-		{
-			if (!isXidBinaryValue(assignments_[gateID]))
-			{
-				return true;
-			}
-			if (!justificationDirty_[gateID] && justificationKnown_[gateID])
-			{
-				return justificationSatisfied_[gateID];
-			}
-			const bool justified = xidGateAssignmentIsJustified(pCircuit_, gateID, assignments_);
-			justificationDirty_[gateID] = 0;
-			justificationKnown_[gateID] = 1;
-			justificationSatisfied_[gateID] = justified ? 1 : 0;
-			return justified;
-		}
-
-		int highestUnjustifiedGate()
-		{
-			int unjustifiedGateID = -1;
-			for (const int &gateID : assignedGateIDs_)
-			{
-				if (gateID > unjustifiedGateID && !gateIsJustified(gateID))
-				{
-					unjustifiedGateID = gateID;
-				}
-			}
-			return unjustifiedGateID;
-		}
-	};
-
-	bool performXidLimitedImplicationAndJustification(Circuit *const pCircuit,
-	                                                  std::vector<Value> &assignments,
-	                                                  const std::vector<Value> &originalGoodValues,
-	                                                  const bool &allowForwardImplication,
-	                                                  XidJustificationWorkspace &workspace)
-	{
-		XidJustificationContext context(pCircuit, assignments, originalGoodValues, allowForwardImplication, workspace);
-		context.initialize();
-		while (true)
-		{
-			if (!context.propagate())
-			{
-				return false;
-			}
-
-			const int unjustifiedGateID = context.highestUnjustifiedGate();
-			if (unjustifiedGateID < 0)
-			{
-				return true;
-			}
-
-			if (!collectXidJustificationCandidates(pCircuit, unjustifiedGateID, assignments[unjustifiedGateID], assignments, originalGoodValues, context.candidates_) ||
-			    context.candidates_.empty())
-			{
-				return false;
-			}
-			size_t selectedCandidate = 0;
-			for (size_t i = 1; i < context.candidates_.size(); ++i)
-			{
-				if (context.candidates_[i].cost_ < context.candidates_[selectedCandidate].cost_ ||
-				    (context.candidates_[i].cost_ == context.candidates_[selectedCandidate].cost_ &&
-				     context.candidates_[i].assignments_.size() < context.candidates_[selectedCandidate].assignments_.size()))
-				{
-					selectedCandidate = i;
-				}
-			}
-
-			bool madeAssignment = false;
-			for (const std::pair<int, Value> &assignment : context.candidates_[selectedCandidate].assignments_)
-			{
-				bool assignmentMade = false;
-				if (!context.addAssignment(assignment.first, assignment.second, &assignmentMade))
-				{
-					return false;
-				}
-				madeAssignment = madeAssignment || assignmentMade;
-			}
-			if (!madeAssignment)
-			{
-				if (!xidGateAssignmentIsJustified(pCircuit, unjustifiedGateID, assignments))
-				{
-					return false;
-				}
-				context.justificationDirty_[unjustifiedGateID] = 0;
-				context.justificationKnown_[unjustifiedGateID] = 1;
-				context.justificationSatisfied_[unjustifiedGateID] = 1;
-			}
-		}
-	}
-
-	bool xidOutputValueIsNonControlling(const Gate &gate, const Value &value)
-	{
-		switch (gate.gateType_)
-		{
-			case Gate::AND2:
-			case Gate::AND3:
-			case Gate::AND4:
-				return value == H;
-			case Gate::NAND2:
-			case Gate::NAND3:
-			case Gate::NAND4:
-				return value == L;
-			case Gate::OR2:
-			case Gate::OR3:
-			case Gate::OR4:
-				return value == L;
-			case Gate::NOR2:
-			case Gate::NOR3:
-			case Gate::NOR4:
-				return value == H;
-			case Gate::XOR2:
-			case Gate::XOR3:
-			case Gate::XNOR2:
-			case Gate::XNOR3:
-				return true;
-			default:
-				return true;
-		}
-	}
-
-	bool traceXidFaultPropagationPath(Circuit *const pCircuit,
-	                                  const XidFaultTrace &trace,
-	                                  const std::vector<Value> &goodValues,
-	                                  const bool &extendedImplication,
-	                                  std::vector<Value> &assignments)
-	{
-		if (trace.selectedOutputGateID_ < 0)
-		{
-			return false;
-		}
-
-		const int startGateID = getXidFaultEffectStartGateID(pCircuit, *trace.fault_);
-		const int faultEffectFrameOffset = (trace.fault_->faultType_ == Fault::STR || trace.fault_->faultType_ == Fault::STF) ? pCircuit->numGate_ : 0;
-		const int faultyLineGateID = getXidFaultyLineGateID(pCircuit, *trace.fault_, faultEffectFrameOffset);
-		std::vector<int> stack;
-		std::vector<char> queued(pCircuit->totalGate_, 0);
-		stack.push_back(trace.selectedOutputGateID_);
-		queued[trace.selectedOutputGateID_] = 1;
-
-		while (!stack.empty())
-		{
-			const int gateID = stack.back();
-			stack.pop_back();
-			if (gateID < 0 || gateID >= pCircuit->totalGate_ || gateID >= static_cast<int>(goodValues.size()))
-			{
-				continue;
-			}
-			if (!addXidAssignment(assignments, goodValues, gateID, goodValues[gateID]))
-			{
-				return false;
-			}
-			const bool inputLineFaultStartGate = gateID == startGateID && trace.fault_->faultyLine_ > 0;
-			if (gateID == startGateID && !inputLineFaultStartGate)
-			{
-				continue;
-			}
-
-			const Gate &gate = pCircuit->circuitGates_[gateID];
-			std::vector<int> propagatedFanins;
-			std::vector<char> propagatedByFanin(gate.numFI_, 0);
-			for (int i = 0; i < gate.numFI_; ++i)
-			{
-				const int faninID = gate.faninVector_[i];
-				if (gateHasSparseXidFaultEffect(goodValues, trace.faultyValues_, faninID))
-				{
-					propagatedFanins.push_back(faninID);
-					propagatedByFanin[i] = 1;
-				}
-			}
-			if (inputLineFaultStartGate && faultyLineGateID >= 0)
-			{
-				for (int i = 0; i < gate.numFI_; ++i)
-				{
-					if (gate.faninVector_[i] == faultyLineGateID && !propagatedByFanin[i])
-					{
-						propagatedFanins.push_back(faultyLineGateID);
-						propagatedByFanin[i] = 1;
-						break;
-					}
-				}
-			}
-			if (propagatedFanins.empty())
-			{
-				continue;
-			}
-
-			if (extendedImplication)
-			{
-				for (const int &faninID : gate.faninVector_)
-				{
-					if (!addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
-					{
-						return false;
-					}
-				}
-				for (const int &faninID : propagatedFanins)
-				{
-					if (!queued[faninID])
-					{
-						queued[faninID] = 1;
-						stack.push_back(faninID);
-					}
-				}
-				continue;
-			}
-
-			if (propagatedFanins.size() == 1 || xidOutputValueIsNonControlling(gate, goodValues[gateID]))
-			{
-				const int selectedFaninID = propagatedFanins.front();
-				for (const int &faninID : gate.faninVector_)
-				{
-					if (faninID != selectedFaninID &&
-					    !addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
-					{
-						return false;
-					}
-				}
-				if (!queued[selectedFaninID])
-				{
-					queued[selectedFaninID] = 1;
-					stack.push_back(selectedFaninID);
-				}
-			}
-			else
-			{
-				for (int i = 0; i < gate.numFI_; ++i)
-				{
-					const int faninID = gate.faninVector_[i];
-					if (propagatedByFanin[i])
-					{
-						if (!queued[faninID])
-						{
-							queued[faninID] = 1;
-							stack.push_back(faninID);
-						}
-					}
-					else if (!addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
-					{
-						return false;
-					}
-				}
-			}
-		}
-		return true;
-	}
-
-	bool addXidFaultActivationAssignments(Circuit *const pCircuit,
-	                                      const Fault &fault,
-	                                      const std::vector<Value> &originalGoodValues,
-	                                      std::vector<Value> &assignments)
-	{
-		switch (fault.faultType_)
-		{
-			case Fault::SA0:
-				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), H);
-			case Fault::SA1:
-				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), L);
-			case Fault::STR:
-				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), L) &&
-				       addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, pCircuit->numGate_), H);
-			case Fault::STF:
-				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), H) &&
-				       addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, pCircuit->numGate_), L);
-			default:
-				break;
-		}
-		return true;
-	}
-
-	int selectXidObservationOutput(const XidFaultTrace &trace, const std::unordered_map<int, int> &outputUseCount)
-	{
-		int selectedOutput = -1;
-		int bestCount = -1;
-		for (const int &outputGateID : trace.detectedOutputGateIDs_)
-		{
-			const std::unordered_map<int, int>::const_iterator it = outputUseCount.find(outputGateID);
-			const int count = it == outputUseCount.end() ? 0 : it->second;
-			if (count > bestCount)
-			{
-				bestCount = count;
-				selectedOutput = outputGateID;
-			}
-		}
-		return selectedOutput;
-	}
-
-	void initXidKeep(const Pattern &pattern, XidInputKeep &keep)
-	{
-		keep.pi1_.assign(pattern.PI1_.size(), 0);
-		keep.pi2_.assign(pattern.PI2_.size(), 0);
-		keep.ppi_.assign(pattern.PPI_.size(), 0);
-		keep.si_.assign(pattern.SI_.size(), 0);
-	}
-
-	size_t buildXidKeepFromAssignedGates(Circuit *const pCircuit,
-	                                     const Pattern &pattern,
-	                                     const std::vector<Value> &assignments,
-	                                     const std::vector<int> &assignedGateIDs,
-	                                     XidInputKeep &keep)
-	{
-		initXidKeep(pattern, keep);
-		size_t requiredInternalValues = 0;
-		for (const int &gateID : assignedGateIDs)
-		{
-			if (gateID >= 0 &&
-			    gateID < static_cast<int>(assignments.size()) &&
-			    isXidBinaryValue(assignments[gateID]))
-			{
-				++requiredInternalValues;
-				markXidPatternInput(pCircuit, pattern, gateID, assignments[gateID], keep);
-			}
-		}
-		return requiredInternalValues;
-	}
-
-	struct XidCalculationWorkspace
-	{
-		std::vector<XidFaultTrace> traces_;
-		std::unordered_map<int, int> outputUseCount_;
-		std::vector<Value> originalGoodValues_;
-		std::vector<Value> assignments_;
-		XidJustificationWorkspace justificationWorkspace_;
-	};
-
-	bool calculateXidKeepForFaults(Circuit *const pCircuit,
-	                               Simulator *const pSimulator,
-	                               const Pattern &originalPattern,
-	                               const std::vector<Fault *> &targetFaults,
-	                               const bool &extendedImplication,
-	                               XidInputKeep &keep,
-	                               size_t &requiredInternalValues,
-	                               XidCalculationWorkspace &workspace)
-	{
-		initXidKeep(originalPattern, keep);
-		requiredInternalValues = 0;
-		if (targetFaults.empty())
-		{
-			return true;
-		}
-
-		if (workspace.traces_.size() < targetFaults.size())
-		{
-			workspace.traces_.resize(targetFaults.size());
-		}
-		workspace.outputUseCount_.clear();
-		workspace.outputUseCount_.reserve(static_cast<size_t>(pCircuit->numPO_ + pCircuit->numPPI_));
-		pSimulator->prepareXidPatternGoodValues(originalPattern, workspace.originalGoodValues_);
-		for (size_t i = 0; i < targetFaults.size(); ++i)
-		{
-			Fault *const fault = targetFaults[i];
-			XidFaultTrace &trace = workspace.traces_[i];
-			trace.fault_ = fault;
-			trace.selectedOutputGateID_ = -1;
-			if (!pSimulator->collectOneFaultEffectTraceWithPreparedGood(*fault, trace.faultyValues_, trace.detectedOutputGateIDs_) ||
-			    trace.detectedOutputGateIDs_.empty())
-			{
-				return false;
-			}
-			for (const int &outputGateID : trace.detectedOutputGateIDs_)
-			{
-				++workspace.outputUseCount_[outputGateID];
-			}
-		}
-
-		workspace.assignments_.assign(static_cast<size_t>(pCircuit->totalGate_), X);
-		for (size_t i = 0; i < targetFaults.size(); ++i)
-		{
-			XidFaultTrace &trace = workspace.traces_[i];
-			trace.selectedOutputGateID_ = selectXidObservationOutput(trace, workspace.outputUseCount_);
-			if (!addXidFaultActivationAssignments(pCircuit, *trace.fault_, workspace.originalGoodValues_, workspace.assignments_) ||
-			    !traceXidFaultPropagationPath(pCircuit, trace, workspace.originalGoodValues_, extendedImplication, workspace.assignments_))
-			{
-				return false;
-			}
-		}
-
-		if (!performXidLimitedImplicationAndJustification(pCircuit,
-		                                                  workspace.assignments_,
-		                                                  workspace.originalGoodValues_,
-		                                                  !extendedImplication,
-		                                                  workspace.justificationWorkspace_))
-		{
-			return false;
-		}
-
-		requiredInternalValues = buildXidKeepFromAssignedGates(pCircuit,
-		                                                       originalPattern,
-		                                                       workspace.assignments_,
-		                                                       workspace.justificationWorkspace_.assignedGateIDs_,
-		                                                       keep);
-		return true;
-	}
-
-	void copyXidKeptValues(std::vector<Value> &values, const std::vector<Value> &originalValues, const std::vector<char> &keepValues)
-	{
-		if (values.size() < originalValues.size())
-		{
-			values.resize(originalValues.size(), X);
-		}
-		for (size_t i = 0; i < originalValues.size() && i < keepValues.size(); ++i)
-		{
-			if (keepValues[i])
-			{
-				values[i] = originalValues[i];
-			}
-		}
-	}
-
-	void restoreXidKeptInputs(const Pattern &originalPattern, const XidInputKeep &keep, Pattern &pattern)
-	{
-		copyXidKeptValues(pattern.PI1_, originalPattern.PI1_, keep.pi1_);
-		copyXidKeptValues(pattern.PI2_, originalPattern.PI2_, keep.pi2_);
-		copyXidKeptValues(pattern.PPI_, originalPattern.PPI_, keep.ppi_);
-		copyXidKeptValues(pattern.SI_, originalPattern.SI_, keep.si_);
-	}
-
-	size_t relaxXidPatternFromOriginal(const Pattern &originalPattern, const XidInputKeep &keep, Pattern &pattern)
-	{
-		pattern = originalPattern;
-		return applyXidKeepMask(pattern, keep);
-	}
-
-	std::vector<char> simulateXidDetectedFaultsForPatternSet(Simulator *const pSimulator,
-	                                                         PatternProcessor *const pPatternProcessor,
-	                                                         const std::vector<Fault *> &faults)
-	{
-		std::vector<int> savedDetection(faults.size(), 0);
-		std::vector<Fault::FAULT_STATE> savedState(faults.size(), Fault::UD);
-		FaultListExtract faultListExtract;
-		for (size_t i = 0; i < faults.size(); ++i)
-		{
-			savedDetection[i] = faults[i]->detection_;
-			savedState[i] = faults[i]->faultState_;
-			faults[i]->detection_ = 0;
-			faults[i]->faultState_ = Fault::UD;
-			faultListExtract.faultsInCircuit_.push_back(faults[i]);
-		}
-
-		pSimulator->parallelPatternFaultSimWithAllPattern(pPatternProcessor, &faultListExtract);
-
-		std::vector<char> detected(faults.size(), 0);
-		for (size_t i = 0; i < faults.size(); ++i)
-		{
-			detected[i] = faults[i]->detection_ > 0 ? 1 : 0;
-			faults[i]->detection_ = savedDetection[i];
-			faults[i]->faultState_ = savedState[i];
-		}
-		return detected;
-	}
-
-	void collectXidUndetectedCoveredFaultIndexes(const std::vector<unsigned char> &detectionCountByFault,
-	                                             const std::vector<char> &detected,
-	                                             std::vector<size_t> &undetectedFaultIndexes)
-	{
-		undetectedFaultIndexes.clear();
-		undetectedFaultIndexes.reserve(detected.size());
-		for (size_t faultIndex = 0; faultIndex < detected.size(); ++faultIndex)
-		{
-			if (detectionCountByFault[faultIndex] > 0 && !detected[faultIndex])
-			{
-				undetectedFaultIndexes.push_back(faultIndex);
-			}
-		}
-	}
-
-	struct XidUpdateWorkspace
-	{
-		std::vector<int> savedDetection_;
-		std::vector<Fault::FAULT_STATE> savedState_;
-		FaultPtrList remainingFaults_;
-	};
-
-	void updateXidDetectedFaultsWithPattern(Simulator *const pSimulator,
-	                                        const Pattern &pattern,
-	                                        const std::vector<Fault *> &faults,
-	                                        std::vector<char> &detected,
-	                                        std::vector<size_t> &undetectedFaultIndexes,
-	                                        XidUpdateWorkspace &workspace)
-	{
-		workspace.savedDetection_.clear();
-		workspace.savedState_.clear();
-		workspace.remainingFaults_.clear();
-		workspace.savedDetection_.reserve(undetectedFaultIndexes.size());
-		workspace.savedState_.reserve(undetectedFaultIndexes.size());
-		for (const size_t &faultIndex : undetectedFaultIndexes)
-		{
-			workspace.savedDetection_.push_back(faults[faultIndex]->detection_);
-			workspace.savedState_.push_back(faults[faultIndex]->faultState_);
-			faults[faultIndex]->detection_ = 0;
-			faults[faultIndex]->faultState_ = Fault::UD;
-			workspace.remainingFaults_.push_back(faults[faultIndex]);
-		}
-
-		pSimulator->parallelFaultFaultSimWithOnePattern(pattern, workspace.remainingFaults_);
-
-		size_t undetectedWriteIndex = 0;
-		for (size_t i = 0; i < undetectedFaultIndexes.size(); ++i)
-		{
-			const size_t faultIndex = undetectedFaultIndexes[i];
-			Fault *const fault = faults[faultIndex];
-			if (fault->detection_ > 0)
-			{
-				detected[faultIndex] = 1;
-			}
-			fault->detection_ = workspace.savedDetection_[i];
-			fault->faultState_ = workspace.savedState_[i];
-			if (!detected[faultIndex])
-			{
-				undetectedFaultIndexes[undetectedWriteIndex++] = faultIndex;
-			}
-		}
-		undetectedFaultIndexes.resize(undetectedWriteIndex);
-	}
-}
-
 // **************************************************************************
 // Function   [ Atpg::generatePatternSet ]
 // Commenter  [ CAL WWS ]
@@ -5383,6 +4014,1375 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 //              and extended implication only for faults still missed.
 //            ]
 // **************************************************************************
+namespace
+{
+	enum class XidInputField
+	{
+		PI1,
+		PI2,
+		PPI,
+		SI
+	};
+
+	struct XidInputKeep
+	{
+		std::vector<char> pi1_;
+		std::vector<char> pi2_;
+		std::vector<char> ppi_;
+		std::vector<char> si_;
+	};
+
+	std::vector<char> *getXidKeepVector(XidInputKeep &keep, const XidInputField &field)
+	{
+		switch (field)
+		{
+			case XidInputField::PI1:
+				return &keep.pi1_;
+			case XidInputField::PI2:
+				return &keep.pi2_;
+			case XidInputField::PPI:
+				return &keep.ppi_;
+			case XidInputField::SI:
+				return &keep.si_;
+		}
+		return NULL;
+	}
+
+	bool isXidBinaryValue(const Value &value)
+	{
+		return value == L || value == H;
+	}
+
+	Value invertXidValue(const Value &value)
+	{
+		if (value == L)
+		{
+			return H;
+		}
+		if (value == H)
+		{
+			return L;
+		}
+		return X;
+	}
+
+	Value getSparseXidFaultyValue(const std::vector<std::pair<int, Value>> &faultyValues, const int &gateID)
+	{
+		for (const std::pair<int, Value> &faultyValue : faultyValues)
+		{
+			if (faultyValue.first == gateID)
+			{
+				return faultyValue.second;
+			}
+		}
+		return X;
+	}
+
+	bool gateHasSparseXidFaultEffect(const std::vector<Value> &goodValues, const std::vector<std::pair<int, Value>> &faultyValues, const int &gateID)
+	{
+		const Value faultyValue = getSparseXidFaultyValue(faultyValues, gateID);
+		return gateID >= 0 &&
+		       gateID < static_cast<int>(goodValues.size()) &&
+		       isXidBinaryValue(goodValues[gateID]) &&
+		       isXidBinaryValue(faultyValue) &&
+		       goodValues[gateID] != faultyValue;
+	}
+
+	int getXidFaultyLineGateID(Circuit *const pCircuit, const Fault &fault, const int &frameOffset)
+	{
+		const int gateID = fault.gateID_ + frameOffset;
+		if (gateID < 0 || gateID >= pCircuit->totalGate_)
+		{
+			return -1;
+		}
+		if (fault.faultyLine_ == 0)
+		{
+			return gateID;
+		}
+		const Gate &gate = pCircuit->circuitGates_[gateID];
+		const int faninIndex = fault.faultyLine_ - 1;
+		if (faninIndex < 0 || faninIndex >= gate.numFI_)
+		{
+			return -1;
+		}
+		return gate.faninVector_[faninIndex];
+	}
+
+	int getXidFaultEffectStartGateID(Circuit *const pCircuit, const Fault &fault)
+	{
+		int gateID = fault.gateID_;
+		if (fault.faultType_ == Fault::STR || fault.faultType_ == Fault::STF)
+		{
+			gateID += pCircuit->numGate_;
+		}
+		return (gateID >= 0 && gateID < pCircuit->totalGate_) ? gateID : -1;
+	}
+
+	bool markXidPatternInput(Circuit *const pCircuit, const Pattern &pattern, const int &gateID, const Value &value, XidInputKeep &keep)
+	{
+		if (!isXidBinaryValue(value) || gateID < 0 || gateID >= pCircuit->totalGate_ || pCircuit->numGate_ <= 0)
+		{
+			return false;
+		}
+
+		const int frame = gateID / pCircuit->numGate_;
+		const int localGateID = gateID % pCircuit->numGate_;
+		XidInputField field = XidInputField::PI1;
+		int index = -1;
+		if (localGateID >= 0 && localGateID < pCircuit->numPI_)
+		{
+			if (frame == 0)
+			{
+				field = XidInputField::PI1;
+				index = localGateID;
+			}
+			else if (!pattern.PI2_.empty())
+			{
+				field = XidInputField::PI2;
+				index = localGateID;
+			}
+		}
+		else if (localGateID >= pCircuit->numPI_ && localGateID < pCircuit->numPI_ + pCircuit->numPPI_)
+		{
+			if (frame == 0)
+			{
+				field = XidInputField::PPI;
+				index = localGateID - pCircuit->numPI_;
+			}
+			else if (pCircuit->timeFrameConnectType_ == Circuit::SHIFT && localGateID == pCircuit->numPI_)
+			{
+				field = XidInputField::SI;
+				index = frame - 1;
+			}
+		}
+
+		std::vector<char> *const keepVector = index >= 0 ? getXidKeepVector(keep, field) : NULL;
+		if (!keepVector || index >= static_cast<int>(keepVector->size()))
+		{
+			return false;
+		}
+		(*keepVector)[index] = 1;
+		return true;
+	}
+
+	size_t applyXidKeepMask(Pattern &pattern, const XidInputKeep &keep)
+	{
+		size_t relaxedBits = 0;
+		auto relaxUnkeptValues = [&](std::vector<Value> &values, const std::vector<char> &keepValues) {
+			for (size_t i = 0; i < values.size() && i < keepValues.size(); ++i)
+			{
+				if (!keepValues[i] && isXidBinaryValue(values[i]))
+				{
+					values[i] = X;
+					++relaxedBits;
+				}
+			}
+		};
+		relaxUnkeptValues(pattern.PI1_, keep.pi1_);
+		relaxUnkeptValues(pattern.PI2_, keep.pi2_);
+		relaxUnkeptValues(pattern.PPI_, keep.ppi_);
+		relaxUnkeptValues(pattern.SI_, keep.si_);
+		return relaxedBits;
+	}
+
+	size_t countXidCandidateBits(const Pattern &pattern)
+	{
+		size_t candidateBits = 0;
+		auto countBinary = [&](const std::vector<Value> &values) {
+			for (const Value &value : values)
+			{
+				if (isXidBinaryValue(value))
+				{
+					++candidateBits;
+				}
+			}
+		};
+		countBinary(pattern.PI1_);
+		countBinary(pattern.PI2_);
+		countBinary(pattern.PPI_);
+		countBinary(pattern.SI_);
+		return candidateBits;
+	}
+
+	size_t countXidRelaxedBits(const Pattern &originalPattern, const Pattern &relaxedPattern)
+	{
+		size_t relaxedBits = 0;
+		auto countRelaxed = [&](const std::vector<Value> &originalValues, const std::vector<Value> &relaxedValues) {
+			const size_t count = std::min(originalValues.size(), relaxedValues.size());
+			for (size_t i = 0; i < count; ++i)
+			{
+				if (isXidBinaryValue(originalValues[i]) && relaxedValues[i] == X)
+				{
+					++relaxedBits;
+				}
+			}
+		};
+		countRelaxed(originalPattern.PI1_, relaxedPattern.PI1_);
+		countRelaxed(originalPattern.PI2_, relaxedPattern.PI2_);
+		countRelaxed(originalPattern.PPI_, relaxedPattern.PPI_);
+		countRelaxed(originalPattern.SI_, relaxedPattern.SI_);
+		return relaxedBits;
+	}
+
+	struct XidFaultTrace
+	{
+		Fault *fault_;
+		std::vector<std::pair<int, Value>> faultyValues_;
+		std::vector<int> detectedOutputGateIDs_;
+		int selectedOutputGateID_;
+	};
+
+	struct XidJustificationCandidate
+	{
+		std::vector<std::pair<int, Value>> assignments_;
+		int cost_;
+	};
+
+	bool xidAssignmentCompatible(const std::vector<Value> &assignments,
+	                             const std::vector<Value> &originalGoodValues,
+	                             const int &gateID,
+	                             const Value &value)
+	{
+		return isXidBinaryValue(value) &&
+		       gateID >= 0 &&
+		       gateID < static_cast<int>(assignments.size()) &&
+		       gateID < static_cast<int>(originalGoodValues.size()) &&
+		       originalGoodValues[gateID] == value &&
+		       (assignments[gateID] == X || assignments[gateID] == value);
+	}
+
+	bool addXidAssignment(std::vector<Value> &assignments,
+	                      const std::vector<Value> &originalGoodValues,
+	                      const int &gateID,
+	                      const Value &value)
+	{
+		if (!isXidBinaryValue(value) || gateID < 0 || gateID >= static_cast<int>(assignments.size()))
+		{
+			return true;
+		}
+		if (gateID >= static_cast<int>(originalGoodValues.size()) || originalGoodValues[gateID] != value)
+		{
+			return false;
+		}
+		if (assignments[gateID] != X && assignments[gateID] != value)
+		{
+			return false;
+		}
+		assignments[gateID] = value;
+		return true;
+	}
+
+	bool appendXidCandidate(XidJustificationCandidate &candidate,
+	                        Circuit *const pCircuit,
+	                        const std::vector<Value> &assignments,
+	                        const std::vector<Value> &originalGoodValues,
+	                        const int &gateID,
+	                        const Value &value)
+	{
+		if (!xidAssignmentCompatible(assignments, originalGoodValues, gateID, value))
+		{
+			return false;
+		}
+		for (const std::pair<int, Value> &assignment : candidate.assignments_)
+		{
+			if (assignment.first == gateID)
+			{
+				return assignment.second == value;
+			}
+		}
+		candidate.assignments_.push_back(std::make_pair(gateID, value));
+		if (assignments[gateID] == X)
+		{
+			const Gate &gate = pCircuit->circuitGates_[gateID];
+			candidate.cost_ += value == L ? gate.cc0_ : gate.cc1_;
+		}
+		return true;
+	}
+
+	bool addXidAllFaninCandidate(std::vector<XidJustificationCandidate> &candidates,
+	                             Circuit *const pCircuit,
+	                             const Gate &gate,
+	                             const Value &value,
+	                             const std::vector<Value> &assignments,
+	                             const std::vector<Value> &originalGoodValues)
+	{
+		XidJustificationCandidate candidate;
+		candidate.cost_ = 0;
+		for (const int &faninID : gate.faninVector_)
+		{
+			if (!appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, faninID, value))
+			{
+				return false;
+			}
+		}
+		candidates.push_back(candidate);
+		return true;
+	}
+
+	void addXidOneFaninCandidates(std::vector<XidJustificationCandidate> &candidates,
+	                              Circuit *const pCircuit,
+	                              const Gate &gate,
+	                              const Value &value,
+	                              const std::vector<Value> &assignments,
+	                              const std::vector<Value> &originalGoodValues)
+	{
+		for (const int &faninID : gate.faninVector_)
+		{
+			XidJustificationCandidate candidate;
+			candidate.cost_ = 0;
+			if (appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, faninID, value))
+			{
+				candidates.push_back(candidate);
+			}
+		}
+	}
+
+	bool xidGateNeedsJustification(const Gate &gate)
+	{
+		switch (gate.gateType_)
+		{
+			case Gate::PI:
+			case Gate::TIE0:
+			case Gate::TIE1:
+			case Gate::TIEX:
+			case Gate::TIEZ:
+				return false;
+			case Gate::PPI:
+				return gate.numFI_ > 0;
+			default:
+				return gate.numFI_ > 0;
+		}
+	}
+
+	bool collectXidJustificationCandidates(Circuit *const pCircuit,
+	                                       const int &gateID,
+	                                       const Value &outputValue,
+	                                       const std::vector<Value> &assignments,
+	                                       const std::vector<Value> &originalGoodValues,
+	                                       std::vector<XidJustificationCandidate> &candidates)
+	{
+		candidates.clear();
+		if (!isXidBinaryValue(outputValue) || gateID < 0 || gateID >= pCircuit->totalGate_)
+		{
+			return false;
+		}
+
+		const Gate &gate = pCircuit->circuitGates_[gateID];
+		if (!xidGateNeedsJustification(gate))
+		{
+			return true;
+		}
+
+		switch (gate.gateType_)
+		{
+			case Gate::INV:
+			{
+				XidJustificationCandidate candidate;
+				candidate.cost_ = 0;
+				if (appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, gate.faninVector_[0], invertXidValue(outputValue)))
+				{
+					candidates.push_back(candidate);
+				}
+				break;
+			}
+			case Gate::BUF:
+			case Gate::PO:
+			case Gate::PPO:
+			case Gate::PPI:
+			{
+				XidJustificationCandidate candidate;
+				candidate.cost_ = 0;
+				if (appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, gate.faninVector_[0], outputValue))
+				{
+					candidates.push_back(candidate);
+				}
+				break;
+			}
+			case Gate::AND2:
+			case Gate::AND3:
+			case Gate::AND4:
+				if (outputValue == H)
+				{
+					addXidAllFaninCandidate(candidates, pCircuit, gate, H, assignments, originalGoodValues);
+				}
+				else
+				{
+					addXidOneFaninCandidates(candidates, pCircuit, gate, L, assignments, originalGoodValues);
+				}
+				break;
+			case Gate::NAND2:
+			case Gate::NAND3:
+			case Gate::NAND4:
+				if (outputValue == L)
+				{
+					addXidAllFaninCandidate(candidates, pCircuit, gate, H, assignments, originalGoodValues);
+				}
+				else
+				{
+					addXidOneFaninCandidates(candidates, pCircuit, gate, L, assignments, originalGoodValues);
+				}
+				break;
+			case Gate::OR2:
+			case Gate::OR3:
+			case Gate::OR4:
+				if (outputValue == L)
+				{
+					addXidAllFaninCandidate(candidates, pCircuit, gate, L, assignments, originalGoodValues);
+				}
+				else
+				{
+					addXidOneFaninCandidates(candidates, pCircuit, gate, H, assignments, originalGoodValues);
+				}
+				break;
+			case Gate::NOR2:
+			case Gate::NOR3:
+			case Gate::NOR4:
+				if (outputValue == H)
+				{
+					addXidAllFaninCandidate(candidates, pCircuit, gate, L, assignments, originalGoodValues);
+				}
+				else
+				{
+					addXidOneFaninCandidates(candidates, pCircuit, gate, H, assignments, originalGoodValues);
+				}
+				break;
+			case Gate::XOR2:
+			case Gate::XOR3:
+			case Gate::XNOR2:
+			case Gate::XNOR3:
+			case Gate::MUX:
+			default:
+			{
+				XidJustificationCandidate candidate;
+				candidate.cost_ = 0;
+				bool compatible = true;
+				for (const int &faninID : gate.faninVector_)
+				{
+					if (faninID < 0 || faninID >= static_cast<int>(originalGoodValues.size()) ||
+					    !appendXidCandidate(candidate, pCircuit, assignments, originalGoodValues, faninID, originalGoodValues[faninID]))
+					{
+						compatible = false;
+						break;
+					}
+				}
+				if (compatible)
+				{
+					candidates.push_back(candidate);
+				}
+				break;
+			}
+		}
+		return true;
+	}
+
+	Value evalXidGateValue(Circuit *const pCircuit, const int &gateID, const std::vector<Value> &assignments)
+	{
+		if (gateID < 0 || gateID >= pCircuit->totalGate_)
+		{
+			return X;
+		}
+		const Gate &gate = pCircuit->circuitGates_[gateID];
+		auto getFaninValue = [&](const int &index) -> Value {
+			if (index < 0 || index >= gate.numFI_)
+			{
+				return X;
+			}
+			const int faninID = gate.faninVector_[index];
+			return faninID >= 0 && faninID < static_cast<int>(assignments.size()) ? assignments[faninID] : X;
+		};
+		auto evalAnd = [&]() -> Value {
+			bool allHigh = true;
+			for (int i = 0; i < gate.numFI_; ++i)
+			{
+				const Value value = getFaninValue(i);
+				if (value == L)
+				{
+					return L;
+				}
+				if (value != H)
+				{
+					allHigh = false;
+				}
+			}
+			return allHigh ? H : X;
+		};
+		auto evalOr = [&]() -> Value {
+			bool allLow = true;
+			for (int i = 0; i < gate.numFI_; ++i)
+			{
+				const Value value = getFaninValue(i);
+				if (value == H)
+				{
+					return H;
+				}
+				if (value != L)
+				{
+					allLow = false;
+				}
+			}
+			return allLow ? L : X;
+		};
+		auto evalXor = [&]() -> Value {
+			int parity = 0;
+			for (int i = 0; i < gate.numFI_; ++i)
+			{
+				const Value value = getFaninValue(i);
+				if (!isXidBinaryValue(value))
+				{
+					return X;
+				}
+				parity ^= (value == H);
+			}
+			return parity ? H : L;
+		};
+
+		switch (gate.gateType_)
+		{
+			case Gate::PI:
+				return assignments[gateID];
+			case Gate::PPI:
+				return gate.numFI_ == 0 ? assignments[gateID] : getFaninValue(0);
+			case Gate::PO:
+			case Gate::PPO:
+			case Gate::BUF:
+				return getFaninValue(0);
+			case Gate::INV:
+				return invertXidValue(getFaninValue(0));
+			case Gate::AND2:
+			case Gate::AND3:
+			case Gate::AND4:
+				return evalAnd();
+			case Gate::NAND2:
+			case Gate::NAND3:
+			case Gate::NAND4:
+				return invertXidValue(evalAnd());
+			case Gate::OR2:
+			case Gate::OR3:
+			case Gate::OR4:
+				return evalOr();
+			case Gate::NOR2:
+			case Gate::NOR3:
+			case Gate::NOR4:
+				return invertXidValue(evalOr());
+			case Gate::XOR2:
+			case Gate::XOR3:
+				return evalXor();
+			case Gate::XNOR2:
+			case Gate::XNOR3:
+				return invertXidValue(evalXor());
+			case Gate::TIE0:
+				return L;
+			case Gate::TIE1:
+				return H;
+			default:
+				return gate.numFI_ == 1 ? getFaninValue(0) : X;
+		}
+	}
+
+	bool xidGateAssignmentIsJustified(Circuit *const pCircuit, const int &gateID, const std::vector<Value> &assignments)
+	{
+		const Gate &gate = pCircuit->circuitGates_[gateID];
+		if (!xidGateNeedsJustification(gate))
+		{
+			return true;
+		}
+		return evalXidGateValue(pCircuit, gateID, assignments) == assignments[gateID];
+	}
+
+	struct XidJustificationWorkspace
+	{
+		std::vector<int> assignedGateIDs_;
+		std::vector<int> reverseFrontier_;
+		std::vector<int> forwardFrontier_;
+		size_t forwardFrontierHead_;
+		std::vector<char> assignedQueued_;
+		std::vector<char> reverseQueued_;
+		std::vector<char> reverseProcessed_;
+		std::vector<char> forwardQueued_;
+		std::vector<char> justificationDirty_;
+		std::vector<char> justificationKnown_;
+		std::vector<char> justificationSatisfied_;
+		std::vector<XidJustificationCandidate> candidates_;
+
+		void reset(const size_t &gateCount)
+		{
+			assignedGateIDs_.clear();
+			reverseFrontier_.clear();
+			forwardFrontier_.clear();
+			forwardFrontierHead_ = 0;
+			assignedQueued_.assign(gateCount, 0);
+			reverseQueued_.assign(gateCount, 0);
+			reverseProcessed_.assign(gateCount, 0);
+			forwardQueued_.assign(gateCount, 0);
+			justificationDirty_.assign(gateCount, 0);
+			justificationKnown_.assign(gateCount, 0);
+			justificationSatisfied_.assign(gateCount, 0);
+			candidates_.clear();
+		}
+	};
+
+	struct XidJustificationContext
+	{
+		Circuit *pCircuit_;
+		std::vector<Value> &assignments_;
+		const std::vector<Value> &originalGoodValues_;
+		bool allowForwardImplication_;
+		XidJustificationWorkspace &workspace_;
+		std::vector<int> &assignedGateIDs_;
+		std::vector<int> &reverseFrontier_;
+		std::vector<int> &forwardFrontier_;
+		size_t &forwardFrontierHead_;
+		std::vector<char> &assignedQueued_;
+		std::vector<char> &reverseQueued_;
+		std::vector<char> &reverseProcessed_;
+		std::vector<char> &forwardQueued_;
+		std::vector<char> &justificationDirty_;
+		std::vector<char> &justificationKnown_;
+		std::vector<char> &justificationSatisfied_;
+		std::vector<XidJustificationCandidate> &candidates_;
+
+		XidJustificationContext(Circuit *const pCircuit,
+		                        std::vector<Value> &assignments,
+		                        const std::vector<Value> &originalGoodValues,
+		                        const bool &allowForwardImplication,
+		                        XidJustificationWorkspace &workspace)
+				: pCircuit_(pCircuit),
+				  assignments_(assignments),
+				  originalGoodValues_(originalGoodValues),
+				  allowForwardImplication_(allowForwardImplication),
+				  workspace_(workspace),
+				  assignedGateIDs_(workspace.assignedGateIDs_),
+				  reverseFrontier_(workspace.reverseFrontier_),
+				  forwardFrontier_(workspace.forwardFrontier_),
+				  forwardFrontierHead_(workspace.forwardFrontierHead_),
+				  assignedQueued_(workspace.assignedQueued_),
+				  reverseQueued_(workspace.reverseQueued_),
+				  reverseProcessed_(workspace.reverseProcessed_),
+				  forwardQueued_(workspace.forwardQueued_),
+				  justificationDirty_(workspace.justificationDirty_),
+				  justificationKnown_(workspace.justificationKnown_),
+				  justificationSatisfied_(workspace.justificationSatisfied_),
+				  candidates_(workspace.candidates_)
+		{
+			workspace_.reset(assignments.size());
+		}
+
+		bool validGateID(const int &gateID) const
+		{
+			return gateID >= 0 && gateID < static_cast<int>(assignments_.size());
+		}
+
+		void enqueueReverseImplication(const int &gateID)
+		{
+			if (!validGateID(gateID) ||
+			    reverseProcessed_[gateID] ||
+			    reverseQueued_[gateID] ||
+			    !isXidBinaryValue(assignments_[gateID]) ||
+			    !xidGateNeedsJustification(pCircuit_->circuitGates_[gateID]))
+			{
+				return;
+			}
+			reverseQueued_[gateID] = 1;
+			reverseFrontier_.push_back(gateID);
+		}
+
+		void enqueueForwardEvaluation(const int &gateID)
+		{
+			if (!allowForwardImplication_ ||
+			    !validGateID(gateID) ||
+			    forwardQueued_[gateID] ||
+			    assignments_[gateID] != X)
+			{
+				return;
+			}
+			forwardQueued_[gateID] = 1;
+			forwardFrontier_.push_back(gateID);
+		}
+
+		void markJustificationDirty(const int &gateID)
+		{
+			if (validGateID(gateID) && isXidBinaryValue(assignments_[gateID]))
+			{
+				justificationDirty_[gateID] = 1;
+			}
+		}
+
+		void registerAssignedGate(const int &gateID)
+		{
+			if (!validGateID(gateID) || !isXidBinaryValue(assignments_[gateID]))
+			{
+				return;
+			}
+			if (!assignedQueued_[gateID])
+			{
+				assignedQueued_[gateID] = 1;
+				assignedGateIDs_.push_back(gateID);
+			}
+			markJustificationDirty(gateID);
+			enqueueReverseImplication(gateID);
+
+			const Gate &gate = pCircuit_->circuitGates_[gateID];
+			for (const int &fanoutID : gate.fanoutVector_)
+			{
+				markJustificationDirty(fanoutID);
+				if (allowForwardImplication_)
+				{
+					enqueueForwardEvaluation(fanoutID);
+				}
+			}
+		}
+
+		bool addAssignment(const int &gateID, const Value &value, bool *const madeAssignment = NULL)
+		{
+			if (madeAssignment)
+			{
+				*madeAssignment = false;
+			}
+			const bool wasUnassigned = validGateID(gateID) && assignments_[gateID] == X && isXidBinaryValue(value);
+			if (!addXidAssignment(assignments_, originalGoodValues_, gateID, value))
+			{
+				return false;
+			}
+			if (wasUnassigned)
+			{
+				if (madeAssignment)
+				{
+					*madeAssignment = true;
+				}
+				registerAssignedGate(gateID);
+			}
+			return true;
+		}
+
+		void initialize()
+		{
+			for (int gateID = 0; gateID < static_cast<int>(assignments_.size()); ++gateID)
+			{
+				if (isXidBinaryValue(assignments_[gateID]))
+				{
+					registerAssignedGate(gateID);
+				}
+				else if (allowForwardImplication_)
+				{
+					const Gate::GateType gateType = pCircuit_->circuitGates_[gateID].gateType_;
+					if (gateType == Gate::TIE0 || gateType == Gate::TIE1)
+					{
+						enqueueForwardEvaluation(gateID);
+					}
+				}
+			}
+		}
+
+		bool processReverseImplication(const int &gateID)
+		{
+			if (!collectXidJustificationCandidates(pCircuit_, gateID, assignments_[gateID], assignments_, originalGoodValues_, candidates_))
+			{
+				return false;
+			}
+			if (candidates_.empty())
+			{
+				return false;
+			}
+
+			for (const std::pair<int, Value> &assignment : candidates_.front().assignments_)
+			{
+				bool appearsInAllCandidates = true;
+				for (size_t i = 1; i < candidates_.size(); ++i)
+				{
+					bool found = false;
+					for (const std::pair<int, Value> &candidateAssignment : candidates_[i].assignments_)
+					{
+						if (candidateAssignment.first == assignment.first && candidateAssignment.second == assignment.second)
+						{
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+					{
+						appearsInAllCandidates = false;
+						break;
+					}
+				}
+				if (appearsInAllCandidates && assignments_[assignment.first] == X)
+				{
+					if (!addAssignment(assignment.first, assignment.second))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+
+		bool processForwardEvaluation(const int &gateID)
+		{
+			if (assignments_[gateID] != X)
+			{
+				return true;
+			}
+			const Value value = evalXidGateValue(pCircuit_, gateID, assignments_);
+			if (isXidBinaryValue(value) &&
+			    gateID < static_cast<int>(originalGoodValues_.size()) &&
+			    originalGoodValues_[gateID] == value)
+			{
+				return addAssignment(gateID, value);
+			}
+			return true;
+		}
+
+		bool propagate()
+		{
+			while (!reverseFrontier_.empty() || forwardFrontierHead_ < forwardFrontier_.size())
+			{
+				while (!reverseFrontier_.empty())
+				{
+					const int gateID = reverseFrontier_.back();
+					reverseFrontier_.pop_back();
+					reverseQueued_[gateID] = 0;
+					if (reverseProcessed_[gateID])
+					{
+						continue;
+					}
+					reverseProcessed_[gateID] = 1;
+					if (!processReverseImplication(gateID))
+					{
+						return false;
+					}
+				}
+				while (forwardFrontierHead_ < forwardFrontier_.size())
+				{
+					const int gateID = forwardFrontier_[forwardFrontierHead_++];
+					forwardQueued_[gateID] = 0;
+					if (!processForwardEvaluation(gateID))
+					{
+						return false;
+					}
+					if (!reverseFrontier_.empty())
+					{
+						break;
+					}
+				}
+			}
+			return true;
+		}
+
+		bool gateIsJustified(const int &gateID)
+		{
+			if (!isXidBinaryValue(assignments_[gateID]))
+			{
+				return true;
+			}
+			if (!justificationDirty_[gateID] && justificationKnown_[gateID])
+			{
+				return justificationSatisfied_[gateID];
+			}
+			const bool justified = xidGateAssignmentIsJustified(pCircuit_, gateID, assignments_);
+			justificationDirty_[gateID] = 0;
+			justificationKnown_[gateID] = 1;
+			justificationSatisfied_[gateID] = justified ? 1 : 0;
+			return justified;
+		}
+
+		int highestUnjustifiedGate()
+		{
+			int unjustifiedGateID = -1;
+			for (const int &gateID : assignedGateIDs_)
+			{
+				if (gateID > unjustifiedGateID && !gateIsJustified(gateID))
+				{
+					unjustifiedGateID = gateID;
+				}
+			}
+			return unjustifiedGateID;
+		}
+	};
+
+	bool performXidLimitedImplicationAndJustification(Circuit *const pCircuit,
+	                                                  std::vector<Value> &assignments,
+	                                                  const std::vector<Value> &originalGoodValues,
+	                                                  const bool &allowForwardImplication,
+	                                                  XidJustificationWorkspace &workspace)
+	{
+		XidJustificationContext context(pCircuit, assignments, originalGoodValues, allowForwardImplication, workspace);
+		context.initialize();
+		while (true)
+		{
+			if (!context.propagate())
+			{
+				return false;
+			}
+
+			const int unjustifiedGateID = context.highestUnjustifiedGate();
+			if (unjustifiedGateID < 0)
+			{
+				return true;
+			}
+
+			if (!collectXidJustificationCandidates(pCircuit, unjustifiedGateID, assignments[unjustifiedGateID], assignments, originalGoodValues, context.candidates_) ||
+			    context.candidates_.empty())
+			{
+				return false;
+			}
+			size_t selectedCandidate = 0;
+			for (size_t i = 1; i < context.candidates_.size(); ++i)
+			{
+				if (context.candidates_[i].cost_ < context.candidates_[selectedCandidate].cost_ ||
+				    (context.candidates_[i].cost_ == context.candidates_[selectedCandidate].cost_ &&
+				     context.candidates_[i].assignments_.size() < context.candidates_[selectedCandidate].assignments_.size()))
+				{
+					selectedCandidate = i;
+				}
+			}
+
+			bool madeAssignment = false;
+			for (const std::pair<int, Value> &assignment : context.candidates_[selectedCandidate].assignments_)
+			{
+				bool assignmentMade = false;
+				if (!context.addAssignment(assignment.first, assignment.second, &assignmentMade))
+				{
+					return false;
+				}
+				madeAssignment = madeAssignment || assignmentMade;
+			}
+			if (!madeAssignment)
+			{
+				if (!xidGateAssignmentIsJustified(pCircuit, unjustifiedGateID, assignments))
+				{
+					return false;
+				}
+				context.justificationDirty_[unjustifiedGateID] = 0;
+				context.justificationKnown_[unjustifiedGateID] = 1;
+				context.justificationSatisfied_[unjustifiedGateID] = 1;
+			}
+		}
+	}
+
+	bool xidOutputValueIsNonControlling(const Gate &gate, const Value &value)
+	{
+		switch (gate.gateType_)
+		{
+			case Gate::AND2:
+			case Gate::AND3:
+			case Gate::AND4:
+				return value == H;
+			case Gate::NAND2:
+			case Gate::NAND3:
+			case Gate::NAND4:
+				return value == L;
+			case Gate::OR2:
+			case Gate::OR3:
+			case Gate::OR4:
+				return value == L;
+			case Gate::NOR2:
+			case Gate::NOR3:
+			case Gate::NOR4:
+				return value == H;
+			case Gate::XOR2:
+			case Gate::XOR3:
+			case Gate::XNOR2:
+			case Gate::XNOR3:
+				return true;
+			default:
+				return true;
+		}
+	}
+
+	bool traceXidFaultPropagationPath(Circuit *const pCircuit,
+	                                  const XidFaultTrace &trace,
+	                                  const std::vector<Value> &goodValues,
+	                                  const bool &extendedImplication,
+	                                  std::vector<Value> &assignments)
+	{
+		if (trace.selectedOutputGateID_ < 0)
+		{
+			return false;
+		}
+
+		const int startGateID = getXidFaultEffectStartGateID(pCircuit, *trace.fault_);
+		const int faultEffectFrameOffset = (trace.fault_->faultType_ == Fault::STR || trace.fault_->faultType_ == Fault::STF) ? pCircuit->numGate_ : 0;
+		const int faultyLineGateID = getXidFaultyLineGateID(pCircuit, *trace.fault_, faultEffectFrameOffset);
+		std::vector<int> stack;
+		std::vector<char> queued(pCircuit->totalGate_, 0);
+		stack.push_back(trace.selectedOutputGateID_);
+		queued[trace.selectedOutputGateID_] = 1;
+
+		while (!stack.empty())
+		{
+			const int gateID = stack.back();
+			stack.pop_back();
+			if (gateID < 0 || gateID >= pCircuit->totalGate_ || gateID >= static_cast<int>(goodValues.size()))
+			{
+				continue;
+			}
+			if (!addXidAssignment(assignments, goodValues, gateID, goodValues[gateID]))
+			{
+				return false;
+			}
+			const bool inputLineFaultStartGate = gateID == startGateID && trace.fault_->faultyLine_ > 0;
+			if (gateID == startGateID && !inputLineFaultStartGate)
+			{
+				continue;
+			}
+
+			const Gate &gate = pCircuit->circuitGates_[gateID];
+			std::vector<int> propagatedFanins;
+			std::vector<char> propagatedByFanin(gate.numFI_, 0);
+			for (int i = 0; i < gate.numFI_; ++i)
+			{
+				const int faninID = gate.faninVector_[i];
+				if (gateHasSparseXidFaultEffect(goodValues, trace.faultyValues_, faninID))
+				{
+					propagatedFanins.push_back(faninID);
+					propagatedByFanin[i] = 1;
+				}
+			}
+			if (inputLineFaultStartGate && faultyLineGateID >= 0)
+			{
+				for (int i = 0; i < gate.numFI_; ++i)
+				{
+					if (gate.faninVector_[i] == faultyLineGateID && !propagatedByFanin[i])
+					{
+						propagatedFanins.push_back(faultyLineGateID);
+						propagatedByFanin[i] = 1;
+						break;
+					}
+				}
+			}
+			if (propagatedFanins.empty())
+			{
+				continue;
+			}
+
+			if (extendedImplication)
+			{
+				for (const int &faninID : gate.faninVector_)
+				{
+					if (!addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
+					{
+						return false;
+					}
+				}
+				for (const int &faninID : propagatedFanins)
+				{
+					if (!queued[faninID])
+					{
+						queued[faninID] = 1;
+						stack.push_back(faninID);
+					}
+				}
+				continue;
+			}
+
+			if (propagatedFanins.size() == 1 || xidOutputValueIsNonControlling(gate, goodValues[gateID]))
+			{
+				const int selectedFaninID = propagatedFanins.front();
+				for (const int &faninID : gate.faninVector_)
+				{
+					if (faninID != selectedFaninID &&
+					    !addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
+					{
+						return false;
+					}
+				}
+				if (!queued[selectedFaninID])
+				{
+					queued[selectedFaninID] = 1;
+					stack.push_back(selectedFaninID);
+				}
+			}
+			else
+			{
+				for (int i = 0; i < gate.numFI_; ++i)
+				{
+					const int faninID = gate.faninVector_[i];
+					if (propagatedByFanin[i])
+					{
+						if (!queued[faninID])
+						{
+							queued[faninID] = 1;
+							stack.push_back(faninID);
+						}
+					}
+					else if (!addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
+					{
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	bool addXidFaultActivationAssignments(Circuit *const pCircuit,
+	                                      const Fault &fault,
+	                                      const std::vector<Value> &originalGoodValues,
+	                                      std::vector<Value> &assignments)
+	{
+		switch (fault.faultType_)
+		{
+			case Fault::SA0:
+				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), H);
+			case Fault::SA1:
+				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), L);
+			case Fault::STR:
+				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), L) &&
+				       addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, pCircuit->numGate_), H);
+			case Fault::STF:
+				return addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, 0), H) &&
+				       addXidAssignment(assignments, originalGoodValues, getXidFaultyLineGateID(pCircuit, fault, pCircuit->numGate_), L);
+			default:
+				break;
+		}
+		return true;
+	}
+
+	int selectXidObservationOutput(const XidFaultTrace &trace, const std::unordered_map<int, int> &outputUseCount)
+	{
+		int selectedOutput = -1;
+		int bestCount = -1;
+		for (const int &outputGateID : trace.detectedOutputGateIDs_)
+		{
+			const std::unordered_map<int, int>::const_iterator it = outputUseCount.find(outputGateID);
+			const int count = it == outputUseCount.end() ? 0 : it->second;
+			if (count > bestCount)
+			{
+				bestCount = count;
+				selectedOutput = outputGateID;
+			}
+		}
+		return selectedOutput;
+	}
+
+	void initXidKeep(const Pattern &pattern, XidInputKeep &keep)
+	{
+		keep.pi1_.assign(pattern.PI1_.size(), 0);
+		keep.pi2_.assign(pattern.PI2_.size(), 0);
+		keep.ppi_.assign(pattern.PPI_.size(), 0);
+		keep.si_.assign(pattern.SI_.size(), 0);
+	}
+
+	size_t buildXidKeepFromAssignedGates(Circuit *const pCircuit,
+	                                     const Pattern &pattern,
+	                                     const std::vector<Value> &assignments,
+	                                     const std::vector<int> &assignedGateIDs,
+	                                     XidInputKeep &keep)
+	{
+		initXidKeep(pattern, keep);
+		size_t requiredInternalValues = 0;
+		for (const int &gateID : assignedGateIDs)
+		{
+			if (gateID >= 0 &&
+			    gateID < static_cast<int>(assignments.size()) &&
+			    isXidBinaryValue(assignments[gateID]))
+			{
+				++requiredInternalValues;
+				markXidPatternInput(pCircuit, pattern, gateID, assignments[gateID], keep);
+			}
+		}
+		return requiredInternalValues;
+	}
+
+	struct XidCalculationWorkspace
+	{
+		std::vector<XidFaultTrace> traces_;
+		std::unordered_map<int, int> outputUseCount_;
+		std::vector<Value> originalGoodValues_;
+		std::vector<Value> assignments_;
+		XidJustificationWorkspace justificationWorkspace_;
+	};
+
+	bool calculateXidKeepForFaults(Circuit *const pCircuit,
+	                               Simulator *const pSimulator,
+	                               const Pattern &originalPattern,
+	                               const std::vector<Fault *> &targetFaults,
+	                               const bool &extendedImplication,
+	                               XidInputKeep &keep,
+	                               size_t &requiredInternalValues,
+	                               XidCalculationWorkspace &workspace)
+	{
+		initXidKeep(originalPattern, keep);
+		requiredInternalValues = 0;
+		if (targetFaults.empty())
+		{
+			return true;
+		}
+
+		if (workspace.traces_.size() < targetFaults.size())
+		{
+			workspace.traces_.resize(targetFaults.size());
+		}
+		workspace.outputUseCount_.clear();
+		workspace.outputUseCount_.reserve(static_cast<size_t>(pCircuit->numPO_ + pCircuit->numPPI_));
+		pSimulator->prepareXidPatternGoodValues(originalPattern, workspace.originalGoodValues_);
+		for (size_t i = 0; i < targetFaults.size(); ++i)
+		{
+			Fault *const fault = targetFaults[i];
+			XidFaultTrace &trace = workspace.traces_[i];
+			trace.fault_ = fault;
+			trace.selectedOutputGateID_ = -1;
+			if (!pSimulator->collectOneFaultEffectTraceWithPreparedGood(*fault, trace.faultyValues_, trace.detectedOutputGateIDs_) ||
+			    trace.detectedOutputGateIDs_.empty())
+			{
+				return false;
+			}
+			for (const int &outputGateID : trace.detectedOutputGateIDs_)
+			{
+				++workspace.outputUseCount_[outputGateID];
+			}
+		}
+
+		workspace.assignments_.assign(static_cast<size_t>(pCircuit->totalGate_), X);
+		for (size_t i = 0; i < targetFaults.size(); ++i)
+		{
+			XidFaultTrace &trace = workspace.traces_[i];
+			trace.selectedOutputGateID_ = selectXidObservationOutput(trace, workspace.outputUseCount_);
+			if (!addXidFaultActivationAssignments(pCircuit, *trace.fault_, workspace.originalGoodValues_, workspace.assignments_) ||
+			    !traceXidFaultPropagationPath(pCircuit, trace, workspace.originalGoodValues_, extendedImplication, workspace.assignments_))
+			{
+				return false;
+			}
+		}
+
+		if (!performXidLimitedImplicationAndJustification(pCircuit,
+		                                                  workspace.assignments_,
+		                                                  workspace.originalGoodValues_,
+		                                                  !extendedImplication,
+		                                                  workspace.justificationWorkspace_))
+		{
+			return false;
+		}
+
+		requiredInternalValues = buildXidKeepFromAssignedGates(pCircuit,
+		                                                       originalPattern,
+		                                                       workspace.assignments_,
+		                                                       workspace.justificationWorkspace_.assignedGateIDs_,
+		                                                       keep);
+		return true;
+	}
+
+	void copyXidKeptValues(std::vector<Value> &values, const std::vector<Value> &originalValues, const std::vector<char> &keepValues)
+	{
+		if (values.size() < originalValues.size())
+		{
+			values.resize(originalValues.size(), X);
+		}
+		for (size_t i = 0; i < originalValues.size() && i < keepValues.size(); ++i)
+		{
+			if (keepValues[i])
+			{
+				values[i] = originalValues[i];
+			}
+		}
+	}
+
+	void restoreXidKeptInputs(const Pattern &originalPattern, const XidInputKeep &keep, Pattern &pattern)
+	{
+		copyXidKeptValues(pattern.PI1_, originalPattern.PI1_, keep.pi1_);
+		copyXidKeptValues(pattern.PI2_, originalPattern.PI2_, keep.pi2_);
+		copyXidKeptValues(pattern.PPI_, originalPattern.PPI_, keep.ppi_);
+		copyXidKeptValues(pattern.SI_, originalPattern.SI_, keep.si_);
+	}
+
+	size_t relaxXidPatternFromOriginal(const Pattern &originalPattern, const XidInputKeep &keep, Pattern &pattern)
+	{
+		pattern = originalPattern;
+		return applyXidKeepMask(pattern, keep);
+	}
+
+	std::vector<char> simulateXidDetectedFaultsForPatternSet(Simulator *const pSimulator,
+	                                                         PatternProcessor *const pPatternProcessor,
+	                                                         const std::vector<Fault *> &faults)
+	{
+		std::vector<int> savedDetection(faults.size(), 0);
+		std::vector<Fault::FAULT_STATE> savedState(faults.size(), Fault::UD);
+		FaultListExtract faultListExtract;
+		for (size_t i = 0; i < faults.size(); ++i)
+		{
+			savedDetection[i] = faults[i]->detection_;
+			savedState[i] = faults[i]->faultState_;
+			faults[i]->detection_ = 0;
+			faults[i]->faultState_ = Fault::UD;
+			faultListExtract.faultsInCircuit_.push_back(faults[i]);
+		}
+
+		pSimulator->parallelPatternFaultSimWithAllPattern(pPatternProcessor, &faultListExtract);
+
+		std::vector<char> detected(faults.size(), 0);
+		for (size_t i = 0; i < faults.size(); ++i)
+		{
+			detected[i] = faults[i]->detection_ > 0 ? 1 : 0;
+			faults[i]->detection_ = savedDetection[i];
+			faults[i]->faultState_ = savedState[i];
+		}
+		return detected;
+	}
+
+	void collectXidUndetectedCoveredFaultIndexes(const std::vector<unsigned char> &detectionCountByFault,
+	                                             const std::vector<char> &detected,
+	                                             std::vector<size_t> &undetectedFaultIndexes)
+	{
+		undetectedFaultIndexes.clear();
+		undetectedFaultIndexes.reserve(detected.size());
+		for (size_t faultIndex = 0; faultIndex < detected.size(); ++faultIndex)
+		{
+			if (detectionCountByFault[faultIndex] > 0 && !detected[faultIndex])
+			{
+				undetectedFaultIndexes.push_back(faultIndex);
+			}
+		}
+	}
+
+	struct XidUpdateWorkspace
+	{
+		std::vector<int> savedDetection_;
+		std::vector<Fault::FAULT_STATE> savedState_;
+		FaultPtrList remainingFaults_;
+	};
+
+	void updateXidDetectedFaultsWithPattern(Simulator *const pSimulator,
+	                                        const Pattern &pattern,
+	                                        const std::vector<Fault *> &faults,
+	                                        std::vector<char> &detected,
+	                                        std::vector<size_t> &undetectedFaultIndexes,
+	                                        XidUpdateWorkspace &workspace)
+	{
+		workspace.savedDetection_.clear();
+		workspace.savedState_.clear();
+		workspace.remainingFaults_.clear();
+		workspace.savedDetection_.reserve(undetectedFaultIndexes.size());
+		workspace.savedState_.reserve(undetectedFaultIndexes.size());
+		for (const size_t &faultIndex : undetectedFaultIndexes)
+		{
+			workspace.savedDetection_.push_back(faults[faultIndex]->detection_);
+			workspace.savedState_.push_back(faults[faultIndex]->faultState_);
+			faults[faultIndex]->detection_ = 0;
+			faults[faultIndex]->faultState_ = Fault::UD;
+			workspace.remainingFaults_.push_back(faults[faultIndex]);
+		}
+
+		pSimulator->parallelFaultFaultSimWithOnePattern(pattern, workspace.remainingFaults_);
+
+		size_t undetectedWriteIndex = 0;
+		for (size_t i = 0; i < undetectedFaultIndexes.size(); ++i)
+		{
+			const size_t faultIndex = undetectedFaultIndexes[i];
+			Fault *const fault = faults[faultIndex];
+			if (fault->detection_ > 0)
+			{
+				detected[faultIndex] = 1;
+			}
+			fault->detection_ = workspace.savedDetection_[i];
+			fault->faultState_ = workspace.savedState_[i];
+			if (!detected[faultIndex])
+			{
+				undetectedFaultIndexes[undetectedWriteIndex++] = faultIndex;
+			}
+		}
+		undetectedFaultIndexes.resize(undetectedWriteIndex);
+	}
+}
+
 void Atpg::XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults)
 {
 	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || faults.empty())
