@@ -10,6 +10,7 @@
 
 #include <array>
 #include <stack>
+#include <utility>
 #include <vector>
 
 #include "pattern.h"
@@ -36,6 +37,10 @@ namespace CoreNs
 		void parallelFaultFaultSimWithAllPattern(PatternProcessor *pPatternCollector, FaultListExtract *pFaultListExtract);
 		void parallelFaultFaultSimWithOnePattern(const Pattern &pattern, FaultPtrList &remainingFaults);
 		void parallelFaultFaultSim(FaultPtrList &remainingFaults);
+		bool collectOneFaultTrace(const Pattern &pattern, const Fault &fault, std::vector<Value> &goodValues, std::vector<Value> &faultyValues, std::vector<int> &detectedOutputGateIDs);
+		void prepareXidPatternGoodValues(const Pattern &pattern, std::vector<Value> &goodValues);
+		bool collectOneFaultEffectTraceWithPreparedGood(const Fault &fault, std::vector<std::pair<int, Value>> &faultyValues, std::vector<int> &detectedOutputGateIDs);
+		void collectFaultDetectionStatsWithAllPatterns(PatternProcessor *pPatternCollector, const std::vector<Fault *> &faults, std::vector<int> &firstDetectorByFault, std::vector<unsigned char> &detectionCountByFault);
 
 		// Parallel pattern simulator.
 		void parallelPatternGoodSimWithAllPattern(PatternProcessor *pPatternCollector);

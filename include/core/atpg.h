@@ -166,6 +166,7 @@ namespace CoreNs
 
 		// static test compression
 		void staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
+		void XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
 

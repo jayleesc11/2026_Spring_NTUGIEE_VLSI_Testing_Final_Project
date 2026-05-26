@@ -42,6 +42,21 @@ Value getScalarGoodSimValue(const Gate &gate)
 	return X;
 }
 
+Value getFaultSimValue(const Gate &gate, size_t bit)
+{
+	bool isLow = getBitValue(gate.faultSimLow_, bit) == H;
+	bool isHigh = getBitValue(gate.faultSimHigh_, bit) == H;
+	if (isLow && !isHigh)
+	{
+		return L;
+	}
+	if (isHigh && !isLow)
+	{
+		return H;
+	}
+	return X;
+}
+
 void writeGoodSimValuesToPattern(Circuit *pCircuit, Pattern &pattern, size_t bit)
 {
 	int offset = pCircuit->numGate_ - pCircuit->numPO_ - pCircuit->numPPI_;
@@ -199,6 +214,147 @@ void Simulator::parallelFaultFaultSimWithOnePattern(const Pattern &pattern, Faul
 	// Assign pattern to circuit PI & PPI for further fault simulation.
 	assignPatternToCircuitInputs(pattern);
 	parallelFaultFaultSim(remainingFaults);
+}
+
+void Simulator::prepareXidPatternGoodValues(const Pattern &pattern, std::vector<Value> &goodValues)
+{
+	assignPatternToCircuitInputs(pattern);
+	goodSimCopyGoodToFault();
+
+	goodValues.resize(pCircuit_->totalGate_, X);
+	for (int gateID = 0; gateID < pCircuit_->totalGate_; ++gateID)
+	{
+		goodValues[gateID] = getGoodSimValue(pCircuit_->circuitGates_[gateID], 0);
+	}
+}
+
+bool Simulator::collectOneFaultEffectTraceWithPreparedGood(const Fault &fault, std::vector<std::pair<int, Value>> &faultyValues, std::vector<int> &detectedOutputGateIDs)
+{
+	faultyValues.clear();
+	detectedOutputGateIDs.clear();
+
+	if (!parallelFaultCheckActivation(&fault))
+	{
+		return false;
+	}
+
+	parallelFaultFaultInjection(&fault, 0);
+	numInjectedFaults_ = 1;
+	eventFaultSim();
+
+	faultyValues.reserve(numRecover_);
+	for (int i = 0; i < numRecover_; ++i)
+	{
+		const int gateID = recoverGates_[i];
+		const Gate &gate = pCircuit_->circuitGates_[gateID];
+		if (gate.goodSimLow_ == gate.faultSimLow_ && gate.goodSimHigh_ == gate.faultSimHigh_)
+		{
+			continue;
+		}
+		const Value faultyValue = getFaultSimValue(gate, 0);
+		if (faultyValue == L || faultyValue == H)
+		{
+			faultyValues.push_back(std::make_pair(gateID, faultyValue));
+		}
+	}
+
+	const int start = pCircuit_->totalGate_ - pCircuit_->numPO_ - pCircuit_->numPPI_;
+	for (int gateID = start; gateID < pCircuit_->totalGate_; ++gateID)
+	{
+		const Gate &gate = pCircuit_->circuitGates_[gateID];
+		const ParallelValue detected = (gate.goodSimLow_ & gate.faultSimHigh_) | (gate.goodSimHigh_ & gate.faultSimLow_);
+		if (getBitValue(detected, 0) == H)
+		{
+			detectedOutputGateIDs.push_back(gateID);
+		}
+	}
+
+	parallelFaultReset();
+	return !detectedOutputGateIDs.empty();
+}
+
+bool Simulator::collectOneFaultTrace(const Pattern &pattern, const Fault &fault, std::vector<Value> &goodValues, std::vector<Value> &faultyValues, std::vector<int> &detectedOutputGateIDs)
+{
+	std::vector<std::pair<int, Value>> sparseFaultyValues;
+	prepareXidPatternGoodValues(pattern, goodValues);
+	const bool detected = collectOneFaultEffectTraceWithPreparedGood(fault, sparseFaultyValues, detectedOutputGateIDs);
+	faultyValues = goodValues;
+	for (const std::pair<int, Value> &faultyValue : sparseFaultyValues)
+	{
+		faultyValues[faultyValue.first] = faultyValue.second;
+	}
+	return detected;
+}
+
+void Simulator::collectFaultDetectionStatsWithAllPatterns(PatternProcessor *pPatternCollector, const std::vector<Fault *> &faults, std::vector<int> &firstDetectorByFault, std::vector<unsigned char> &detectionCountByFault)
+{
+	firstDetectorByFault.assign(faults.size(), -1);
+	detectionCountByFault.assign(faults.size(), 0);
+	if (!pPatternCollector || pPatternCollector->patternVector_.empty() || faults.empty())
+	{
+		return;
+	}
+
+	std::vector<size_t> activeFaultIndexes;
+	activeFaultIndexes.reserve(faults.size());
+	for (size_t faultIndex = 0; faultIndex < faults.size(); ++faultIndex)
+	{
+		Fault *const fault = faults[faultIndex];
+		if (fault->faultState_ != Fault::RE && fault->faultyLine_ >= 0)
+		{
+			activeFaultIndexes.push_back(faultIndex);
+		}
+	}
+
+	for (int patternStartIndex = 0; patternStartIndex < static_cast<int>(pPatternCollector->patternVector_.size()) && !activeFaultIndexes.empty(); patternStartIndex += WORD_SIZE)
+	{
+		parallelPatternSetPattern(pPatternCollector, patternStartIndex);
+		goodSimCopyGoodToFault();
+		const int patternEndIndex = std::min(patternStartIndex + WORD_SIZE, static_cast<int>(pPatternCollector->patternVector_.size()));
+		const int batchPatternCount = patternEndIndex - patternStartIndex;
+		size_t activeWriteIndex = 0;
+
+		for (const size_t &faultIndex : activeFaultIndexes)
+		{
+			Fault *const fault = faults[faultIndex];
+			if (!parallelPatternCheckActivation(fault))
+			{
+				activeFaultIndexes[activeWriteIndex++] = faultIndex;
+				continue;
+			}
+
+			parallelPatternFaultInjection(fault);
+			eventFaultSim();
+
+			ParallelValue detected = PARA_L;
+			const int start = pCircuit_->totalGate_ - pCircuit_->numPO_ - pCircuit_->numPPI_;
+			for (int gateID = start; gateID < pCircuit_->totalGate_; ++gateID)
+			{
+				const Gate &gate = pCircuit_->circuitGates_[gateID];
+				detected |= ((gate.goodSimLow_ & gate.faultSimHigh_) | (gate.goodSimHigh_ & gate.faultSimLow_));
+			}
+			detected &= activated_;
+
+			for (int bit = 0; bit < batchPatternCount && detectionCountByFault[faultIndex] < 2; ++bit)
+			{
+				if (getBitValue(detected, static_cast<size_t>(bit)) == H)
+				{
+					if (detectionCountByFault[faultIndex] == 0)
+					{
+						firstDetectorByFault[faultIndex] = patternStartIndex + bit;
+					}
+					++detectionCountByFault[faultIndex];
+				}
+			}
+			parallelPatternReset();
+
+			if (detectionCountByFault[faultIndex] < 2)
+			{
+				activeFaultIndexes[activeWriteIndex++] = faultIndex;
+			}
+		}
+		activeFaultIndexes.resize(activeWriteIndex);
+	}
 }
 
 // **************************************************************************
