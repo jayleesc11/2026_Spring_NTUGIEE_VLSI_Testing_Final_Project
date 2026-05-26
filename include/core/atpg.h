@@ -130,6 +130,9 @@ namespace CoreNs
 		void initializeObjectivesAndFrontiers();
 		void initializeCircuitWithFaultyGate(Gate &gFaultyLine, bool isAtStageDTC);
 
+		void applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, Pattern &pattern);
+		Fault makeTransitionDelayTargetFault(const Fault &originalFault) const;
+
 		void clearEventStack(bool isDebug);
 		bool doImplication(IMPLICATION_STATUS atpgStatus, int startLevel);
 		IMPLICATION_STATUS doOneGateBackwardImplication(Gate *pGate);

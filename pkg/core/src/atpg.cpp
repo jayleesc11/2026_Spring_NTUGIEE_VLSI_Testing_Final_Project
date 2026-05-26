@@ -508,7 +508,7 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 
 		if (pPatternProcessor->dynamicCompression_ == PatternProcessor::ON)
 		{
-			// TODO: implement dynamic test compression for transition delay faults.
+			applyTransitionDelayDynamicCompression(faultPtrListForGen, pPatternProcessor, pPatternProcessor->patternVector_.back());
 		}
 
 		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
@@ -529,6 +529,130 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		faultPtrListForGen.push_back(faultPtrListForGen.front());
 		faultPtrListForGen.pop_front();
 	}
+}
+
+void Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, Pattern &pattern)
+{
+	const size_t K = 5;
+	FaultPtrList faultListTemp = faultPtrListForGen;
+
+	pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faultPtrListForGen);
+	pSimulator_->goodSim();
+	writeGoodSimValToPatternPO(pattern);
+
+	std::vector<std::pair<int, Fault *>> candidates;
+	candidates.reserve(faultListTemp.size());
+
+	for (Fault *pFault : faultListTemp)
+	{
+		if (pFault->faultState_ != Fault::UD)
+		{
+			continue;
+		}
+
+		if (pFault == faultPtrListForGen.front())
+		{
+			continue;
+		}
+
+		Fault tdfTarget = makeTransitionDelayTargetFault(*pFault);
+		Gate *pGate = &pCircuit_->circuitGates_[tdfTarget.gateID_];
+		std::vector<int> workQueue;
+		std::vector<char> visited(pCircuit_->totalGate_, 0);
+		int overlap = 0;
+
+		workQueue.push_back(pGate->gateId_);
+		visited[pGate->gateId_] = 1;
+
+		for (size_t idx = 0; idx < workQueue.size(); ++idx)
+		{
+			int gateID = workQueue[idx];
+			if (gateID_to_reachableByTargetFault_[gateID] == 1)
+			{
+				++overlap;
+			}
+			for (int fanoutID : pCircuit_->circuitGates_[gateID].fanoutVector_)
+			{
+				if (!visited[fanoutID])
+				{
+					visited[fanoutID] = 1;
+					workQueue.push_back(fanoutID);
+				}
+			}
+		}
+		candidates.emplace_back(overlap, pFault);
+	}
+
+	std::sort(candidates.begin(), candidates.end(), [](const std::pair<int, Fault *> &a, const std::pair<int, Fault *> &b) {
+		return a.first < b.first;
+	});
+
+	resetPrevAtpgValStored();
+	storeCurrentAtpgVal();
+
+	size_t selected = 0;
+	for (const auto &candidate : candidates)
+	{
+		if (selected >= K)
+		{
+			break;
+		}
+
+		Fault *pFault = candidate.second;
+		if (pFault->faultState_ != Fault::UD)
+		{
+			continue;
+		}
+
+		Fault tdfTarget = makeTransitionDelayTargetFault(*pFault);
+		Gate *pGateForActivation = getGateForFaultActivation(tdfTarget);
+		if (!pGateForActivation)
+		{
+			continue;
+		}
+
+		if (((pGateForActivation->atpgVal_ == H) && (pFault->faultType_ == Fault::STR)) ||
+			((pGateForActivation->atpgVal_ == L) && (pFault->faultType_ == Fault::STF)))
+		{
+			continue;
+		}
+
+		if (pGateForActivation->atpgVal_ != X)
+		{
+			setGateAtpgValAndRunImplication(*pGateForActivation, X);
+		}
+
+		if (xPathExists(pGateForActivation))
+		{
+			if (generateSinglePatternOnTargetFault(tdfTarget, true) == PATTERN_FOUND)
+			{
+				resetPrevAtpgValStored();
+				clearAllFaultEffectByEvaluation();
+				storeCurrentAtpgVal();
+				writeAtpgValToPatternPI(pattern);
+				++selected;
+			}
+			else
+			{
+				for (Gate &gate : pCircuit_->circuitGates_)
+				{
+					gate.atpgVal_ = gate.prevAtpgValStored_;
+				}
+			}
+		}
+		else
+		{
+			for (Gate &gate : pCircuit_->circuitGates_)
+			{
+				gate.atpgVal_ = gate.prevAtpgValStored_;
+			}
+		}
+	}
+}
+
+Fault Atpg::makeTransitionDelayTargetFault(const Fault &originalFault) const
+{
+	return Fault(originalFault.gateID_ + pCircuit_->numGate_, originalFault.faultType_, originalFault.faultyLine_, originalFault.equivalent_, originalFault.faultState_);
 }
 
 // **************************************************************************
