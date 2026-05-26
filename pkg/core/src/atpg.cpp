@@ -113,13 +113,13 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	{
 		XFill(pPatternProcessor);
 	}
-	if (powerAware || pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
+	if (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
 	{
 		postProcessPowerFill(pPatternProcessor);
-		if (powerAware)
-		{
-			reorderPatternsForShiftPower(pPatternProcessor);
-		}
+	}
+	if (powerAware)
+	{
+		reorderPatternsForShiftPower(pPatternProcessor);
 	}
 
 	// finish calculation equivalent faults left
