@@ -219,7 +219,6 @@ namespace CoreNs
 		void randomFill(Pattern &pattern);
 		void adjacentFill(Pattern &pattern); // currently not used, added by WANG, WEI-SHEN
 		void initializePowerFillOrder();
-		void powerFill(Pattern &pattern);
 		void postProcessPowerFill(PatternProcessor *pPatternProcessor);
 		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);
 		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);

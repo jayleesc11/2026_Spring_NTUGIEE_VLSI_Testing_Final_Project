@@ -106,7 +106,7 @@ set_fault_type tdf
 add_fault --all
 set_static_compression ${STATIC_COMPRESSION}
 set_dynamic_compression ${DYNAMIC_COMPRESSION}
-set_X-Fill power
+set_X-Fill adjacent
 run_atpg -power
 report_statistics > ${RPT_DIR}/FAN_power_${circuit}.rpt
 write_pattern ${PAT_DIR}/FAN_power_${circuit}.pat

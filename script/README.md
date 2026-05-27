@@ -28,9 +28,8 @@ This folder contains some scripts the users might want to use for convenience.
 - `off`: disable X-fill.
 - `on` or `random`: use the original random X-fill.
 - `adjacent`: use adjacent fill to reduce neighboring input/scan transitions.
-- `power`: use the iFill-style probability-based shift filling. It optimizes shift FFTC and does not enforce a capture-power limit.
 
-`run_atpg -power` automatically enables `set_X-Fill power`.
+`run_atpg -power` automatically enables `set_X-Fill adjacent`.
 
 ## Power Scripts
 
@@ -42,10 +41,10 @@ build_circuit --frame 2
 set_fault_type tdf
 set_static_compression on
 set_dynamic_compression on
-set_X-Fill power
+set_X-Fill adjacent
 ```
 
-`runFANAdjacent.sh` uses `set_X-Fill adjacent` instead of `power`, and writes files with the `_ad` suffix.
+`runFANAdjacent.sh` uses `set_X-Fill adjacent`, and writes files with the `_ad` suffix.
 
 Reports are written to `power_rpt/`, and generated patterns are written to `power_pat/`. Add `--nocomp` to disable compression; no-compression outputs are written to `power_rpt_nocomp/` and `power_pat_nocomp/`.
 

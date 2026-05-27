@@ -29,9 +29,9 @@ namespace CoreNs
 		std::vector<Value> PO2_;
 		std::vector<Value> PPO1_;
 		std::vector<Value> PPO_;
-		std::vector<char> PI1OriginalX_;
-		std::vector<char> PI2OriginalX_;
-		std::vector<char> PPIOriginalX_;
+		std::vector<char> PI1XidDontCare_;
+		std::vector<char> PI2XidDontCare_;
+		std::vector<char> PPIXidDontCare_;
 		std::vector<bool> captureClockEnabled_;
 		inline void initForTransitionDelayFault(Circuit *pCircuit);
 	};
@@ -40,9 +40,9 @@ namespace CoreNs
 				PPI_(pCircuit->numPPI_),
 				PO1_(pCircuit->numPO_),
 				PPO_(pCircuit->numPPI_),
-				PI1OriginalX_(pCircuit->numPI_, 0),
-				PI2OriginalX_(pCircuit->numPI_, 0),
-				PPIOriginalX_(pCircuit->numPPI_, 0){};
+				PI1XidDontCare_(pCircuit->numPI_, 0),
+				PI2XidDontCare_(pCircuit->numPI_, 0),
+				PPIXidDontCare_(pCircuit->numPPI_, 0){};
 
 	// **************************************************************************
 	// Function   [ Pattern::initForTransitionDelayFault ]
@@ -91,8 +91,7 @@ namespace CoreNs
 		{
 			XFILL_OFF,
 			XFILL_RANDOM,
-			XFILL_ADJACENT,
-			XFILL_POWER
+			XFILL_ADJACENT
 		};
 
 		struct CaptureFFTCStats

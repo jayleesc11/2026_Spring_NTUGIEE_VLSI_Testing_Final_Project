@@ -108,17 +108,8 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	if (powerAware)
 	{
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
-	}
-	if (pPatternProcessor->XFillMode_ != PatternProcessor::XFILL_OFF)
-	{
 		XFill(pPatternProcessor);
-	}
-	if (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
-	{
 		postProcessPowerFill(pPatternProcessor);
-	}
-	if (powerAware)
-	{
 		reorderPatternsForShiftPower(pPatternProcessor);
 	}
 
@@ -515,18 +506,9 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 			patternChangedByDynamicCompression = applyTransitionDelayDynamicCompression(faultPtrListForGen, pPatternProcessor->patternVector_.back());
 		}
 
-		const bool patternChangedByXFill = pPatternProcessor->XFillMode_ != PatternProcessor::XFILL_OFF;
-		if (pPatternProcessor->staticCompression_ == PatternProcessor::ON &&
-			pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_POWER)
-		{
-			adjacentFill(pPatternProcessor->patternVector_.back());
-		}
-		else
-		{
-			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
-		}
+		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 
-		const bool finalFaultSimAlreadyDone = dynamicCompressionRan && !patternChangedByDynamicCompression && !patternChangedByXFill;
+		const bool finalFaultSimAlreadyDone = dynamicCompressionRan && !patternChangedByDynamicCompression && (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_OFF);
 		if (!finalFaultSimAlreadyDone)
 		{
 			pSimulator_->parallelFaultFaultSimWithOnePattern(pPatternProcessor->patternVector_.back(), faultPtrListForGen);
@@ -5798,7 +5780,29 @@ void Atpg::XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::ve
 	totalRelaxedBits = 0;
 	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
 	{
-		totalRelaxedBits += countXidRelaxedBits(originalPatterns[patternIndex], pPatternProcessor->patternVector_[patternIndex]);
+		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
+		totalRelaxedBits += countXidRelaxedBits(originalPatterns[patternIndex], pattern);
+		pattern.PI1XidDontCare_.assign(pCircuit_->numPI_, 0);
+		pattern.PI2XidDontCare_.assign(pCircuit_->numPI_, 0);
+		pattern.PPIXidDontCare_.assign(pCircuit_->numPPI_, 0);
+		for (int i = 0; i < pCircuit_->numPI_; ++i)
+		{
+			if (i < static_cast<int>(pattern.PI1_.size()) && pattern.PI1_[i] == X)
+			{
+				pattern.PI1XidDontCare_[i] = 1;
+			}
+			if (i < static_cast<int>(pattern.PI2_.size()) && pattern.PI2_[i] == X)
+			{
+				pattern.PI2XidDontCare_[i] = 1;
+			}
+		}
+		for (int i = 0; i < pCircuit_->numPPI_; ++i)
+		{
+			if (i < static_cast<int>(pattern.PPI_.size()) && pattern.PPI_[i] == X)
+			{
+				pattern.PPIXidDontCare_[i] = 1;
+			}
+		}
 	}
 
 	std::cout << "#  XID relaxation";
@@ -6521,33 +6525,6 @@ void Atpg::initializePowerFillOrder()
 	                 });
 }
 
-void Atpg::powerFill(Pattern &pattern)
-{
-	pattern.PI1OriginalX_.assign(pCircuit_->numPI_, 0);
-	pattern.PI2OriginalX_.assign(pCircuit_->numPI_, 0);
-	pattern.PPIOriginalX_.assign(pCircuit_->numPPI_, 0);
-	for (int i = 0; i < pCircuit_->numPI_; ++i)
-	{
-		if (pattern.PI1_[i] == X)
-		{
-			pattern.PI1OriginalX_[i] = 1;
-		}
-		if (!pattern.PI2_.empty() && pattern.PI2_[i] == X)
-		{
-			pattern.PI2OriginalX_[i] = 1;
-		}
-	}
-	for (int i = 0; i < pCircuit_->numPPI_; ++i)
-	{
-		if (pattern.PPI_[i] == X)
-		{
-			pattern.PPIOriginalX_[i] = 1;
-		}
-	}
-
-	adjacentFill(pattern);
-}
-
 void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 {
 	// if no scan FF or no pattern
@@ -6772,7 +6749,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 
 		bool applyWeightedSegmentPpiCandidate(Pattern &pattern, const size_t &patternIndex) const
 		{
-			if (pattern.PPIOriginalX_.size() != scanLength_)
+			if (pattern.PPIXidDontCare_.size() != scanLength_)
 			{
 				return false;
 			}
@@ -6782,12 +6759,12 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			int segmentStart = -1;
 			for (int i = 0; i <= atpg_->pCircuit_->numPPI_; ++i)
 			{
-				const bool inOriginalX = i < atpg_->pCircuit_->numPPI_ && pattern.PPIOriginalX_[i];
-				if (inOriginalX && segmentStart < 0)
+				const bool isXidDontCare = i < atpg_->pCircuit_->numPPI_ && pattern.PPIXidDontCare_[i];
+				if (isXidDontCare && segmentStart < 0)
 				{
 					segmentStart = i;
 				}
-				if (inOriginalX || segmentStart < 0)
+				if (isXidDontCare || segmentStart < 0)
 				{
 					continue;
 				}
@@ -6920,10 +6897,10 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	{
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		double currentScore = postProcessContext.calculatePostFillScore(patternIndex);
-		const bool canRepairPi1 = pattern.PI1OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) &&
-		                          std::find(pattern.PI1OriginalX_.begin(), pattern.PI1OriginalX_.end(), 1) != pattern.PI1OriginalX_.end();
-		const bool canRepairPi2 = pattern.PI2OriginalX_.size() == static_cast<size_t>(pCircuit_->numPI_) && !pattern.PI2_.empty() &&
-		                          std::find(pattern.PI2OriginalX_.begin(), pattern.PI2OriginalX_.end(), 1) != pattern.PI2OriginalX_.end();
+		const bool canRepairPi1 = pattern.PI1XidDontCare_.size() == static_cast<size_t>(pCircuit_->numPI_) &&
+		                          std::find(pattern.PI1XidDontCare_.begin(), pattern.PI1XidDontCare_.end(), 1) != pattern.PI1XidDontCare_.end();
+		const bool canRepairPi2 = pattern.PI2XidDontCare_.size() == static_cast<size_t>(pCircuit_->numPI_) && !pattern.PI2_.empty() &&
+		                          std::find(pattern.PI2XidDontCare_.begin(), pattern.PI2XidDontCare_.end(), 1) != pattern.PI2XidDontCare_.end();
 		if (canRepairPi1 || canRepairPi2)
 		{
 			postProcessContext.simulateGoodOutputs(pattern);
@@ -6938,7 +6915,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					{
 						break;
 					}
-					if (!pattern.PI1OriginalX_[targetIndex])
+					if (!pattern.PI1XidDontCare_[targetIndex])
 					{
 						continue;
 					}
@@ -6954,7 +6931,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					{
 						break;
 					}
-					if (!pattern.PI2OriginalX_[targetIndex])
+					if (!pattern.PI2XidDontCare_[targetIndex])
 					{
 						continue;
 					}
@@ -7110,9 +7087,6 @@ void Atpg::xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern)
 			break;
 		case PatternProcessor::XFILL_ADJACENT:
 			adjacentFill(pattern);
-			break;
-		case PatternProcessor::XFILL_POWER:
-			powerFill(pattern);
 			break;
 		default:
 			std::cerr << "Bug: reach switch case default while doing X-Fill\n";
