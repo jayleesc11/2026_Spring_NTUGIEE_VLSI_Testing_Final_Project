@@ -26,6 +26,11 @@ namespace CoreNs
 	constexpr int UNIQUE_PATH_SENSITIZE_FAIL = -2;
 	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
 	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 4.0;
+	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 5;
+	constexpr size_t TDF_DTC_MAX_ATPG_ATTEMPTS = TDF_DTC_MAX_SELECTED_FAULTS * 5;
+	constexpr size_t TDF_DTC_MAX_CANDIDATES = TDF_DTC_MAX_ATPG_ATTEMPTS * 4;
+	constexpr size_t TDF_DTC_WORK_QUEUE_RESERVE = 64;
+	constexpr size_t TDF_DTC_DIRTY_GATE_RESERVE = 64;
 
 	class Atpg
 	{
@@ -85,6 +90,7 @@ namespace CoreNs
 		std::vector<int> gateID_to_reachableByTargetFault_;				// 1 means this fanout is in fanout cone of target fault, 0 otherwise
 		std::vector<GATE_LINE_TYPE> gateID_to_lineType_;					// array of line types for all gates, i.e. FREE, HEAD, BOUND
 		std::vector<XPATH_STATE> gateID_to_xPathStatus_;					// gateID to its xPathStatus, i.e. XPATH_EXIST, NO_XPATH_EXIST, UNKNOWN
+		std::vector<int> xPathTouchedGateIDs_;									// gates whose xPathStatus_ was changed from UNKNOWN
 		std::vector<std::vector<int>> gateID_to_uniquePath_;			// list of gates on the unique path associated with a D-frontier, when there is only one gate in D-frontier, xPathTracing will update this information.
 		std::vector<std::vector<int>> circuitLevel_to_EventStack_; // every circuit level has its own corresponding event stack
 		DecisionTree backtrackDecisionTree_;											// the whole tree store the order for later possible backtracking, DecisionTreeNode store the starting point in backtrackImplicatedGateIDs_
@@ -116,7 +122,7 @@ namespace CoreNs
 		void StuckAtFaultATPG(FaultPtrList &faultListToGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults);
 
 		Gate *getGateForFaultActivation(const Fault &fault);
-		void setGateAtpgValAndRunImplication(Gate &gate, const Value &val);
+		void setGateAtpgValAndRunImplication(Gate &gate, const Value &val, std::vector<int> *modifiedGateIDs = NULL, std::vector<char> *modifiedGateMarks = NULL);
 
 		void resetPrevAtpgValStored();
 		int storeCurrentAtpgVal();
@@ -129,6 +135,9 @@ namespace CoreNs
 		Gate *initializeForSinglePatternGeneration(Fault &targetFault, int &BackImpLevel, IMPLICATION_STATUS &implicationStatus, const bool &isAtStageDTC);
 		void initializeObjectivesAndFrontiers();
 		void initializeCircuitWithFaultyGate(Gate &gFaultyLine, bool isAtStageDTC);
+
+		bool applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForGen, Pattern &pattern);
+		Fault makeTransitionDelayTargetFault(const Fault &originalFault) const;
 
 		void clearEventStack(bool isDebug);
 		bool doImplication(IMPLICATION_STATUS atpgStatus, int startLevel);
@@ -233,7 +242,7 @@ namespace CoreNs
 				gateID_to_valModified_(pCircuit->totalGate_, 0),
 				gateID_to_reachableByTargetFault_(pCircuit->totalGate_),
 				gateID_to_lineType_(pCircuit->totalGate_, FREE_LINE),
-				gateID_to_xPathStatus_(pCircuit->totalGate_),
+				gateID_to_xPathStatus_(pCircuit->totalGate_, UNKNOWN),
 				gateID_to_uniquePath_(pCircuit->totalGate_, std::vector<int>()),
 				circuitLevel_to_EventStack_(pCircuit->totalLvl_)
 	{
@@ -245,6 +254,7 @@ namespace CoreNs
 
 		unjustifiedGateIDs_.reserve(MAX_LIST_SIZE);
 		dFrontiers_.reserve(MAX_LIST_SIZE);
+		xPathTouchedGateIDs_.reserve(MAX_LIST_SIZE);
 		backtrackImplicatedGateIDs_.reserve(pCircuit->totalGate_);
 		firstTimeFrameHeadLine_ = NULL;
 		isInEventStack_.resize(pCircuit->totalGate_);
