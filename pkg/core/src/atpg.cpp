@@ -4387,6 +4387,15 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 	{
 		scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex]);
 	}
+	long long initialPeakScanPower = 0;
+	for (const long long &power : scanPower)
+	{
+		if (power > initialPeakScanPower)
+		{
+			initialPeakScanPower = power;
+		}
+	}
+	const double peakPowerLimit = static_cast<double>(initialPeakScanPower) * STC_PEAK_POWER_LIMIT_RATIO;
 
 	auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
 		if (!nonScanInputsCompatible(cubes[lhs], cubes[rhs]) || cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size())
@@ -4407,7 +4416,12 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 			scanScratch[i] = lhsValue >= 0 ? lhsValue : rhsValue;
 		}
 
-		cost = scanTransitionPowerFromBits(scanScratch) - scanPower[lhs] - scanPower[rhs];
+		const long long mergedPower = scanTransitionPowerFromBits(scanScratch);
+		if (static_cast<double>(mergedPower) > peakPowerLimit)
+		{
+			return false;
+		}
+		cost = mergedPower - scanPower[lhs] - scanPower[rhs];
 		return true;
 	};
 
