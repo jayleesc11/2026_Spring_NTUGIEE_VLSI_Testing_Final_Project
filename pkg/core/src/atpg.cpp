@@ -7,6 +7,7 @@
 
 #include "atpg.h"
 #include <algorithm>
+#include <cstdlib>
 #include <deque>
 #include <unordered_map>
 #include <utility>
@@ -72,6 +73,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	pPatternProcessor->patternVector_.reserve(MAX_LIST_SIZE);
 
 	// start ATPG
+	bool isTransitionDelayFault = false;
 	while (!originalFaultPtrList.empty())
 	{
 		// meaning the originalFaultPtrList is already left with aborted fault
@@ -90,7 +92,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		}
 
 		pCurrentFault = originalFaultPtrList.front();
-		const bool isTransitionDelayFault = (pCurrentFault->faultType_ == Fault::STR || pCurrentFault->faultType_ == Fault::STF);
+		isTransitionDelayFault = (pCurrentFault->faultType_ == Fault::STR || pCurrentFault->faultType_ == Fault::STF);
 		if (isTransitionDelayFault)
 		{
 			TransitionDelayFaultATPG(originalFaultPtrList, pPatternProcessor, numOfAtpgUntestableFaults);
@@ -102,7 +104,14 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	}
 	if (pPatternProcessor->staticCompression_ == PatternProcessor::ON)
 	{
-		staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
+		if (isTransitionDelayFault)
+		{
+			staticTestCompression(pPatternProcessor, faultPtrListForSTC);
+		}
+		else
+		{
+			staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
+		}
 		originalFaultPtrList = faultPtrListForSTC;
 	}
 	if (powerAware)
@@ -506,14 +515,28 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 			patternChangedByDynamicCompression = applyTransitionDelayDynamicCompression(faultPtrListForGen, pPatternProcessor->patternVector_.back());
 		}
 
-		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
+		Pattern *pFaultSimPattern = &pPatternProcessor->patternVector_.back();
+		Pattern filledPatternForFaultSim;
+		if (pPatternProcessor->staticCompression_ == PatternProcessor::ON)
+		{
+			filledPatternForFaultSim = pPatternProcessor->patternVector_.back();
+			xFillPattern(pPatternProcessor, filledPatternForFaultSim);
+			pFaultSimPattern = &filledPatternForFaultSim;
+		}
+		else
+		{
+			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
+		}
 
 		const bool finalFaultSimAlreadyDone = dynamicCompressionRan && !patternChangedByDynamicCompression && (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_OFF);
 		if (!finalFaultSimAlreadyDone)
 		{
-			pSimulator_->parallelFaultFaultSimWithOnePattern(pPatternProcessor->patternVector_.back(), faultPtrListForGen);
+			pSimulator_->parallelFaultFaultSimWithOnePattern(*pFaultSimPattern, faultPtrListForGen);
 			pSimulator_->goodSim();
-			writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.back());
+			if (pPatternProcessor->staticCompression_ != PatternProcessor::ON)
+			{
+				writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.back());
+			}
 		}
 	}
 	else if (result == FAULT_UNTESTABLE)
@@ -4231,6 +4254,272 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 		// 	delete (*rit);
 		// }
 	}
+}
+
+void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList)
+{
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty())
+	{
+		return;
+	}
+
+	auto normalizeBinaryInput = [](const Value &value) -> int {
+		if (value == L || value == B)
+		{
+			return 0;
+		}
+		if (value == H || value == D)
+		{
+			return 1;
+		}
+		return -1;
+	};
+
+	auto valuesCompatible = [&](const std::vector<Value> &lhs, const std::vector<Value> &rhs) {
+		if (lhs.size() != rhs.size())
+		{
+			return false;
+		}
+		for (size_t i = 0; i < lhs.size(); ++i)
+		{
+			const int lhsValue = normalizeBinaryInput(lhs[i]);
+			const int rhsValue = normalizeBinaryInput(rhs[i]);
+			if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	auto nonScanInputsCompatible = [&](const Pattern &lhs, const Pattern &rhs) {
+		return valuesCompatible(lhs.PI1_, rhs.PI1_) &&
+		       valuesCompatible(lhs.PI2_, rhs.PI2_) &&
+		       valuesCompatible(lhs.SI_, rhs.SI_);
+	};
+
+	auto mergeValue = [&](const Value &lhs, const Value &rhs) {
+		if (normalizeBinaryInput(lhs) >= 0)
+		{
+			return lhs;
+		}
+		return rhs;
+	};
+
+	auto mergeValues = [&](std::vector<Value> &lhs, const std::vector<Value> &rhs) {
+		for (size_t i = 0; i < lhs.size(); ++i)
+		{
+			lhs[i] = mergeValue(lhs[i], rhs[i]);
+		}
+	};
+
+	auto mergePattern = [&](Pattern &lhs, const Pattern &rhs) {
+		mergeValues(lhs.PI1_, rhs.PI1_);
+		mergeValues(lhs.PI2_, rhs.PI2_);
+		mergeValues(lhs.PPI_, rhs.PPI_);
+		mergeValues(lhs.SI_, rhs.SI_);
+	};
+
+	auto scanTransitionPowerFromBits = [](std::vector<int> &scanBits) -> long long {
+		const size_t scanLength = scanBits.size();
+		if (scanLength < 2)
+		{
+			return 0;
+		}
+
+		for (size_t i = 0; i < scanLength;)
+		{
+			if (scanBits[i] >= 0)
+			{
+				++i;
+				continue;
+			}
+
+			const size_t segmentStart = i;
+			while (i < scanLength && scanBits[i] < 0)
+			{
+				++i;
+			}
+			const size_t segmentEnd = i - 1;
+			const int leftValue = segmentStart > 0 ? scanBits[segmentStart - 1] : -1;
+			const int rightValue = i < scanLength ? scanBits[i] : -1;
+			int fillValue = 0;
+			if (leftValue < 0 && rightValue >= 0)
+			{
+				fillValue = rightValue;
+			}
+			else if (leftValue >= 0)
+			{
+				fillValue = leftValue;
+			}
+			for (size_t j = segmentStart; j <= segmentEnd; ++j)
+			{
+				scanBits[j] = fillValue;
+			}
+		}
+
+		long long power = 0;
+		for (size_t i = 0; i + 1 < scanLength; ++i)
+		{
+			if (scanBits[i] != scanBits[i + 1])
+			{
+				power += static_cast<long long>(scanLength - i - 1);
+			}
+		}
+		return power;
+	};
+
+	std::vector<int> scanScratch;
+	auto weightedScanTransitionPower = [&](const Pattern &pattern) -> long long {
+		scanScratch.resize(pattern.PPI_.size());
+		for (size_t i = 0; i < pattern.PPI_.size(); ++i)
+		{
+			const size_t ppiIndex = pattern.PPI_.size() - 1 - i;
+			scanScratch[i] = normalizeBinaryInput(pattern.PPI_[ppiIndex]);
+		}
+		return scanTransitionPowerFromBits(scanScratch);
+	};
+
+	std::vector<Pattern> cubes = pPatternProcessor->patternVector_;
+	std::vector<char> active(cubes.size(), 1);
+	std::vector<long long> scanPower(cubes.size(), 0);
+	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	{
+		scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex]);
+	}
+
+	auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
+		if (!nonScanInputsCompatible(cubes[lhs], cubes[rhs]) || cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size())
+		{
+			return false;
+		}
+
+		scanScratch.resize(cubes[lhs].PPI_.size());
+		for (size_t i = 0; i < cubes[lhs].PPI_.size(); ++i)
+		{
+			const size_t ppiIndex = cubes[lhs].PPI_.size() - 1 - i;
+			const int lhsValue = normalizeBinaryInput(cubes[lhs].PPI_[ppiIndex]);
+			const int rhsValue = normalizeBinaryInput(cubes[rhs].PPI_[ppiIndex]);
+			if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
+			{
+				return false;
+			}
+			scanScratch[i] = lhsValue >= 0 ? lhsValue : rhsValue;
+		}
+
+		cost = scanTransitionPowerFromBits(scanScratch) - scanPower[lhs] - scanPower[rhs];
+		return true;
+	};
+
+	auto nextActiveFrom = [&](const size_t &startIndex) -> size_t {
+		for (size_t offset = 0; offset < cubes.size(); ++offset)
+		{
+			const size_t patternIndex = (startIndex + offset) % cubes.size();
+			if (active[patternIndex])
+			{
+				return patternIndex;
+			}
+		}
+		return cubes.size();
+	};
+
+	size_t activeCount = cubes.size();
+	size_t selectionCursor = 0;
+	while (activeCount > 1)
+	{
+		bool mergedThisRound = false;
+		for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
+		{
+			const size_t selected = nextActiveFrom(selectionCursor);
+			if (selected == cubes.size())
+			{
+				break;
+			}
+			selectionCursor = (selected + 1) % cubes.size();
+
+			bool foundBest = false;
+			size_t bestOther = cubes.size();
+			long long bestCost = 0;
+			for (size_t other = 0; other < cubes.size(); ++other)
+			{
+				if (!active[other] || other == selected)
+				{
+					continue;
+				}
+				long long cost = 0;
+				if (!mergeCostIfCompatible(selected, other, cost))
+				{
+					continue;
+				}
+				if (!foundBest || cost < bestCost || (cost == bestCost && other < bestOther))
+				{
+					foundBest = true;
+					bestOther = other;
+					bestCost = cost;
+				}
+			}
+
+			if (!foundBest)
+			{
+				continue;
+			}
+
+			mergePattern(cubes[selected], cubes[bestOther]);
+			scanPower[selected] = weightedScanTransitionPower(cubes[selected]);
+			active[bestOther] = 0;
+			--activeCount;
+			mergedThisRound = true;
+			break;
+		}
+
+		if (!mergedThisRound)
+		{
+			break;
+		}
+	}
+
+	pPatternProcessor->patternVector_.clear();
+	pPatternProcessor->patternVector_.reserve(activeCount);
+	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	{
+		if (active[patternIndex])
+		{
+			pPatternProcessor->patternVector_.push_back(std::move(cubes[patternIndex]));
+		}
+	}
+
+	if (pPatternProcessor->XFillMode_ != PatternProcessor::XFILL_OFF)
+	{
+		XFill(pPatternProcessor);
+	}
+	else
+	{
+		for (Pattern &pattern : pPatternProcessor->patternVector_)
+		{
+			pSimulator_->assignPatternToCircuitInputs(pattern);
+			pSimulator_->goodSim();
+			writeGoodSimValToPatternPO(pattern);
+		}
+	}
+
+	for (Fault *pFault : originalFaultList)
+	{
+		if (pFault->faultState_ == Fault::DT)
+		{
+			pFault->faultState_ = Fault::UD;
+		}
+		pFault->detection_ = 0;
+	}
+	FaultPtrList remainingFaults = originalFaultList;
+	for (const Pattern &pattern : pPatternProcessor->patternVector_)
+	{
+		if (remainingFaults.empty())
+		{
+			break;
+		}
+		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, remainingFaults);
+	}
+	originalFaultList = remainingFaults;
 }
 
 // **************************************************************************

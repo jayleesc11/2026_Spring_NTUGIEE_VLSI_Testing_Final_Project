@@ -114,19 +114,6 @@ Pattern "_pattern_" {
            "test_si"=11111011;
        }
        Call "capture_CK" {
-           "_pi"=00010000000111;
-           "_po"=LHH;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000000010;
-           "_po"=LLL;
-       }
-   "pattern 1":
-       Call "load_unload" {
-           "test_so"=LLLLHHHH;
-           "test_si"=11111011;
-       }
-       Call "capture_CK" {
            "_pi"=00010000000000;
            "_po"=LHL;
        }
@@ -134,62 +121,10 @@ Pattern "_pattern_" {
            "_pi"=00010000000100;
            "_po"=LLH;
        }
-   "pattern 2":
+   "pattern 1":
        Call "load_unload" {
            "test_so"=LLLLHHHH;
-           "test_si"=11011111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00010100000000;
-           "_po"=LLL;
-       }
-   "pattern 3":
-       Call "load_unload" {
-           "test_so"=LLLLHLLL;
-           "test_si"=00010000;
-       }
-       Call "capture_CK" {
-           "_pi"=00011111111111;
-           "_po"=LLH;
-       }
-       Call "capture_CK" {
-           "_pi"=00001111111111;
-           "_po"=LLL;
-       }
-   "pattern 4":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=00100000;
-       }
-       Call "capture_CK" {
-           "_pi"=00011111111111;
-           "_po"=LLH;
-       }
-       Call "capture_CK" {
-           "_pi"=00001111111111;
-           "_po"=LLL;
-       }
-   "pattern 5":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=01000000;
-       }
-       Call "capture_CK" {
-           "_pi"=00011111111111;
-           "_po"=LLH;
-       }
-       Call "capture_CK" {
-           "_pi"=00001111111111;
-           "_po"=LLL;
-       }
-   "pattern 6":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=00011111;
+           "test_si"=11101111;
        }
        Call "capture_CK" {
            "_pi"=00000000000000;
@@ -197,35 +132,61 @@ Pattern "_pattern_" {
        }
        Call "capture_CK" {
            "_pi"=00011100000000;
-           "_po"=LLL;
+           "_po"=LLH;
        }
-   "pattern 7":
+   "pattern 2":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00000000;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-   "pattern 8":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=00000111;
+           "test_si"=00001110;
        }
        Call "capture_CK" {
            "_pi"=00010000000000;
            "_po"=LLL;
        }
        Call "capture_CK" {
-           "_pi"=00011000000000;
+           "_pi"=00000000010011;
            "_po"=LLL;
        }
-   "pattern 9":
+   "pattern 3":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=00000000;
+       }
+       Call "capture_CK" {
+           "_pi"=00001111111110;
+           "_po"=LLL;
+       }
+       Call "capture_CK" {
+           "_pi"=00010111111111;
+           "_po"=LLH;
+       }
+   "pattern 4":
+       Call "load_unload" {
+           "test_so"=LLLLHLLL;
+           "test_si"=00001111;
+       }
+       Call "capture_CK" {
+           "_pi"=00000000000000;
+           "_po"=LLL;
+       }
+       Call "capture_CK" {
+           "_pi"=00011000100000;
+           "_po"=LLH;
+       }
+   "pattern 5":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=00011111;
+       }
+       Call "capture_CK" {
+           "_pi"=00000000111111;
+           "_po"=LLL;
+       }
+       Call "capture_CK" {
+           "_pi"=00011100011110;
+           "_po"=LLL;
+       }
+   "pattern 6":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
            "test_si"=00001100;
@@ -238,10 +199,49 @@ Pattern "_pattern_" {
            "_pi"=00011000000000;
            "_po"=LLL;
        }
+   "pattern 7":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=00000011;
+       }
+       Call "capture_CK" {
+           "_pi"=00010000001111;
+           "_po"=LLH;
+       }
+       Call "capture_CK" {
+           "_pi"=00000000001111;
+           "_po"=LLL;
+       }
+   "pattern 8":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=00011111;
+       }
+       Call "capture_CK" {
+           "_pi"=00001111111111;
+           "_po"=LLL;
+       }
+       Call "capture_CK" {
+           "_pi"=00011111111110;
+           "_po"=LLL;
+       }
+   "pattern 9":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=00000111;
+       }
+       Call "capture_CK" {
+           "_pi"=00011111111111;
+           "_po"=LLH;
+       }
+       Call "capture_CK" {
+           "_pi"=00001111111111;
+           "_po"=LLL;
+       }
    "pattern 10":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00000100;
+           "test_si"=00000000;
        }
        Call "capture_CK" {
            "_pi"=00010000000000;
@@ -253,7 +253,7 @@ Pattern "_pattern_" {
        }
    "pattern 11":
        Call "load_unload" {
-           "test_so"=LLLLLLHL;
+           "test_so"=LLLLLHLL;
            "test_si"=00000001;
        }
        Call "capture_CK" {
@@ -267,7 +267,7 @@ Pattern "_pattern_" {
    "pattern 12":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00000000;
+           "test_si"=00000100;
        }
        Call "capture_CK" {
            "_pi"=00010000000000;
@@ -279,34 +279,34 @@ Pattern "_pattern_" {
        }
    "pattern 13":
        Call "load_unload" {
-           "test_so"=LLLLLHLL;
-           "test_si"=00001010;
+           "test_so"=LLLLLLHL;
+           "test_si"=00000111;
        }
        Call "capture_CK" {
            "_pi"=00010000000000;
            "_po"=LLL;
        }
        Call "capture_CK" {
-           "_pi"=00011000001000;
+           "_pi"=00011000000000;
            "_po"=LLL;
        }
    "pattern 14":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00000011;
+           "test_si"=01000000;
        }
        Call "capture_CK" {
-           "_pi"=00010000001111;
+           "_pi"=00011111111111;
            "_po"=LLH;
        }
        Call "capture_CK" {
-           "_pi"=00000000001111;
+           "_pi"=00001111111111;
            "_po"=LLL;
        }
    "pattern 15":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00000111;
+           "test_si"=00100000;
        }
        Call "capture_CK" {
            "_pi"=00011111111111;
@@ -319,69 +319,17 @@ Pattern "_pattern_" {
    "pattern 16":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00111111;
+           "test_si"=00010000;
+       }
+       Call "capture_CK" {
+           "_pi"=00011111111111;
+           "_po"=LLH;
        }
        Call "capture_CK" {
            "_pi"=00001111111111;
            "_po"=LLL;
        }
-       Call "capture_CK" {
-           "_pi"=00011111111110;
-           "_po"=LLL;
-       }
    "pattern 17":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=00000000;
-       }
-       Call "capture_CK" {
-           "_pi"=00001111111110;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00010111111111;
-           "_po"=LLH;
-       }
-   "pattern 18":
-       Call "load_unload" {
-           "test_so"=LLLLHLLL;
-           "test_si"=00000000;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000000011;
-           "_po"=LLH;
-       }
-       Call "capture_CK" {
-           "_pi"=00011000000000;
-           "_po"=LLL;
-       }
-   "pattern 19":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=01111111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000111111;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011000011110;
-           "_po"=LHL;
-       }
-   "pattern 20":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=00001111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011000100000;
-           "_po"=LLH;
-       }
-   "pattern 21":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
            "test_si"=00001110;
@@ -391,10 +339,49 @@ Pattern "_pattern_" {
            "_po"=LLL;
        }
        Call "capture_CK" {
-           "_pi"=00000000010000;
+           "_pi"=00010000010000;
+           "_po"=LLH;
+       }
+   "pattern 18":
+       Call "load_unload" {
+           "test_so"=LLLLHLLH;
+           "test_si"=11101111;
+       }
+       Call "capture_CK" {
+           "_pi"=00000111111111;
            "_po"=LLL;
        }
-   "pattern 22":
+       Call "capture_CK" {
+           "_pi"=00010011111110;
+           "_po"=LLL;
+       }
+   "pattern 19":
+       Call "load_unload" {
+           "test_so"=LLLLHLLL;
+           "test_si"=00001101;
+       }
+       Call "capture_CK" {
+           "_pi"=00010000001111;
+           "_po"=LLH;
+       }
+       Call "capture_CK" {
+           "_pi"=00010000010110;
+           "_po"=LLL;
+       }
+   "pattern 20":
+       Call "load_unload" {
+           "test_so"=LLLLHLHH;
+           "test_si"=11001111;
+       }
+       Call "capture_CK" {
+           "_pi"=00000000000000;
+           "_po"=LLL;
+       }
+       Call "capture_CK" {
+           "_pi"=00011010000000;
+           "_po"=LLH;
+       }
+   "pattern 21":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
            "test_si"=00000110;
@@ -407,35 +394,87 @@ Pattern "_pattern_" {
            "_pi"=00010000000100;
            "_po"=LLL;
        }
-   "pattern 23":
+   "pattern 22":
        Call "load_unload" {
            "test_so"=LLLLLLLH;
-           "test_si"=11001111;
+           "test_si"=11011111;
+       }
+       Call "capture_CK" {
+           "_pi"=00010011111111;
+           "_po"=LLH;
+       }
+       Call "capture_CK" {
+           "_pi"=00011101111110;
+           "_po"=LLL;
+       }
+   "pattern 23":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=10111111;
        }
        Call "capture_CK" {
            "_pi"=00000000000000;
            "_po"=LLL;
        }
        Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
+           "_pi"=00011001000000;
+           "_po"=LLH;
        }
    "pattern 24":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
-           "test_si"=00001101;
+           "test_si"=10011111;
+       }
+       Call "capture_CK" {
+           "_pi"=00000001111111;
+           "_po"=LLL;
+       }
+       Call "capture_CK" {
+           "_pi"=00011100111110;
+           "_po"=LLL;
+       }
+   "pattern 25":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=11111110;
+       }
+       Call "capture_CK" {
+           "_pi"=00010000011111;
+           "_po"=LHH;
+       }
+       Call "capture_CK" {
+           "_pi"=00011000001110;
+           "_po"=LLL;
+       }
+   "pattern 26":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=11111011;
+       }
+       Call "capture_CK" {
+           "_pi"=00010000000111;
+           "_po"=LHH;
+       }
+       Call "capture_CK" {
+           "_pi"=00011000001010;
+           "_po"=LLL;
+       }
+   "pattern 27":
+       Call "load_unload" {
+           "test_so"=LLLLLLLL;
+           "test_si"=11110111;
+       }
+       Call "capture_CK" {
+           "_pi"=00010000000011;
+           "_po"=LHH;
        }
        Call "capture_CK" {
            "_pi"=00010000000000;
            "_po"=LLL;
        }
-       Call "capture_CK" {
-           "_pi"=00010000010000;
-           "_po"=LLL;
-       }
-   "pattern 25":
+   "pattern 28":
        Call "load_unload" {
-           "test_so"=LLLLHLHH;
+           "test_so"=HLLLLLLL;
            "test_si"=10000000;
        }
        Call "capture_CK" {
@@ -446,150 +485,7 @@ Pattern "_pattern_" {
            "_pi"=00001111111111;
            "_po"=LLL;
        }
-   "pattern 26":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=00001110;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000011111;
-           "_po"=LLH;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000001110;
-           "_po"=LLL;
-       }
-   "pattern 27":
-       Call "load_unload" {
-           "test_so"=LLLLHLLH;
-           "test_si"=11110111;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000000000;
-           "_po"=LHL;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000000000;
-           "_po"=LLL;
-       }
-   "pattern 28":
-       Call "load_unload" {
-           "test_so"=HLLLLLLL;
-           "test_si"=10011111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011100000000;
-           "_po"=LLL;
-       }
-   "pattern 29":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=11111100;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000001111;
-           "_po"=LHH;
-       }
-       Call "capture_CK" {
-           "_pi"=00011000000110;
-           "_po"=LLL;
-       }
-   "pattern 30":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=11111110;
-       }
-       Call "capture_CK" {
-           "_pi"=00010000000000;
-           "_po"=LHL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011000010000;
-           "_po"=LLH;
-       }
-   "pattern 31":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=10111111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000001111111;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011000111110;
-           "_po"=LLL;
-       }
-   "pattern 32":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=10001111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011001000000;
-           "_po"=LLH;
-       }
-   "pattern 33":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=11001111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000011111111;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011001111110;
-           "_po"=LLL;
-       }
-   "pattern 34":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=11001111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011010000000;
-           "_po"=LLH;
-       }
-   "pattern 35":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=11101111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000111111111;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011011111110;
-           "_po"=LLL;
-       }
-   "pattern 36":
-       Call "load_unload" {
-           "test_so"=LLLLLLLL;
-           "test_si"=11101111;
-       }
-       Call "capture_CK" {
-           "_pi"=00000000000000;
-           "_po"=LLL;
-       }
-       Call "capture_CK" {
-           "_pi"=00011100000000;
-           "_po"=LLH;
-       }
-   "end 36 unload":
+   "end 28 unload":
        Call "load_unload" {
            "test_so"=LLLLLLLL;
        }
