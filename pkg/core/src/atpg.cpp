@@ -123,8 +123,8 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	{
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
 		XFill(pPatternProcessor);
-		postProcessPowerFill(pPatternProcessor);
 		reorderPatternsForShiftPower(pPatternProcessor);
+		postProcessPowerFill(pPatternProcessor);
 	}
 
 	// finish calculation equivalent faults left
@@ -6810,15 +6810,19 @@ void Atpg::adjacentFill(Pattern &pattern)
 		}
 	}
 
-	if (pattern.PPI_[0] == X)
+	const int numPPI = std::min(pCircuit_->numPPI_, static_cast<int>(pattern.PPI_.size()));
+	if (numPPI > 0)
 	{
-		pattern.PPI_[0] = pattern.PI1_[pCircuit_->numPI_ - 1];
-	}
-	for (int i = 1; i < pCircuit_->numPPI_; ++i)
-	{
-		if (pattern.PPI_[i] == X)
+		if (pattern.PPI_[numPPI - 1] == X)
 		{
-			pattern.PPI_[i] = pattern.PPI_[i - 1];
+			pattern.PPI_[numPPI - 1] = L;
+		}
+		for (int i = numPPI - 2; i >= 0; --i)
+		{
+			if (pattern.PPI_[i] == X)
+			{
+				pattern.PPI_[i] = pattern.PPI_[i + 1];
+			}
 		}
 	}
 
