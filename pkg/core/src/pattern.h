@@ -278,31 +278,31 @@ namespace CoreNs
 		return fftc;
 	}
 
-		inline size_t PatternProcessor::calculateCaptureFFTCBetweenStates(const std::vector<Value> &fromValues, const std::vector<Value> &toValues, size_t *unknownPairs) const
+	inline size_t PatternProcessor::calculateCaptureFFTCBetweenStates(const std::vector<Value> &fromValues, const std::vector<Value> &toValues, size_t *unknownPairs) const
+	{
+		if (unknownPairs)
 		{
-			if (unknownPairs)
-			{
-				*unknownPairs = 0;
-			}
+			*unknownPairs = 0;
+		}
 
-			if (fromValues.empty() || toValues.empty() || numPPI_ <= 0)
-			{
-				return 0;
-			}
+		if (fromValues.empty() || toValues.empty() || numPPI_ <= 0)
+		{
+			return 0;
+		}
 
-			const size_t expectedPairs = static_cast<size_t>(numPPI_);
-			size_t comparePairs = fromValues.size() < toValues.size() ? fromValues.size() : toValues.size();
-			comparePairs = comparePairs < expectedPairs ? comparePairs : expectedPairs;
+		const size_t expectedPairs = static_cast<size_t>(numPPI_);
+		size_t comparePairs = fromValues.size() < toValues.size() ? fromValues.size() : toValues.size();
+		comparePairs = comparePairs < expectedPairs ? comparePairs : expectedPairs;
 
-			size_t unknown = expectedPairs - comparePairs;
-			size_t fftc = unknown;
-			for (size_t i = 0; i < comparePairs; ++i)
+		size_t unknown = expectedPairs - comparePairs;
+		size_t fftc = unknown;
+		for (size_t i = 0; i < comparePairs; ++i)
+		{
+			const Value &launchValue = fromValues[i];
+			const Value &captureValue = toValues[i];
+			if (!isBinaryValue(launchValue) || !isBinaryValue(captureValue))
 			{
-				const Value &launchValue = fromValues[i];
-				const Value &captureValue = toValues[i];
-				if (!isBinaryValue(launchValue) || !isBinaryValue(captureValue))
-				{
-					++unknown;
+				++unknown;
 				++fftc;
 				continue;
 			}
@@ -315,9 +315,9 @@ namespace CoreNs
 		if (unknownPairs)
 		{
 			*unknownPairs = unknown;
-			}
-			return fftc;
 		}
+		return fftc;
+	}
 
 	inline PatternProcessor::CaptureFFTCStats PatternProcessor::calculateCaptureFFTCStats() const
 	{

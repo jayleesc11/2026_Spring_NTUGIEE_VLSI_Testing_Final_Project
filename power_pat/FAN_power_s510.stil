@@ -387,29 +387,29 @@ Pattern "_pattern_" {
            "test_si"=001001;
        }
        Call "capture_CK" {
-           "_pi"=0000001111000000000000;
+           "_pi"=0000001111111111111111;
            "_po"=LLLLHLLH;
        }
        Call "capture_CK" {
-           "_pi"=0000001110000000000000;
+           "_pi"=0000001110011111111111;
            "_po"=LLLLLLLH;
        }
    "pattern 21":
        Call "load_unload" {
            "test_so"=LHLLLL;
-           "test_si"=010000;
+           "test_si"=000000;
        }
        Call "capture_CK" {
            "_pi"=0000000000000000000000;
-           "_po"=LLLLLLLH;
+           "_po"=LLLHHHLL;
        }
        Call "capture_CK" {
-           "_pi"=0000000001100000000000;
-           "_po"=LLLLLLLH;
+           "_pi"=0000000000000000000000;
+           "_po"=LLLLLHLL;
        }
    "pattern 22":
        Call "load_unload" {
-           "test_so"=HHLLLL;
+           "test_so"=LHLLHL;
            "test_si"=010000;
        }
        Call "capture_CK" {
@@ -608,16 +608,16 @@ Pattern "_pattern_" {
            "test_si"=001001;
        }
        Call "capture_CK" {
-           "_pi"=0000000001111111111111;
+           "_pi"=0000000001000000000000;
            "_po"=LLLLHLLH;
        }
        Call "capture_CK" {
-           "_pi"=0000000000011111111111;
+           "_pi"=0000000001100000000000;
            "_po"=LLLLLLLH;
        }
    "pattern 38":
        Call "load_unload" {
-           "test_so"=LHLLLL;
+           "test_so"=HHLLLL;
            "test_si"=000000;
        }
        Call "capture_CK" {
@@ -1278,8 +1278,21 @@ Pattern "_pattern_" {
            "_pi"=0000000011111111111111;
            "_po"=LLLLHLLH;
        }
-   "end 88 unload":
+   "pattern 89":
        Call "load_unload" {
            "test_so"=LHLLLL;
+           "test_si"=101110;
+       }
+       Call "capture_CK" {
+           "_pi"=0000001111111111111111;
+           "_po"=LLLLHHLH;
+       }
+       Call "capture_CK" {
+           "_pi"=0000000111111111111111;
+           "_po"=LLLLLHLH;
+       }
+   "end 89 unload":
+       Call "load_unload" {
+           "test_so"=HHHLLL;
        }
 }

@@ -74,6 +74,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 
 	// start ATPG
 	bool isTransitionDelayFault = false;
+	FaultPtrList unresolvedAtpgFaults;
 	while (!originalFaultPtrList.empty())
 	{
 		// meaning the originalFaultPtrList is already left with aborted fault
@@ -82,12 +83,11 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			break;
 		}
 
-		// the fault is not popped in previous call of StuckAtFaultATPG()
-		// => the fault is neither aborted nor untestable => a pattern was found => detected fault
 		if (pCurrentFault == originalFaultPtrList.front())
 		{
-			originalFaultPtrList.front()->faultState_ = Fault::DT;
+			unresolvedAtpgFaults.push_back(originalFaultPtrList.front());
 			originalFaultPtrList.pop_front();
+			pCurrentFault = NULL;
 			continue;
 		}
 
@@ -95,18 +95,23 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		isTransitionDelayFault = (pCurrentFault->faultType_ == Fault::STR || pCurrentFault->faultType_ == Fault::STF);
 		if (isTransitionDelayFault)
 		{
-			TransitionDelayFaultATPG(originalFaultPtrList, pPatternProcessor, numOfAtpgUntestableFaults);
+			TransitionDelayFaultATPG(originalFaultPtrList, pPatternProcessor, numOfAtpgUntestableFaults, powerAware && pPatternProcessor->staticCompression_ == PatternProcessor::ON);
 		}
 		else
 		{
 			StuckAtFaultATPG(originalFaultPtrList, pPatternProcessor, numOfAtpgUntestableFaults);
 		}
 	}
+	if (pPatternProcessor->staticCompression_ != PatternProcessor::ON && !unresolvedAtpgFaults.empty())
+	{
+		faultSimUndetectedFaultsWithPatternSet(pPatternProcessor, unresolvedAtpgFaults);
+		originalFaultPtrList.splice(originalFaultPtrList.end(), unresolvedAtpgFaults);
+	}
 	if (pPatternProcessor->staticCompression_ == PatternProcessor::ON)
 	{
-		if (isTransitionDelayFault)
+		if (isTransitionDelayFault && powerAware)
 		{
-			staticTestCompression(pPatternProcessor, faultPtrListForSTC);
+			staticTestCompression(pPatternProcessor, faultPtrListForSTC, numOfAtpgUntestableFaults);
 		}
 		else
 		{
@@ -495,7 +500,7 @@ void Atpg::identifyGateUniquePath()
 //            ]
 // Date       [ HKY Ver. 1.0 started 2014/09/01 last modified 2023/01/05 ]
 // **************************************************************************
-void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults)
+void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults, bool powerAwareSTC)
 {
 	const Fault &fTDF = *faultPtrListForGen.front();
 
@@ -517,7 +522,7 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 
 		Pattern *pFaultSimPattern = &pPatternProcessor->patternVector_.back();
 		Pattern filledPatternForFaultSim;
-		if (pPatternProcessor->staticCompression_ == PatternProcessor::ON)
+		if (powerAwareSTC)
 		{
 			filledPatternForFaultSim = pPatternProcessor->patternVector_.back();
 			xFillPattern(pPatternProcessor, filledPatternForFaultSim);
@@ -533,7 +538,7 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		{
 			pSimulator_->parallelFaultFaultSimWithOnePattern(*pFaultSimPattern, faultPtrListForGen);
 			pSimulator_->goodSim();
-			if (pPatternProcessor->staticCompression_ != PatternProcessor::ON)
+			if (!powerAwareSTC)
 			{
 				writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.back());
 			}
@@ -1628,6 +1633,7 @@ void Atpg::initializeCircuitWithFaultyGate(Gate &gFaultyLine, bool isAtStageDTC)
 		if (!isAtStageDTC)
 		{
 			gate.atpgVal_ = X;
+			gate.prevAtpgValStored_ = X;
 		}
 		gateID_to_xPathStatus_[gate.gateId_] = UNKNOWN;
 	}
@@ -2566,6 +2572,21 @@ void Atpg::assignAtpgValToFinalObjectiveGates()
 void Atpg::justifyFreeLines(Fault &originalFault)
 {
 	Gate *pHeadLineFaultGate = NULL;
+	auto justifyFreeLineGate = [&](Gate *pGate) {
+		if (pGate->gateType_ == Gate::PI || pGate->gateType_ == Gate::PPI || pGate == firstTimeFrameHeadLine_ || pGate->atpgVal_ == X)
+		{
+			return;
+		}
+		if (pGate->atpgVal_ == D)
+		{
+			pGate->atpgVal_ = H;
+		}
+		else if (pGate->atpgVal_ == B)
+		{
+			pGate->atpgVal_ = L;
+		}
+		fanoutFreeBacktrace(pGate);
+	};
 
 	int gateID = currentTargetHeadLineFault_.gateID_;
 	if (gateID != -1)
@@ -2597,10 +2618,17 @@ void Atpg::justifyFreeLines(Fault &originalFault)
 			pGate->atpgVal_ = L;
 		}
 
-		if (!(pGate->gateType_ == Gate::PI || pGate->gateType_ == Gate::PPI || pGate->atpgVal_ == X))
+		justifyFreeLineGate(pGate);
+	}
+
+	for (const int &gateID : backtrackImplicatedGateIDs_)
+	{
+		Gate *pGate = &pCircuit_->circuitGates_[gateID];
+		if (gateID_to_lineType_[pGate->gateId_] != FREE_LINE || pGate->prevAtpgValStored_ == pGate->atpgVal_)
 		{
-			fanoutFreeBacktrace(pGate);
+			continue;
 		}
+		justifyFreeLineGate(pGate);
 	}
 }
 
@@ -4228,6 +4256,31 @@ Atpg::IMPLICATION_STATUS Atpg::evaluateAndSetFaultyGateAtpgVal(Gate *pGate)
 //            ]
 // Date       [ started 2020/07/08    last modified 2023/01/06 ]
 // **************************************************************************
+void Atpg::faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults)
+{
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || faults.empty())
+	{
+		return;
+	}
+
+	for (Fault *pFault : faults)
+	{
+		if (pFault->faultState_ == Fault::DT)
+		{
+			pFault->faultState_ = Fault::UD;
+		}
+		pFault->detection_ = 0;
+	}
+	for (const Pattern &pattern : pPatternProcessor->patternVector_)
+	{
+		if (faults.empty())
+		{
+			break;
+		}
+		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faults);
+	}
+}
+
 void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList)
 {
 
@@ -4256,7 +4309,7 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 	}
 }
 
-void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList)
+void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults)
 {
 	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty())
 	{
@@ -4534,6 +4587,58 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, remainingFaults);
 	}
 	originalFaultList = remainingFaults;
+
+	if (!originalFaultList.empty())
+	{
+		const FaultPtrList::size_type recoveryTargetFaultCount = originalFaultList.size();
+		const size_t patternCountBeforeRecovery = pPatternProcessor->patternVector_.size();
+		Fault *pRecoveryCurrentFault = NULL;
+		const PatternProcessor::State savedStaticCompression = pPatternProcessor->staticCompression_;
+		pPatternProcessor->staticCompression_ = PatternProcessor::OFF;
+		FaultPtrList unrecoveredFaults;
+
+		while (!originalFaultList.empty())
+		{
+			if (originalFaultList.front()->faultState_ == Fault::AB)
+			{
+				unrecoveredFaults.splice(unrecoveredFaults.end(), originalFaultList);
+				break;
+			}
+
+			pRecoveryCurrentFault = originalFaultList.front();
+			const FaultPtrList::size_type faultCountBeforeAtpg = originalFaultList.size();
+			if (pRecoveryCurrentFault->faultType_ == Fault::STR || pRecoveryCurrentFault->faultType_ == Fault::STF)
+			{
+				TransitionDelayFaultATPG(originalFaultList, pPatternProcessor, numOfAtpgUntestableFaults);
+			}
+			else
+			{
+				StuckAtFaultATPG(originalFaultList, pPatternProcessor, numOfAtpgUntestableFaults);
+			}
+			if (!originalFaultList.empty() &&
+			    originalFaultList.front() == pRecoveryCurrentFault &&
+			    originalFaultList.size() == faultCountBeforeAtpg)
+			{
+				unrecoveredFaults.push_back(pRecoveryCurrentFault);
+				originalFaultList.pop_front();
+			}
+		}
+
+		pPatternProcessor->staticCompression_ = savedStaticCompression;
+		if (!unrecoveredFaults.empty())
+		{
+			faultSimUndetectedFaultsWithPatternSet(pPatternProcessor, unrecoveredFaults);
+		}
+		originalFaultList = unrecoveredFaults;
+		const size_t recoveredPatternCount = pPatternProcessor->patternVector_.size() - patternCountBeforeRecovery;
+		if (recoveredPatternCount > 0 || recoveryTargetFaultCount != originalFaultList.size())
+		{
+			std::cout << "#  STC recovery ATPG\n";
+			std::cout << "    target faults: " << recoveryTargetFaultCount << '\n';
+			std::cout << "    added patterns: " << pPatternProcessor->patternVector_.size() - patternCountBeforeRecovery << '\n';
+			std::cout << "    remaining faults: " << originalFaultList.size() << '\n';
+		}
+	}
 }
 
 // **************************************************************************

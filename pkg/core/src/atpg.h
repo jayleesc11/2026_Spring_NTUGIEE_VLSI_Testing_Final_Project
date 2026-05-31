@@ -119,7 +119,7 @@ namespace CoreNs
 		void identifyGateDominator();
 		void identifyGateUniquePath();
 
-		void TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults);
+		void TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults, bool powerAwareSTC = false);
 		void StuckAtFaultATPG(FaultPtrList &faultListToGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults);
 
 		Gate *getGateForFaultActivation(const Fault &fault);
@@ -175,8 +175,9 @@ namespace CoreNs
 		IMPLICATION_STATUS evaluateAndSetFaultyGateAtpgVal(Gate *pGate);
 
 		// static test compression
+		void faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults);
 		void staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
-		void staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
+		void staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults);
 		void XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
