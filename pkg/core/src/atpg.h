@@ -25,6 +25,7 @@ namespace CoreNs
 	constexpr int NO_UNIQUE_PATH = -1;
 	constexpr int UNIQUE_PATH_SENSITIZE_FAIL = -2;
 	constexpr double STC_PEAK_POWER_LIMIT_RATIO = 1.0;
+	constexpr size_t STC_RECOVERY_PATTERN_RETRY_LIMIT = 5;
 	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
 	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 4.0;
 	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 5;

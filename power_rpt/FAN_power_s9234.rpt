@@ -8,44 +8,44 @@
 #    FU (full)                                 13066
 #    FU (collapsed)                            13066
 #    --------------------------  -------------------
-#    UD (undetected)                             506
+#    UD (undetected)                             423
 #    PT (possibly testable)                        0
 #    AU (atpg untestable)                       1224
 #    RE (redundant)                                0
-#    AB (atpg abort)                             320
+#    AB (atpg abort)                             306
 #    TI (tied)                                     0
 #    --------------------------  -------------------
-#    DT (detected)                             11016
+#    DT (detected)                             11113
 #  -------------------------------------------------
 #  Coverage                               percentage
 #    --------------------------  -------------------
-#    test coverage                            93.02%
-#    fault coverage                           84.31%
-#    atpg effectiveness                       93.68%
+#    test coverage                            93.84%
+#    fault coverage                           85.05%
+#    atpg effectiveness                       94.42%
 #  -------------------------------------------------
-#  #Patterns                                     544
+#  #Patterns                                     565
 #  -------------------------------------------------
 #  Power metric
 #    -----------------------------------------------
 #    scan flip-flops                             211
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                          544
-#      shift cycles evaluated                 114784
-#      total FFTC                            5873895
-#      average FFTC                            51.17
-#      maximum FFTC                              119
+#      shift operations                          565
+#      shift cycles evaluated                 119215
+#      total FFTC                            6105996
+#      average FFTC                            51.22
+#      maximum FFTC                              106
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                              62429
-#      capture cycles evaluated                 1088
-#      average FFTC                            57.38
-#      maximum FFTC                               86
+#      total FFTC                              64831
+#      capture cycles evaluated                 1130
+#      average FFTC                            57.37
+#      maximum FFTC                               85
 #      unknown transitions                         0
 #    -----------------------------------------------
-#    overall average FFTC                      51.23
+#    overall average FFTC                      51.28
 #  -------------------------------------------------
-#  ATPG runtime                              21.25 s
+#  ATPG runtime                              20.87 s
 #  -------------------------------------------------

@@ -976,7 +976,7 @@ Pattern "_pattern_" {
            "_po"=LLLLHHLH;
        }
        Call "capture_CK" {
-           "_pi"=0000000000000000111111;
+           "_pi"=0000000001000000111111;
            "_po"=LLLLLHLH;
        }
    "pattern 66":

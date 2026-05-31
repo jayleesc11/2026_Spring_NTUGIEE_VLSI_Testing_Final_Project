@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <deque>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 using namespace CoreNs;
@@ -80,7 +81,10 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		// meaning the originalFaultPtrList is already left with aborted fault
 		if (originalFaultPtrList.front()->faultState_ == Fault::AB)
 		{
-			break;
+			unresolvedAtpgFaults.push_back(originalFaultPtrList.front());
+			originalFaultPtrList.pop_front();
+			pCurrentFault = NULL;
+			continue;
 		}
 
 		if (pCurrentFault == originalFaultPtrList.front())
@@ -121,10 +125,34 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	}
 	if (powerAware)
 	{
+		auto faultSimFinalPowerAwarePatterns = [&]() {
+			FaultPtrList finalRemainingFaults;
+			for (Fault *pFault : faultVectorForXid)
+			{
+				if (pFault->faultState_ == Fault::DT || pFault->faultState_ == Fault::UD)
+				{
+					pFault->faultState_ = Fault::UD;
+				}
+				pFault->detection_ = 0;
+				finalRemainingFaults.push_back(pFault);
+			}
+			for (const Pattern &pattern : pPatternProcessor->patternVector_)
+			{
+				if (finalRemainingFaults.empty())
+				{
+					break;
+				}
+				pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, finalRemainingFaults);
+			}
+			return finalRemainingFaults;
+		};
+
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
 		XFill(pPatternProcessor);
 		reorderPatternsForShiftPower(pPatternProcessor);
 		postProcessPowerFill(pPatternProcessor);
+
+		originalFaultPtrList = faultSimFinalPowerAwarePatterns();
 	}
 
 	// finish calculation equivalent faults left
@@ -512,12 +540,9 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		pPatternProcessor->patternVector_.push_back(pattern);
 		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
 
-		bool dynamicCompressionRan = false;
-		bool patternChangedByDynamicCompression = false;
 		if (pPatternProcessor->dynamicCompression_ == PatternProcessor::ON)
 		{
-			dynamicCompressionRan = true;
-			patternChangedByDynamicCompression = applyTransitionDelayDynamicCompression(faultPtrListForGen, pPatternProcessor->patternVector_.back());
+			applyTransitionDelayDynamicCompression(faultPtrListForGen, pPatternProcessor->patternVector_.back());
 		}
 
 		Pattern *pFaultSimPattern = &pPatternProcessor->patternVector_.back();
@@ -533,15 +558,11 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 			xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
 		}
 
-		const bool finalFaultSimAlreadyDone = dynamicCompressionRan && !patternChangedByDynamicCompression && (pPatternProcessor->XFillMode_ == PatternProcessor::XFILL_OFF);
-		if (!finalFaultSimAlreadyDone)
+		pSimulator_->parallelFaultFaultSimWithOnePattern(*pFaultSimPattern, faultPtrListForGen);
+		pSimulator_->goodSim();
+		if (!powerAwareSTC)
 		{
-			pSimulator_->parallelFaultFaultSimWithOnePattern(*pFaultSimPattern, faultPtrListForGen);
-			pSimulator_->goodSim();
-			if (!powerAwareSTC)
-			{
-				writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.back());
-			}
+			writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.back());
 		}
 	}
 	else if (result == FAULT_UNTESTABLE)
@@ -562,7 +583,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 {
 	Fault *primaryFault = faultPtrListForGen.empty() ? NULL : faultPtrListForGen.front();
 
-	pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faultPtrListForGen);
+	pSimulator_->assignPatternToCircuitInputs(pattern);
 	pSimulator_->goodSim();
 	writeGoodSimValToPatternPO(pattern);
 
@@ -4422,138 +4443,193 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 		return power;
 	};
 
-	std::vector<int> scanScratch;
-	auto weightedScanTransitionPower = [&](const Pattern &pattern) -> long long {
-		scanScratch.resize(pattern.PPI_.size());
-		for (size_t i = 0; i < pattern.PPI_.size(); ++i)
-		{
-			const size_t ppiIndex = pattern.PPI_.size() - 1 - i;
-			scanScratch[i] = normalizeBinaryInput(pattern.PPI_[ppiIndex]);
-		}
-		return scanTransitionPowerFromBits(scanScratch);
-	};
+	auto compactTestCubes = [&](PatternProcessor *pProcessor) {
+		std::vector<int> scanScratch;
+		auto weightedScanTransitionPower = [&](const Pattern &pattern) -> long long {
+			scanScratch.resize(pattern.PPI_.size());
+			for (size_t i = 0; i < pattern.PPI_.size(); ++i)
+			{
+				const size_t ppiIndex = pattern.PPI_.size() - 1 - i;
+				scanScratch[i] = normalizeBinaryInput(pattern.PPI_[ppiIndex]);
+			}
+			return scanTransitionPowerFromBits(scanScratch);
+		};
 
-	std::vector<Pattern> cubes = pPatternProcessor->patternVector_;
-	std::vector<char> active(cubes.size(), 1);
-	std::vector<long long> scanPower(cubes.size(), 0);
-	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
-	{
-		scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex]);
-	}
-	long long initialPeakScanPower = 0;
-	for (const long long &power : scanPower)
-	{
-		if (power > initialPeakScanPower)
+		std::vector<Pattern> cubes = pProcessor->patternVector_;
+		std::vector<char> active(cubes.size(), 1);
+		std::vector<long long> scanPower(cubes.size(), 0);
+		for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
 		{
-			initialPeakScanPower = power;
+			scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex]);
 		}
-	}
-	const double peakPowerLimit = static_cast<double>(initialPeakScanPower) * STC_PEAK_POWER_LIMIT_RATIO;
-
-	auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
-		if (!nonScanInputsCompatible(cubes[lhs], cubes[rhs]) || cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size())
+		long long initialPeakScanPower = 0;
+		for (const long long &power : scanPower)
 		{
-			return false;
+			if (power > initialPeakScanPower)
+			{
+				initialPeakScanPower = power;
+			}
 		}
+		const double peakPowerLimit = static_cast<double>(initialPeakScanPower) * STC_PEAK_POWER_LIMIT_RATIO;
 
-		scanScratch.resize(cubes[lhs].PPI_.size());
-		for (size_t i = 0; i < cubes[lhs].PPI_.size(); ++i)
-		{
-			const size_t ppiIndex = cubes[lhs].PPI_.size() - 1 - i;
-			const int lhsValue = normalizeBinaryInput(cubes[lhs].PPI_[ppiIndex]);
-			const int rhsValue = normalizeBinaryInput(cubes[rhs].PPI_[ppiIndex]);
-			if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
+		auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
+			if (!nonScanInputsCompatible(cubes[lhs], cubes[rhs]) || cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size())
 			{
 				return false;
 			}
-			scanScratch[i] = lhsValue >= 0 ? lhsValue : rhsValue;
-		}
 
-		const long long mergedPower = scanTransitionPowerFromBits(scanScratch);
-		if (static_cast<double>(mergedPower) > peakPowerLimit)
-		{
-			return false;
-		}
-		cost = mergedPower - scanPower[lhs] - scanPower[rhs];
-		return true;
-	};
-
-	auto nextActiveFrom = [&](const size_t &startIndex) -> size_t {
-		for (size_t offset = 0; offset < cubes.size(); ++offset)
-		{
-			const size_t patternIndex = (startIndex + offset) % cubes.size();
-			if (active[patternIndex])
+			scanScratch.resize(cubes[lhs].PPI_.size());
+			for (size_t i = 0; i < cubes[lhs].PPI_.size(); ++i)
 			{
-				return patternIndex;
+				const size_t ppiIndex = cubes[lhs].PPI_.size() - 1 - i;
+				const int lhsValue = normalizeBinaryInput(cubes[lhs].PPI_[ppiIndex]);
+				const int rhsValue = normalizeBinaryInput(cubes[rhs].PPI_[ppiIndex]);
+				if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
+				{
+					return false;
+				}
+				scanScratch[i] = lhsValue >= 0 ? lhsValue : rhsValue;
 			}
-		}
-		return cubes.size();
-	};
 
-	size_t activeCount = cubes.size();
-	size_t selectionCursor = 0;
-	while (activeCount > 1)
-	{
-		bool mergedThisRound = false;
-		for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
+			const long long mergedPower = scanTransitionPowerFromBits(scanScratch);
+			if (static_cast<double>(mergedPower) > peakPowerLimit)
+			{
+				return false;
+			}
+			cost = mergedPower - scanPower[lhs] - scanPower[rhs];
+			return true;
+		};
+
+		auto nextActiveFrom = [&](const size_t &startIndex) -> size_t {
+			for (size_t offset = 0; offset < cubes.size(); ++offset)
+			{
+				const size_t patternIndex = (startIndex + offset) % cubes.size();
+				if (active[patternIndex])
+				{
+					return patternIndex;
+				}
+			}
+			return cubes.size();
+		};
+
+		size_t activeCount = cubes.size();
+		size_t selectionCursor = 0;
+		while (activeCount > 1)
 		{
-			const size_t selected = nextActiveFrom(selectionCursor);
-			if (selected == cubes.size())
+			bool mergedThisRound = false;
+			for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
+			{
+				const size_t selected = nextActiveFrom(selectionCursor);
+				if (selected == cubes.size())
+				{
+					break;
+				}
+				selectionCursor = (selected + 1) % cubes.size();
+
+				bool foundBest = false;
+				size_t bestOther = cubes.size();
+				long long bestCost = 0;
+				for (size_t other = 0; other < cubes.size(); ++other)
+				{
+					if (!active[other] || other == selected)
+					{
+						continue;
+					}
+					long long cost = 0;
+					if (!mergeCostIfCompatible(selected, other, cost))
+					{
+						continue;
+					}
+					if (!foundBest || cost < bestCost || (cost == bestCost && other < bestOther))
+					{
+						foundBest = true;
+						bestOther = other;
+						bestCost = cost;
+					}
+				}
+
+				if (!foundBest)
+				{
+					continue;
+				}
+
+				mergePattern(cubes[selected], cubes[bestOther]);
+				scanPower[selected] = weightedScanTransitionPower(cubes[selected]);
+				active[bestOther] = 0;
+				--activeCount;
+				mergedThisRound = true;
+				break;
+			}
+
+			if (!mergedThisRound)
 			{
 				break;
 			}
-			selectionCursor = (selected + 1) % cubes.size();
-
-			bool foundBest = false;
-			size_t bestOther = cubes.size();
-			long long bestCost = 0;
-			for (size_t other = 0; other < cubes.size(); ++other)
-			{
-				if (!active[other] || other == selected)
-				{
-					continue;
-				}
-				long long cost = 0;
-				if (!mergeCostIfCompatible(selected, other, cost))
-				{
-					continue;
-				}
-				if (!foundBest || cost < bestCost || (cost == bestCost && other < bestOther))
-				{
-					foundBest = true;
-					bestOther = other;
-					bestCost = cost;
-				}
-			}
-
-			if (!foundBest)
-			{
-				continue;
-			}
-
-			mergePattern(cubes[selected], cubes[bestOther]);
-			scanPower[selected] = weightedScanTransitionPower(cubes[selected]);
-			active[bestOther] = 0;
-			--activeCount;
-			mergedThisRound = true;
-			break;
 		}
 
-		if (!mergedThisRound)
+		pProcessor->patternVector_.clear();
+		pProcessor->patternVector_.reserve(activeCount);
+		for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
 		{
-			break;
+			if (active[patternIndex])
+			{
+				pProcessor->patternVector_.push_back(std::move(cubes[patternIndex]));
+			}
 		}
-	}
+	};
 
-	pPatternProcessor->patternVector_.clear();
-	pPatternProcessor->patternVector_.reserve(activeCount);
-	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	auto updatePatternOutputs = [&](PatternProcessor *pProcessor) {
+		for (Pattern &pattern : pProcessor->patternVector_)
+		{
+			pSimulator_->assignPatternToCircuitInputs(pattern);
+			pSimulator_->goodSim();
+			writeGoodSimValToPatternPO(pattern);
+		}
+	};
+
+	auto resetFaultsForFaultSim = [](const FaultPtrList &faults) {
+		for (Fault *pFault : faults)
+		{
+			if (pFault->faultState_ == Fault::DT || pFault->faultState_ == Fault::UD)
+			{
+				pFault->faultState_ = Fault::UD;
+			}
+			pFault->detection_ = 0;
+		}
+	};
+
+	auto faultSimRemainingWithPatternSet = [&](PatternProcessor *pProcessor, const FaultPtrList &faults) {
+		FaultPtrList remainingFaults = faults;
+		resetFaultsForFaultSim(remainingFaults);
+		for (const Pattern &pattern : pProcessor->patternVector_)
+		{
+			if (remainingFaults.empty())
+			{
+				break;
+			}
+			pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, remainingFaults);
+		}
+		return remainingFaults;
+	};
+
+	PatternProcessor baselinePatternProcessor = *pPatternProcessor;
+	if (baselinePatternProcessor.XFillMode_ != PatternProcessor::XFILL_OFF)
 	{
-		if (active[patternIndex])
-		{
-			pPatternProcessor->patternVector_.push_back(std::move(cubes[patternIndex]));
-		}
+		XFill(&baselinePatternProcessor);
 	}
+	else
+	{
+		updatePatternOutputs(&baselinePatternProcessor);
+	}
+	const FaultPtrList baselineRemainingFaults = faultSimRemainingWithPatternSet(&baselinePatternProcessor, originalFaultList);
+	std::unordered_set<Fault *> baselineRemainingFaultSet;
+	baselineRemainingFaultSet.reserve(baselineRemainingFaults.size());
+	for (Fault *pFault : baselineRemainingFaults)
+	{
+		baselineRemainingFaultSet.insert(pFault);
+	}
+
+	compactTestCubes(pPatternProcessor);
 
 	if (pPatternProcessor->XFillMode_ != PatternProcessor::XFILL_OFF)
 	{
@@ -4561,81 +4637,114 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 	}
 	else
 	{
-		for (Pattern &pattern : pPatternProcessor->patternVector_)
-		{
-			pSimulator_->assignPatternToCircuitInputs(pattern);
-			pSimulator_->goodSim();
-			writeGoodSimValToPatternPO(pattern);
-		}
+		updatePatternOutputs(pPatternProcessor);
 	}
 
-	for (Fault *pFault : originalFaultList)
+	FaultPtrList postStcRemainingFaults = faultSimRemainingWithPatternSet(pPatternProcessor, originalFaultList);
+	FaultPtrList recoveryTargets;
+	for (Fault *pFault : postStcRemainingFaults)
 	{
-		if (pFault->faultState_ == Fault::DT)
+		if (baselineRemainingFaultSet.find(pFault) == baselineRemainingFaultSet.end())
 		{
-			pFault->faultState_ = Fault::UD;
+			recoveryTargets.push_back(pFault);
 		}
-		pFault->detection_ = 0;
 	}
-	FaultPtrList remainingFaults = originalFaultList;
-	for (const Pattern &pattern : pPatternProcessor->patternVector_)
-	{
-		if (remainingFaults.empty())
-		{
-			break;
-		}
-		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, remainingFaults);
-	}
-	originalFaultList = remainingFaults;
+	originalFaultList = postStcRemainingFaults;
 
-	if (!originalFaultList.empty())
+	if (!recoveryTargets.empty())
 	{
-		const FaultPtrList::size_type recoveryTargetFaultCount = originalFaultList.size();
+		const FaultPtrList::size_type recoveryTargetFaultCount = recoveryTargets.size();
 		const size_t patternCountBeforeRecovery = pPatternProcessor->patternVector_.size();
-		Fault *pRecoveryCurrentFault = NULL;
-		const PatternProcessor::State savedStaticCompression = pPatternProcessor->staticCompression_;
-		pPatternProcessor->staticCompression_ = PatternProcessor::OFF;
-		FaultPtrList unrecoveredFaults;
 
-		while (!originalFaultList.empty())
-		{
-			if (originalFaultList.front()->faultState_ == Fault::AB)
+		auto initializeRecoveryProcessor = [&](PatternProcessor &processor, const PatternProcessor::XFillMode &xFillMode) {
+			processor.init(pCircuit_);
+			processor.staticCompression_ = PatternProcessor::OFF;
+			processor.dynamicCompression_ = pPatternProcessor->dynamicCompression_;
+			processor.XFillMode_ = xFillMode;
+			processor.type_ = pPatternProcessor->type_;
+			processor.patternVector_.reserve(recoveryTargetFaultCount);
+		};
+
+		auto runRecoveryAtpg = [&](const FaultPtrList &targetFaults,
+		                           PatternProcessor &recoveryProcessor,
+		                           const PatternProcessor::XFillMode &xFillMode) {
+			initializeRecoveryProcessor(recoveryProcessor, xFillMode);
+			FaultPtrList recoveryFaults = targetFaults;
+			resetFaultsForFaultSim(recoveryFaults);
+			int recoveryUntestableFaults = 0;
+			Fault *pRecoveryCurrentFault = NULL;
+			while (!recoveryFaults.empty())
 			{
-				unrecoveredFaults.splice(unrecoveredFaults.end(), originalFaultList);
-				break;
+				if (recoveryFaults.front()->faultState_ == Fault::AB)
+				{
+					recoveryFaults.pop_front();
+					continue;
+				}
+
+				pRecoveryCurrentFault = recoveryFaults.front();
+				const FaultPtrList::size_type faultCountBeforeAtpg = recoveryFaults.size();
+				if (pRecoveryCurrentFault->faultType_ == Fault::STR || pRecoveryCurrentFault->faultType_ == Fault::STF)
+				{
+					TransitionDelayFaultATPG(recoveryFaults, &recoveryProcessor, recoveryUntestableFaults);
+				}
+				else
+				{
+					StuckAtFaultATPG(recoveryFaults, &recoveryProcessor, recoveryUntestableFaults);
+				}
+				if (!recoveryFaults.empty() &&
+				    recoveryFaults.front() == pRecoveryCurrentFault &&
+				    recoveryFaults.size() == faultCountBeforeAtpg)
+				{
+					recoveryFaults.pop_front();
+				}
 			}
+		};
 
-			pRecoveryCurrentFault = originalFaultList.front();
-			const FaultPtrList::size_type faultCountBeforeAtpg = originalFaultList.size();
-			if (pRecoveryCurrentFault->faultType_ == Fault::STR || pRecoveryCurrentFault->faultType_ == Fault::STF)
+		PatternProcessor recoveryProcessor;
+		runRecoveryAtpg(recoveryTargets, recoveryProcessor, pPatternProcessor->XFillMode_);
+		const size_t normalRecoveredPatternCount = recoveryProcessor.patternVector_.size();
+		size_t fallbackRecoveredPatternCountBeforeSTC = 0;
+		bool usedNoXFillDtcFallback = false;
+
+		if (normalRecoveredPatternCount > STC_RECOVERY_PATTERN_RETRY_LIMIT)
+		{
+			PatternProcessor noXFillRecoveryProcessor;
+			runRecoveryAtpg(recoveryTargets, noXFillRecoveryProcessor, PatternProcessor::XFILL_OFF);
+			fallbackRecoveredPatternCountBeforeSTC = noXFillRecoveryProcessor.patternVector_.size();
+			compactTestCubes(&noXFillRecoveryProcessor);
+			noXFillRecoveryProcessor.XFillMode_ = pPatternProcessor->XFillMode_;
+			if (noXFillRecoveryProcessor.XFillMode_ != PatternProcessor::XFILL_OFF)
 			{
-				TransitionDelayFaultATPG(originalFaultList, pPatternProcessor, numOfAtpgUntestableFaults);
+				XFill(&noXFillRecoveryProcessor);
 			}
 			else
 			{
-				StuckAtFaultATPG(originalFaultList, pPatternProcessor, numOfAtpgUntestableFaults);
+				updatePatternOutputs(&noXFillRecoveryProcessor);
 			}
-			if (!originalFaultList.empty() &&
-			    originalFaultList.front() == pRecoveryCurrentFault &&
-			    originalFaultList.size() == faultCountBeforeAtpg)
-			{
-				unrecoveredFaults.push_back(pRecoveryCurrentFault);
-				originalFaultList.pop_front();
-			}
+			recoveryProcessor = std::move(noXFillRecoveryProcessor);
+			usedNoXFillDtcFallback = true;
 		}
 
-		pPatternProcessor->staticCompression_ = savedStaticCompression;
-		if (!unrecoveredFaults.empty())
+		pPatternProcessor->patternVector_.reserve(patternCountBeforeRecovery + recoveryProcessor.patternVector_.size());
+		for (Pattern &pattern : recoveryProcessor.patternVector_)
 		{
-			faultSimUndetectedFaultsWithPatternSet(pPatternProcessor, unrecoveredFaults);
+			pPatternProcessor->patternVector_.push_back(std::move(pattern));
 		}
-		originalFaultList = unrecoveredFaults;
+
+		originalFaultList = faultSimRemainingWithPatternSet(pPatternProcessor, postStcRemainingFaults);
 		const size_t recoveredPatternCount = pPatternProcessor->patternVector_.size() - patternCountBeforeRecovery;
-		if (recoveredPatternCount > 0 || recoveryTargetFaultCount != originalFaultList.size())
+		if (recoveredPatternCount > 0 || recoveryTargetFaultCount != originalFaultList.size() || usedNoXFillDtcFallback)
 		{
 			std::cout << "#  STC recovery ATPG\n";
+			std::cout << "    baseline remaining faults: " << baselineRemainingFaults.size() << '\n';
+			std::cout << "    STC remaining faults: " << postStcRemainingFaults.size() << '\n';
 			std::cout << "    target faults: " << recoveryTargetFaultCount << '\n';
-			std::cout << "    added patterns: " << pPatternProcessor->patternVector_.size() - patternCountBeforeRecovery << '\n';
+			if (usedNoXFillDtcFallback)
+			{
+				std::cout << "    normal added patterns: " << normalRecoveredPatternCount << '\n';
+				std::cout << "    no-XFill DTC patterns before STC: " << fallbackRecoveredPatternCountBeforeSTC << '\n';
+			}
+			std::cout << "    added patterns: " << recoveredPatternCount << '\n';
 			std::cout << "    remaining faults: " << originalFaultList.size() << '\n';
 		}
 	}
@@ -5592,34 +5701,43 @@ namespace
 		}
 	}
 
-	bool xidOutputValueIsNonControlling(const Gate &gate, const Value &value)
+	bool addXidGoodConeAssignments(Circuit *const pCircuit,
+	                               const std::vector<Value> &goodValues,
+	                               const int &gateID,
+	                               std::vector<Value> &assignments,
+	                               std::vector<char> &visited)
 	{
-		switch (gate.gateType_)
+		if (gateID < 0 || gateID >= pCircuit->totalGate_)
 		{
-			case Gate::AND2:
-			case Gate::AND3:
-			case Gate::AND4:
-				return value == H;
-			case Gate::NAND2:
-			case Gate::NAND3:
-			case Gate::NAND4:
-				return value == L;
-			case Gate::OR2:
-			case Gate::OR3:
-			case Gate::OR4:
-				return value == L;
-			case Gate::NOR2:
-			case Gate::NOR3:
-			case Gate::NOR4:
-				return value == H;
-			case Gate::XOR2:
-			case Gate::XOR3:
-			case Gate::XNOR2:
-			case Gate::XNOR3:
-				return true;
-			default:
-				return true;
+			return true;
 		}
+		if (visited[gateID])
+		{
+			return true;
+		}
+		visited[gateID] = 1;
+		if (gateID >= static_cast<int>(goodValues.size()))
+		{
+			return false;
+		}
+		if (!addXidAssignment(assignments, goodValues, gateID, goodValues[gateID]))
+		{
+			return false;
+		}
+
+		const Gate &gate = pCircuit->circuitGates_[gateID];
+		if (!xidGateNeedsJustification(gate))
+		{
+			return true;
+		}
+		for (const int &faninID : gate.faninVector_)
+		{
+			if (!addXidGoodConeAssignments(pCircuit, goodValues, faninID, assignments, visited))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool traceXidFaultPropagationPath(Circuit *const pCircuit,
@@ -5638,6 +5756,7 @@ namespace
 		const int faultyLineGateID = getXidFaultyLineGateID(pCircuit, *trace.fault_, faultEffectFrameOffset);
 		std::vector<int> stack;
 		std::vector<char> queued(pCircuit->totalGate_, 0);
+		std::vector<char> sideConeVisited(pCircuit->totalGate_, 0);
 		stack.push_back(trace.selectedOutputGateID_);
 		queued[trace.selectedOutputGateID_] = 1;
 
@@ -5690,9 +5809,18 @@ namespace
 
 			if (extendedImplication)
 			{
-				for (const int &faninID : gate.faninVector_)
+				for (int i = 0; i < gate.numFI_; ++i)
 				{
-					if (!addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
+					const int faninID = gate.faninVector_[i];
+					if (propagatedByFanin[i])
+					{
+						if (!addXidAssignment(assignments, goodValues, faninID, goodValues[faninID]))
+						{
+							return false;
+						}
+						continue;
+					}
+					if (!addXidGoodConeAssignments(pCircuit, goodValues, faninID, assignments, sideConeVisited))
 					{
 						return false;
 					}
@@ -5708,7 +5836,7 @@ namespace
 				continue;
 			}
 
-			if (propagatedFanins.size() == 1 || xidOutputValueIsNonControlling(gate, goodValues[gateID]))
+			if (propagatedFanins.size() == 1)
 			{
 				const int selectedFaninID = propagatedFanins.front();
 				for (const int &faninID : gate.faninVector_)
@@ -6176,15 +6304,6 @@ void Atpg::XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::ve
 		}
 	}
 
-	detectedFaults = simulateXidDetectedFaultsForPatternSet(pSimulator_, pPatternProcessor, faults);
-	size_t finalMissedFaultCount = 0;
-	for (size_t faultIndex = 0; faultIndex < faults.size(); ++faultIndex)
-	{
-		if (detectionCountByFault[faultIndex] > 0 && !detectedFaults[faultIndex])
-		{
-			++finalMissedFaultCount;
-		}
-	}
 	totalRelaxedBits = 0;
 	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
 	{
@@ -6233,10 +6352,6 @@ void Atpg::XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::ve
 	if (failedExtendedPatterns > 0)
 	{
 		std::cout << "    failed extended patterns: " << failedExtendedPatterns << '\n';
-	}
-	if (finalMissedFaultCount > 0)
-	{
-		std::cout << "    final missed faults: " << finalMissedFaultCount << '\n';
 	}
 }
 
