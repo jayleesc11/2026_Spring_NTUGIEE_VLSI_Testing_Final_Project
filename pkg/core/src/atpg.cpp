@@ -538,121 +538,31 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	pSimulator_->goodSim();
 	writeGoodSimValToPatternPO(pattern);
 
-	struct TdfDynamicCandidate
+	struct FaultDetectability
 	{
-		int overlap;
+		int detCount;
+		int overlapWithT;
 		Fault *fault;
 	};
-	std::vector<TdfDynamicCandidate> candidates;
-	candidates.reserve(TDF_DTC_MAX_CANDIDATES);
-	std::vector<int> visitStamp(static_cast<size_t>(pCircuit_->totalGate_), 0);
-	std::vector<int> overlapCache(static_cast<size_t>(pCircuit_->totalGate_), -1);
-	std::vector<int> workQueue;
-	workQueue.reserve(TDF_DTC_WORK_QUEUE_RESERVE);
-	int currentVisitStamp = 0;
-
-	auto candidateIsBetter = [](const TdfDynamicCandidate &lhs, const TdfDynamicCandidate &rhs) {
-		if (lhs.overlap != rhs.overlap)
-		{
-			return lhs.overlap > rhs.overlap;
-		}
-		if (lhs.fault->gateID_ != rhs.fault->gateID_)
-		{
-			return lhs.fault->gateID_ < rhs.fault->gateID_;
-		}
-		if (lhs.fault->faultyLine_ != rhs.fault->faultyLine_)
-		{
-			return lhs.fault->faultyLine_ < rhs.fault->faultyLine_;
-		}
-		return lhs.fault->faultType_ < rhs.fault->faultType_;
-	};
-	auto insertCandidate = [&](const int &overlap, Fault *pFault) {
-		TdfDynamicCandidate candidate = {overlap, pFault};
-		if (candidates.size() < TDF_DTC_MAX_CANDIDATES)
-		{
-			candidates.push_back(candidate);
-			size_t index = candidates.size() - 1;
-			while (index > 0 && candidateIsBetter(candidates[index], candidates[index - 1]))
-			{
-				std::swap(candidates[index], candidates[index - 1]);
-				--index;
-			}
-			return;
-		}
-		if (!candidateIsBetter(candidate, candidates.back()))
-		{
-			return;
-		}
-		candidates.back() = candidate;
-		for (size_t index = candidates.size() - 1; index > 0 && candidateIsBetter(candidates[index], candidates[index - 1]); --index)
-		{
-			std::swap(candidates[index], candidates[index - 1]);
-		}
-	};
-
-	for (Fault *pFault : faultPtrListForGen)
-	{
-		if (pFault->faultState_ != Fault::UD || pFault == primaryFault)
-		{
-			continue;
-		}
-
-		Fault tdfTarget = makeTransitionDelayTargetFault(*pFault);
-		Gate *pGateForActivation = getGateForFaultActivation(tdfTarget);
-		if (!pGateForActivation)
-		{
-			continue;
-		}
-		if (((pGateForActivation->atpgVal_ == H) && (pFault->faultType_ == Fault::STR)) ||
-			((pGateForActivation->atpgVal_ == L) && (pFault->faultType_ == Fault::STF)))
-		{
-			continue;
-		}
-
-		int &overlap = overlapCache[static_cast<size_t>(tdfTarget.gateID_)];
-		if (overlap < 0)
-		{
-			++currentVisitStamp;
-			workQueue.clear();
-			Gate *pGate = &pCircuit_->circuitGates_[tdfTarget.gateID_];
-			workQueue.push_back(pGate->gateId_);
-			visitStamp[static_cast<size_t>(pGate->gateId_)] = currentVisitStamp;
-
-			overlap = 0;
-			for (size_t idx = 0; idx < workQueue.size(); ++idx)
-			{
-				int gateID = workQueue[idx];
-				if (gateID_to_reachableByTargetFault_[gateID] == 1)
-				{
-					++overlap;
-				}
-				for (int fanoutID : pCircuit_->circuitGates_[gateID].fanoutVector_)
-				{
-					if (visitStamp[static_cast<size_t>(fanoutID)] != currentVisitStamp)
-					{
-						visitStamp[static_cast<size_t>(fanoutID)] = currentVisitStamp;
-						workQueue.push_back(fanoutID);
-					}
-				}
-			}
-		}
-		insertCandidate(overlap, pFault);
-	}
 
 	resetPrevAtpgValStored();
 	storeCurrentAtpgVal();
 
 	size_t selected = 0;
-	size_t attempted = 0;
 	std::vector<int> dirtyGateIDs;
 	dirtyGateIDs.reserve(TDF_DTC_DIRTY_GATE_RESERVE);
 	std::vector<char> dirtyGateMarks(static_cast<size_t>(pCircuit_->totalGate_), 0);
+
 	auto restoreCurrentAtpgValues = [&]() {
 		for (Gate &gate : pCircuit_->circuitGates_)
 		{
-			gate.atpgVal_ = gate.prevAtpgValStored_;
+			if (gate.atpgVal_ != gate.prevAtpgValStored_)
+			{
+				gate.atpgVal_ = gate.prevAtpgValStored_;
+			}
 		}
 	};
+
 	auto clearDirtyAtpgValues = [&]() {
 		for (const int &gateID : dirtyGateIDs)
 		{
@@ -660,6 +570,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		}
 		dirtyGateIDs.clear();
 	};
+
 	auto restoreDirtyAtpgValues = [&]() {
 		for (const int &gateID : dirtyGateIDs)
 		{
@@ -668,59 +579,250 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		}
 		clearDirtyAtpgValues();
 	};
-	for (const auto &candidate : candidates)
-	{
-		if (selected >= TDF_DTC_MAX_SELECTED_FAULTS || attempted >= TDF_DTC_MAX_ATPG_ATTEMPTS)
-		{
-			break;
-		}
 
-		Fault *pFault = candidate.fault;
-		if (pFault->faultState_ != Fault::UD)
+	struct CandidateFaultInfo
+	{
+		Fault *fault;
+		Fault tdfTarget;
+		Gate *activationGate;
+		int detCount;
+	};
+
+	std::vector<CandidateFaultInfo> candidateFaults;
+	candidateFaults.reserve(faultPtrListForGen.size());
+	for (Fault *pFault : faultPtrListForGen)
+	{
+		if (pFault->faultState_ != Fault::UD || pFault == primaryFault)
 		{
 			continue;
 		}
 
 		Fault tdfTarget = makeTransitionDelayTargetFault(*pFault);
-		Gate *pGateForActivation = getGateForFaultActivation(tdfTarget);
-		if (!pGateForActivation)
+		Gate *pActivationGate = getGateForFaultActivation(tdfTarget);
+		candidateFaults.push_back({pFault, tdfTarget, pActivationGate, -1});
+	}
+
+	std::vector<int> visitStamp(static_cast<size_t>(pCircuit_->totalGate_), 0);
+	int currentVisitStamp = 0;
+	std::vector<int> workQueue;
+	workQueue.reserve(static_cast<size_t>(pCircuit_->totalGate_));
+
+	auto calculateDetectability = [&](const CandidateFaultInfo &candidate) -> int {
+		Gate *pGate = &pCircuit_->circuitGates_[candidate.tdfTarget.gateID_];
+		int detCount = 0;
+		++currentVisitStamp;
+		workQueue.clear();
+		workQueue.push_back(pGate->gateId_);
+		visitStamp[static_cast<size_t>(pGate->gateId_)] = currentVisitStamp;
+
+		for (size_t idx = 0; idx < workQueue.size(); ++idx)
 		{
-			continue;
+			int gateID = workQueue[idx];
+			if (gateID_to_reachableByTargetFault_[gateID] == 1)
+			{
+				++detCount;
+			}
+			for (int fanoutID : pCircuit_->circuitGates_[gateID].fanoutVector_)
+			{
+				if (visitStamp[static_cast<size_t>(fanoutID)] != currentVisitStamp)
+				{
+					visitStamp[static_cast<size_t>(fanoutID)] = currentVisitStamp;
+					workQueue.push_back(fanoutID);
+				}
+			}
+		}
+		return detCount;
+	};
+
+	for (CandidateFaultInfo &candidate : candidateFaults)
+	{
+		candidate.detCount = calculateDetectability(candidate);
+	}
+
+	auto hasValidActivation = [&](const CandidateFaultInfo &candidate) {
+		if (!candidate.activationGate)
+		{
+			return false;
+		}
+		if (((candidate.activationGate->atpgVal_ == H) && (candidate.fault->faultType_ == Fault::STR)) ||
+			((candidate.activationGate->atpgVal_ == L) && (candidate.fault->faultType_ == Fault::STF)))
+		{
+			return false;
+		}
+		return true;
+	};
+
+	auto buildReachableSet = [&](const CandidateFaultInfo &candidate, std::vector<char> &reachable) {
+		Gate *pGate = &pCircuit_->circuitGates_[candidate.tdfTarget.gateID_];
+
+		reachable.assign(static_cast<size_t>(pCircuit_->totalGate_), 0);
+		++currentVisitStamp;
+		workQueue.clear();
+		workQueue.push_back(pGate->gateId_);
+		reachable[static_cast<size_t>(pGate->gateId_)] = 1;
+		visitStamp[static_cast<size_t>(pGate->gateId_)] = currentVisitStamp;
+
+		for (size_t idx = 0; idx < workQueue.size(); ++idx)
+		{
+			int gateID = workQueue[idx];
+			for (int fanoutID : pCircuit_->circuitGates_[gateID].fanoutVector_)
+			{
+				if (visitStamp[static_cast<size_t>(fanoutID)] != currentVisitStamp)
+				{
+					visitStamp[static_cast<size_t>(fanoutID)] = currentVisitStamp;
+					reachable[static_cast<size_t>(fanoutID)] = 1;
+					workQueue.push_back(fanoutID);
+				}
+			}
+		}
+	};
+
+	auto calculateOverlapWithPrimary = [&](const std::vector<char> &primaryReach, const CandidateFaultInfo &candidate) -> int {
+		Gate *pGate = &pCircuit_->circuitGates_[candidate.tdfTarget.gateID_];
+
+		int overlap = 0;
+		++currentVisitStamp;
+		workQueue.clear();
+		workQueue.push_back(pGate->gateId_);
+		visitStamp[static_cast<size_t>(pGate->gateId_)] = currentVisitStamp;
+
+		for (size_t idx = 0; idx < workQueue.size(); ++idx)
+		{
+			int gateID = workQueue[idx];
+			if (primaryReach[static_cast<size_t>(gateID)])
+			{
+				++overlap;
+			}
+			for (int fanoutID : pCircuit_->circuitGates_[gateID].fanoutVector_)
+			{
+				if (visitStamp[static_cast<size_t>(fanoutID)] != currentVisitStamp)
+				{
+					visitStamp[static_cast<size_t>(fanoutID)] = currentVisitStamp;
+					workQueue.push_back(fanoutID);
+				}
+			}
+		}
+		return overlap;
+	};
+
+	std::vector<char> primaryReach(static_cast<size_t>(pCircuit_->totalGate_), 0);
+
+	while (selected < TDF_DTC_MAX_SELECTED_FAULTS)
+	{
+		CandidateFaultInfo *primaryTarget = NULL;
+		int minDetCount = INFINITE;
+
+		for (CandidateFaultInfo &candidate : candidateFaults)
+		{
+			if (candidate.fault->faultState_ != Fault::UD || !hasValidActivation(candidate))
+			{
+				continue;
+			}
+
+			if (candidate.detCount < minDetCount)
+			{
+				minDetCount = candidate.detCount;
+				primaryTarget = &candidate;
+			}
 		}
 
-		if (((pGateForActivation->atpgVal_ == H) && (pFault->faultType_ == Fault::STR)) ||
-			((pGateForActivation->atpgVal_ == L) && (pFault->faultType_ == Fault::STF)))
+		if (!primaryTarget)
 		{
-			continue;
+			break;
 		}
 
-		if (pGateForActivation->atpgVal_ != X)
+		buildReachableSet(*primaryTarget, primaryReach);
+		struct SecondaryTargetInfo
 		{
-			setGateAtpgValAndRunImplication(*pGateForActivation, X, &dirtyGateIDs, &dirtyGateMarks);
+			CandidateFaultInfo *candidate;
+			int overlap;
+		};
+		std::vector<SecondaryTargetInfo> secondaryTargets;
+		secondaryTargets.reserve(candidateFaults.size());
+
+		for (CandidateFaultInfo &candidate : candidateFaults)
+		{
+			if (candidate.fault->faultState_ != Fault::UD || &candidate == primaryTarget || !hasValidActivation(candidate))
+			{
+				continue;
+			}
+
+			secondaryTargets.push_back({&candidate, calculateOverlapWithPrimary(primaryReach, candidate)});
 		}
 
-		if (!xPathExists(pGateForActivation))
-		{
-			restoreDirtyAtpgValues();
-			continue;
-		}
+		const auto compareSecondaryTarget = [](const SecondaryTargetInfo &a, const SecondaryTargetInfo &b) {
+			if (a.overlap != b.overlap)
+				return a.overlap < b.overlap;
+			if (a.candidate->detCount != b.candidate->detCount)
+				return a.candidate->detCount < b.candidate->detCount;
+			return a.candidate->fault->gateID_ < b.candidate->fault->gateID_;
+		};
 
-		++attempted;
-		if (generateSinglePatternOnTargetFault(tdfTarget, true) == PATTERN_FOUND)
+		size_t remainingSlots = TDF_DTC_MAX_SELECTED_FAULTS - selected;
+		if (secondaryTargets.size() > remainingSlots)
 		{
-			clearDirtyAtpgValues();
-			resetPrevAtpgValStored();
-			clearAllFaultEffectByEvaluation();
-			storeCurrentAtpgVal();
-			writeAtpgValToPatternPI(pattern);
-			++selected;
+			std::partial_sort(secondaryTargets.begin(), secondaryTargets.begin() + remainingSlots, secondaryTargets.end(), compareSecondaryTarget);
 		}
 		else
 		{
-			restoreCurrentAtpgValues();
-			clearDirtyAtpgValues();
+			std::sort(secondaryTargets.begin(), secondaryTargets.end(), compareSecondaryTarget);
+		}
+
+		std::vector<CandidateFaultInfo *> ST;
+		ST.reserve(std::min(secondaryTargets.size(), remainingSlots));
+		for (size_t i = 0; i < secondaryTargets.size() && ST.size() < remainingSlots; ++i)
+		{
+			ST.push_back(secondaryTargets[i].candidate);
+		}
+
+		bool madeProgress = false;
+		for (CandidateFaultInfo *candidate : ST)
+		{
+			if (candidate->fault->faultState_ != Fault::UD)
+			{
+				continue;
+			}
+
+			Gate *pGateForActivation = candidate->activationGate;
+			if (!pGateForActivation)
+			{
+				continue;
+			}
+
+			if (pGateForActivation->atpgVal_ != X)
+			{
+				setGateAtpgValAndRunImplication(*pGateForActivation, X, &dirtyGateIDs, &dirtyGateMarks);
+			}
+
+			if (!xPathExists(pGateForActivation))
+			{
+				restoreDirtyAtpgValues();
+				continue;
+			}
+
+			if (generateSinglePatternOnTargetFault(candidate->tdfTarget, true) == PATTERN_FOUND)
+			{
+				clearDirtyAtpgValues();
+				resetPrevAtpgValStored();
+				clearAllFaultEffectByEvaluation();
+				storeCurrentAtpgVal();
+				writeAtpgValToPatternPI(pattern);
+				++selected;
+				madeProgress = true;
+			}
+			else
+			{
+				restoreCurrentAtpgValues();
+				clearDirtyAtpgValues();
+			}
+		}
+
+		if (!madeProgress)
+		{
+			break;
 		}
 	}
+
 	return selected > 0;
 }
 
