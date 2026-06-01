@@ -23,29 +23,29 @@
 #    fault coverage                           89.31%
 #    atpg effectiveness                       98.88%
 #  -------------------------------------------------
-#  #Patterns                                      90
+#  #Patterns                                      92
 #  -------------------------------------------------
 #  Power metric
 #    -----------------------------------------------
 #    scan flip-flops                               6
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                           90
-#      shift cycles evaluated                    540
+#      shift operations                           92
+#      shift cycles evaluated                    552
 #      total FFTC                               1516
-#      average FFTC                             2.81
+#      average FFTC                             2.75
 #      maximum FFTC                                6
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                                343
-#      capture cycles evaluated                  180
-#      average FFTC                             1.91
+#      total FFTC                                355
+#      capture cycles evaluated                  184
+#      average FFTC                             1.93
 #      maximum FFTC                                6
 #      unknown transitions                         0
 #    -----------------------------------------------
-#    overall average FFTC                      2.582
+#    overall average FFTC                      2.542
 #  -------------------------------------------------
-#  ATPG runtime                            0.05067 s
+#  ATPG runtime                            0.04491 s
 #  -------------------------------------------------

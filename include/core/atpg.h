@@ -14,6 +14,7 @@
 #include <vector> // added by wang
 #include <stack>	// added by wang
 #include <algorithm>
+#include <unordered_map>
 #include "decision_tree.h"
 #include "simulator.h"
 
@@ -29,10 +30,10 @@ namespace CoreNs
 	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
 	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 4.0;
 	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 5;
-	constexpr size_t TDF_DTC_MAX_ATPG_ATTEMPTS = TDF_DTC_MAX_SELECTED_FAULTS * 5;
-	constexpr size_t TDF_DTC_MAX_CANDIDATES = TDF_DTC_MAX_ATPG_ATTEMPTS * 4;
-	constexpr size_t TDF_DTC_WORK_QUEUE_RESERVE = 64;
+	constexpr double TDF_DTC_CANDIDATE_SET_RATIO = 1;
+	constexpr size_t TDF_DTC_MIN_CANDIDATE_SET_SIZE = 64;
 	constexpr size_t TDF_DTC_DIRTY_GATE_RESERVE = 64;
+	constexpr size_t TDF_DTC_MAX_CANDIDATE_WINDOW = 512;
 
 	class Atpg
 	{
@@ -106,6 +107,36 @@ namespace CoreNs
 		std::vector<int> unjustifiedGateIDs_;											// J-frontier list
 		std::vector<int> dFrontiers_;															// D-frontier list
 		std::vector<int> isInEventStack_;													// 1 if a gate is in an event stack, 0 otherwise
+		struct InfluenceLiteral
+		{
+			int inputIndex_;
+			unsigned char valueMask_;
+		};
+		struct InfluenceSet
+		{
+			std::vector<InfluenceLiteral> literals_;
+			bool impossible_;
+			InfluenceSet() : impossible_(false) {}
+		};
+		bool tdfInfluenceMeasuresValid_;
+		bool useInfluenceInputBacktrace_;
+		bool influencePrimaryOrderValid_;
+		size_t influencePrimaryCursor_;
+		std::vector<int> influenceInputIndexByGate_;
+		std::vector<int> influenceInputGateIDs_;
+		std::vector<unsigned char> influenceSpecifiedInputValues_;
+		std::vector<int> influenceSpecifiedInputIndices_;
+		std::vector<InfluenceSet> influenceRc0_;
+		std::vector<InfluenceSet> influenceRc1_;
+		std::vector<InfluenceSet> influenceRo_;
+		std::unordered_map<const Fault *, InfluenceSet> influenceDetCache_;
+		std::unordered_map<const Fault *, InfluenceSet> influenceStructuralCache_;
+		std::vector<Fault *> influencePrimaryOrder_;
+		std::vector<int> influenceStructuralVisitedStamp_;
+		std::vector<int> influenceStructuralForwardStamp_;
+		std::vector<int> influenceStructuralStack_;
+		std::vector<int> influenceStructuralInputIndices_;
+		int influenceStructuralStamp_;
 		std::vector<size_t> powerFillPiImpact_;									// cached response impact for each PI
 		std::vector<int> powerFillPiOrder_;											// PIs sorted by descending response impact
 		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
@@ -183,6 +214,23 @@ namespace CoreNs
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
 
+		void initializeTdfInfluenceMeasures();
+		const InfluenceSet &getInfluenceControlSet(const int &gateID, const Value &value) const;
+		InfluenceSet makeInfluenceLiteralSet(const int &gateID, const Value &value) const;
+		InfluenceSet unionInfluenceSets(const InfluenceSet &lhs, const InfluenceSet &rhs) const;
+		InfluenceSet chooseSmallerInfluenceSet(const InfluenceSet &lhs, const InfluenceSet &rhs) const;
+		const InfluenceSet &getTransitionFaultDetectability(const Fault &fault);
+		const InfluenceSet &getTransitionFaultStructuralInfluence(const Fault &fault);
+		InfluenceSet computeTransitionFaultDetectability(const Fault &fault);
+		InfluenceSet computeTransitionFaultStructuralInfluence(const Fault &fault);
+		bool influenceSetHasBothValueRequirement(const InfluenceSet &set) const;
+		void buildInfluencePrimaryOrder(const FaultPtrList &faultPtrList);
+		FaultPtrListIter selectInfluencePrimaryFault(FaultPtrList &faultPtrList);
+		void updateInfluenceSpecifiedInputsFromCircuit();
+		int countInfluenceOverlap(const InfluenceSet &set) const;
+		int countInfluenceConflicts(const InfluenceSet &set) const;
+		Gate *findInfluenceInput(Gate *pGate, Value atpgValOfpGate);
+
 		inline Value evaluateGoodVal(Gate &gate);
 		inline Value evaluateFaultyVal(Gate &gate);
 
@@ -221,7 +269,7 @@ namespace CoreNs
 
 		// X-Fill helper methods
 		void randomFill(Pattern &pattern);
-		void adjacentFill(Pattern &pattern); // currently not used, added by WANG, WEI-SHEN
+		void adjacentFill(Pattern &pattern);
 		void initializePowerFillOrder();
 		void postProcessPowerFill(PatternProcessor *pPatternProcessor);
 		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);
@@ -261,6 +309,11 @@ namespace CoreNs
 		backtrackImplicatedGateIDs_.reserve(pCircuit->totalGate_);
 		firstTimeFrameHeadLine_ = NULL;
 		isInEventStack_.resize(pCircuit->totalGate_);
+		tdfInfluenceMeasuresValid_ = false;
+		useInfluenceInputBacktrace_ = false;
+		influencePrimaryOrderValid_ = false;
+		influencePrimaryCursor_ = 0;
+		influenceStructuralStamp_ = 0;
 	}
 
 	// **************************************************************************

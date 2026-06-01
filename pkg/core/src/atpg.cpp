@@ -7,6 +7,7 @@
 
 #include "atpg.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <deque>
 #include <unordered_map>
@@ -49,6 +50,9 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	Fault *pCurrentFault = NULL;
 	FaultPtrList originalFaultPtrList, faultPtrListForSTC;
 	std::vector<Fault *> faultVectorForXid;
+	influencePrimaryOrderValid_ = false;
+	influencePrimaryCursor_ = 0;
+	influencePrimaryOrder_.clear();
 	setupCircuitParameter();
 	pPatternProcessor->init(pCircuit_);
 
@@ -95,8 +99,17 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			continue;
 		}
 
+		isTransitionDelayFault = (originalFaultPtrList.front()->faultType_ == Fault::STR || originalFaultPtrList.front()->faultType_ == Fault::STF);
+		if (isTransitionDelayFault && pPatternProcessor->dynamicCompression_ == PatternProcessor::ON && originalFaultPtrList.size() > 1)
+		{
+			FaultPtrListIter bestIt = selectInfluencePrimaryFault(originalFaultPtrList);
+			if (bestIt != originalFaultPtrList.begin())
+			{
+				originalFaultPtrList.splice(originalFaultPtrList.begin(), originalFaultPtrList, bestIt);
+			}
+		}
+
 		pCurrentFault = originalFaultPtrList.front();
-		isTransitionDelayFault = (pCurrentFault->faultType_ == Fault::STR || pCurrentFault->faultType_ == Fault::STF);
 		if (isTransitionDelayFault)
 		{
 			TransitionDelayFaultATPG(originalFaultPtrList, pPatternProcessor, numOfAtpgUntestableFaults, powerAware && pPatternProcessor->staticCompression_ == PatternProcessor::ON);
@@ -528,11 +541,720 @@ void Atpg::identifyGateUniquePath()
 //            ]
 // Date       [ HKY Ver. 1.0 started 2014/09/01 last modified 2023/01/05 ]
 // **************************************************************************
+void Atpg::initializeTdfInfluenceMeasures()
+{
+	if (tdfInfluenceMeasuresValid_)
+	{
+		return;
+	}
+
+	const int totalGate = pCircuit_->totalGate_;
+	influenceInputIndexByGate_.assign(static_cast<size_t>(totalGate), -1);
+	influenceInputGateIDs_.clear();
+	for (const Gate &gate : pCircuit_->circuitGates_)
+	{
+		const bool firstFrameInput = gate.frame_ == 0 && (gate.gateType_ == Gate::PI || gate.gateType_ == Gate::PPI);
+		const bool secondFramePI = gate.frame_ == 1 && gate.gateType_ == Gate::PI;
+		if (firstFrameInput || secondFramePI)
+		{
+			influenceInputIndexByGate_[static_cast<size_t>(gate.gateId_)] = static_cast<int>(influenceInputGateIDs_.size());
+			influenceInputGateIDs_.push_back(gate.gateId_);
+		}
+	}
+
+	influenceSpecifiedInputValues_.assign(influenceInputGateIDs_.size(), 0);
+	influenceRc0_.assign(static_cast<size_t>(totalGate), InfluenceSet());
+	influenceRc1_.assign(static_cast<size_t>(totalGate), InfluenceSet());
+	influenceRo_.assign(static_cast<size_t>(totalGate), InfluenceSet());
+
+	auto makeImpossible = []() {
+		InfluenceSet set;
+		set.impossible_ = true;
+		return set;
+	};
+	auto chooseControl = [&](const int &gateID, const Value &value) -> InfluenceSet {
+		return value == L ? influenceRc0_[static_cast<size_t>(gateID)] : influenceRc1_[static_cast<size_t>(gateID)];
+	};
+	auto unionAllFanins = [&](const Gate &gate, const Value &value) -> InfluenceSet {
+		InfluenceSet result;
+		for (const int &faninID : gate.faninVector_)
+		{
+			result = unionInfluenceSets(result, chooseControl(faninID, value));
+		}
+		return result;
+	};
+	auto chooseOneFanin = [&](const Gate &gate, const Value &value) -> InfluenceSet {
+		InfluenceSet best = makeImpossible();
+		for (const int &faninID : gate.faninVector_)
+		{
+			best = chooseSmallerInfluenceSet(best, chooseControl(faninID, value));
+		}
+		return best;
+	};
+	auto chooseAnyControl = [&](const int &gateID) -> InfluenceSet {
+		return chooseSmallerInfluenceSet(influenceRc0_[static_cast<size_t>(gateID)], influenceRc1_[static_cast<size_t>(gateID)]);
+	};
+	auto xorControl = [&](const Gate &gate, const Value &outputValue, const bool &inverted) -> InfluenceSet {
+		if (gate.numFI_ <= 0 || gate.numFI_ > 4)
+		{
+			return makeImpossible();
+		}
+		const int desiredOutput = outputValue == H ? 1 : 0;
+		const int desiredParity = inverted ? 1 - desiredOutput : desiredOutput;
+		InfluenceSet best = makeImpossible();
+		const int combinationCount = 1 << gate.numFI_;
+		for (int combination = 0; combination < combinationCount; ++combination)
+		{
+			int parity = 0;
+			InfluenceSet candidate;
+			for (int i = 0; i < gate.numFI_; ++i)
+			{
+				const int bit = (combination >> i) & 1;
+				parity ^= bit;
+				candidate = unionInfluenceSets(candidate, chooseControl(gate.faninVector_[i], bit ? H : L));
+			}
+			if (parity == desiredParity)
+			{
+				best = chooseSmallerInfluenceSet(best, candidate);
+			}
+		}
+		return best;
+	};
+
+	for (int gateID = 0; gateID < totalGate; ++gateID)
+	{
+		const Gate &gate = pCircuit_->circuitGates_[gateID];
+		if (influenceInputIndexByGate_[static_cast<size_t>(gateID)] >= 0)
+		{
+			influenceRc0_[static_cast<size_t>(gateID)] = makeInfluenceLiteralSet(gateID, L);
+			influenceRc1_[static_cast<size_t>(gateID)] = makeInfluenceLiteralSet(gateID, H);
+			continue;
+		}
+
+		switch (gate.gateType_)
+		{
+			case Gate::TIE0:
+				influenceRc0_[static_cast<size_t>(gateID)] = InfluenceSet();
+				influenceRc1_[static_cast<size_t>(gateID)] = makeImpossible();
+				break;
+			case Gate::TIE1:
+				influenceRc0_[static_cast<size_t>(gateID)] = makeImpossible();
+				influenceRc1_[static_cast<size_t>(gateID)] = InfluenceSet();
+				break;
+			case Gate::INV:
+				influenceRc0_[static_cast<size_t>(gateID)] = chooseControl(gate.faninVector_[0], H);
+				influenceRc1_[static_cast<size_t>(gateID)] = chooseControl(gate.faninVector_[0], L);
+				break;
+			case Gate::BUF:
+			case Gate::PO:
+			case Gate::PPO:
+			case Gate::PPI:
+				if (gate.numFI_ > 0)
+				{
+					influenceRc0_[static_cast<size_t>(gateID)] = chooseControl(gate.faninVector_[0], L);
+					influenceRc1_[static_cast<size_t>(gateID)] = chooseControl(gate.faninVector_[0], H);
+				}
+				else
+				{
+					influenceRc0_[static_cast<size_t>(gateID)] = makeImpossible();
+					influenceRc1_[static_cast<size_t>(gateID)] = makeImpossible();
+				}
+				break;
+			case Gate::AND2:
+			case Gate::AND3:
+			case Gate::AND4:
+				influenceRc0_[static_cast<size_t>(gateID)] = chooseOneFanin(gate, L);
+				influenceRc1_[static_cast<size_t>(gateID)] = unionAllFanins(gate, H);
+				break;
+			case Gate::NAND2:
+			case Gate::NAND3:
+			case Gate::NAND4:
+				influenceRc0_[static_cast<size_t>(gateID)] = unionAllFanins(gate, H);
+				influenceRc1_[static_cast<size_t>(gateID)] = chooseOneFanin(gate, L);
+				break;
+			case Gate::OR2:
+			case Gate::OR3:
+			case Gate::OR4:
+				influenceRc0_[static_cast<size_t>(gateID)] = unionAllFanins(gate, L);
+				influenceRc1_[static_cast<size_t>(gateID)] = chooseOneFanin(gate, H);
+				break;
+			case Gate::NOR2:
+			case Gate::NOR3:
+			case Gate::NOR4:
+				influenceRc0_[static_cast<size_t>(gateID)] = chooseOneFanin(gate, H);
+				influenceRc1_[static_cast<size_t>(gateID)] = unionAllFanins(gate, L);
+				break;
+			case Gate::XOR2:
+			case Gate::XOR3:
+				influenceRc0_[static_cast<size_t>(gateID)] = xorControl(gate, L, false);
+				influenceRc1_[static_cast<size_t>(gateID)] = xorControl(gate, H, false);
+				break;
+			case Gate::XNOR2:
+			case Gate::XNOR3:
+				influenceRc0_[static_cast<size_t>(gateID)] = xorControl(gate, L, true);
+				influenceRc1_[static_cast<size_t>(gateID)] = xorControl(gate, H, true);
+				break;
+			default:
+				if (gate.numFI_ == 1)
+				{
+					influenceRc0_[static_cast<size_t>(gateID)] = chooseControl(gate.faninVector_[0], L);
+					influenceRc1_[static_cast<size_t>(gateID)] = chooseControl(gate.faninVector_[0], H);
+				}
+				else
+				{
+					InfluenceSet rc0;
+					InfluenceSet rc1;
+					for (const int &faninID : gate.faninVector_)
+					{
+						rc0 = unionInfluenceSets(rc0, chooseAnyControl(faninID));
+						rc1 = unionInfluenceSets(rc1, chooseAnyControl(faninID));
+					}
+					influenceRc0_[static_cast<size_t>(gateID)] = rc0;
+					influenceRc1_[static_cast<size_t>(gateID)] = rc1;
+				}
+				break;
+		}
+	}
+
+	for (InfluenceSet &set : influenceRo_)
+	{
+		set.impossible_ = true;
+		set.literals_.clear();
+	}
+	for (int gateID = totalGate - 1; gateID >= 0; --gateID)
+	{
+		const Gate &gate = pCircuit_->circuitGates_[gateID];
+		if (gate.frame_ == 1 && (gate.gateType_ == Gate::PO || gate.gateType_ == Gate::PPO))
+		{
+			influenceRo_[static_cast<size_t>(gateID)] = InfluenceSet();
+		}
+		if (influenceRo_[static_cast<size_t>(gateID)].impossible_)
+		{
+			continue;
+		}
+
+		for (int faninIndex = 0; faninIndex < gate.numFI_; ++faninIndex)
+		{
+			InfluenceSet branch = influenceRo_[static_cast<size_t>(gateID)];
+			switch (gate.gateType_)
+			{
+				case Gate::AND2:
+				case Gate::AND3:
+				case Gate::AND4:
+				case Gate::NAND2:
+				case Gate::NAND3:
+				case Gate::NAND4:
+					for (int i = 0; i < gate.numFI_; ++i)
+					{
+						if (i != faninIndex)
+						{
+							branch = unionInfluenceSets(branch, chooseControl(gate.faninVector_[i], H));
+						}
+					}
+					break;
+				case Gate::OR2:
+				case Gate::OR3:
+				case Gate::OR4:
+				case Gate::NOR2:
+				case Gate::NOR3:
+				case Gate::NOR4:
+					for (int i = 0; i < gate.numFI_; ++i)
+					{
+						if (i != faninIndex)
+						{
+							branch = unionInfluenceSets(branch, chooseControl(gate.faninVector_[i], L));
+						}
+					}
+					break;
+				case Gate::XOR2:
+				case Gate::XOR3:
+				case Gate::XNOR2:
+				case Gate::XNOR3:
+					for (int i = 0; i < gate.numFI_; ++i)
+					{
+						if (i != faninIndex)
+						{
+							branch = unionInfluenceSets(branch, chooseAnyControl(gate.faninVector_[i]));
+						}
+					}
+					break;
+				default:
+					break;
+			}
+			const int faninID = gate.faninVector_[faninIndex];
+			influenceRo_[static_cast<size_t>(faninID)] = chooseSmallerInfluenceSet(influenceRo_[static_cast<size_t>(faninID)], branch);
+		}
+	}
+
+	tdfInfluenceMeasuresValid_ = true;
+}
+
+const Atpg::InfluenceSet &Atpg::getInfluenceControlSet(const int &gateID, const Value &value) const
+{
+	static const InfluenceSet impossibleSet = []() {
+		InfluenceSet set;
+		set.impossible_ = true;
+		return set;
+	}();
+	if (gateID < 0 || gateID >= static_cast<int>(influenceRc0_.size()))
+	{
+		return impossibleSet;
+	}
+	return value == L ? influenceRc0_[static_cast<size_t>(gateID)] : influenceRc1_[static_cast<size_t>(gateID)];
+}
+
+Atpg::InfluenceSet Atpg::makeInfluenceLiteralSet(const int &gateID, const Value &value) const
+{
+	InfluenceSet set;
+	if (gateID < 0 || gateID >= static_cast<int>(influenceInputIndexByGate_.size()))
+	{
+		set.impossible_ = true;
+		return set;
+	}
+	const int inputIndex = influenceInputIndexByGate_[static_cast<size_t>(gateID)];
+	if (inputIndex < 0)
+	{
+		set.impossible_ = true;
+		return set;
+	}
+	InfluenceLiteral literal;
+	literal.inputIndex_ = inputIndex;
+	literal.valueMask_ = value == L ? 1 : 2;
+	set.literals_.push_back(literal);
+	return set;
+}
+
+Atpg::InfluenceSet Atpg::unionInfluenceSets(const InfluenceSet &lhs, const InfluenceSet &rhs) const
+{
+	if (lhs.impossible_ || rhs.impossible_)
+	{
+		InfluenceSet set;
+		set.impossible_ = true;
+		return set;
+	}
+
+	InfluenceSet result;
+	size_t lhsIndex = 0;
+	size_t rhsIndex = 0;
+	while (lhsIndex < lhs.literals_.size() || rhsIndex < rhs.literals_.size())
+	{
+		if (rhsIndex >= rhs.literals_.size() ||
+		    (lhsIndex < lhs.literals_.size() && lhs.literals_[lhsIndex].inputIndex_ < rhs.literals_[rhsIndex].inputIndex_))
+		{
+			result.literals_.push_back(lhs.literals_[lhsIndex++]);
+		}
+		else if (lhsIndex >= lhs.literals_.size() || rhs.literals_[rhsIndex].inputIndex_ < lhs.literals_[lhsIndex].inputIndex_)
+		{
+			result.literals_.push_back(rhs.literals_[rhsIndex++]);
+		}
+		else
+		{
+			InfluenceLiteral literal;
+			literal.inputIndex_ = lhs.literals_[lhsIndex].inputIndex_;
+			literal.valueMask_ = lhs.literals_[lhsIndex].valueMask_ | rhs.literals_[rhsIndex].valueMask_;
+			result.literals_.push_back(literal);
+			++lhsIndex;
+			++rhsIndex;
+		}
+	}
+	return result;
+}
+
+Atpg::InfluenceSet Atpg::chooseSmallerInfluenceSet(const InfluenceSet &lhs, const InfluenceSet &rhs) const
+{
+	if (lhs.impossible_)
+	{
+		return rhs;
+	}
+	if (rhs.impossible_)
+	{
+		return lhs;
+	}
+	if (lhs.literals_.size() != rhs.literals_.size())
+	{
+		return lhs.literals_.size() < rhs.literals_.size() ? lhs : rhs;
+	}
+	size_t lhsBoth = 0;
+	size_t rhsBoth = 0;
+	for (const InfluenceLiteral &literal : lhs.literals_)
+	{
+		if (literal.valueMask_ == 3)
+		{
+			++lhsBoth;
+		}
+	}
+	for (const InfluenceLiteral &literal : rhs.literals_)
+	{
+		if (literal.valueMask_ == 3)
+		{
+			++rhsBoth;
+		}
+	}
+	return lhsBoth <= rhsBoth ? lhs : rhs;
+}
+
+const Atpg::InfluenceSet &Atpg::getTransitionFaultDetectability(const Fault &fault)
+{
+	initializeTdfInfluenceMeasures();
+	const std::unordered_map<const Fault *, InfluenceSet>::const_iterator cached = influenceDetCache_.find(&fault);
+	if (cached != influenceDetCache_.end())
+	{
+		return cached->second;
+	}
+	const int baseGateID = fault.gateID_ >= pCircuit_->numGate_ ? fault.gateID_ - pCircuit_->numGate_ : fault.gateID_;
+	Fault firstFrameFault(baseGateID, fault.faultType_, fault.faultyLine_, fault.equivalent_, fault.faultState_);
+	Fault secondFrameFault = makeTransitionDelayTargetFault(firstFrameFault);
+	Gate *firstFrameLine = getGateForFaultActivation(firstFrameFault);
+	Gate *secondFrameLine = getGateForFaultActivation(secondFrameFault);
+	if (!firstFrameLine || !secondFrameLine)
+	{
+		InfluenceSet set;
+		set.impossible_ = true;
+		return influenceDetCache_.emplace(&fault, std::move(set)).first->second;
+	}
+	const Value firstValue = fault.faultType_ == Fault::STR ? L : H;
+	const Value secondValue = fault.faultType_ == Fault::STR ? H : L;
+	InfluenceSet det = unionInfluenceSets(getInfluenceControlSet(firstFrameLine->gateId_, firstValue),
+	                                      getInfluenceControlSet(secondFrameLine->gateId_, secondValue));
+	det = unionInfluenceSets(det, influenceRo_[static_cast<size_t>(secondFrameLine->gateId_)]);
+	return influenceDetCache_.emplace(&fault, std::move(det)).first->second;
+}
+
+Atpg::InfluenceSet Atpg::computeTransitionFaultDetectability(const Fault &fault)
+{
+	return getTransitionFaultDetectability(fault);
+}
+
+const Atpg::InfluenceSet &Atpg::getTransitionFaultStructuralInfluence(const Fault &fault)
+{
+	initializeTdfInfluenceMeasures();
+	const std::unordered_map<const Fault *, InfluenceSet>::const_iterator cached = influenceStructuralCache_.find(&fault);
+	if (cached != influenceStructuralCache_.end())
+	{
+		return cached->second;
+	}
+	const int baseGateID = fault.gateID_ >= pCircuit_->numGate_ ? fault.gateID_ - pCircuit_->numGate_ : fault.gateID_;
+	Fault firstFrameFault(baseGateID, fault.faultType_, fault.faultyLine_, fault.equivalent_, fault.faultState_);
+	Fault secondFrameFault = makeTransitionDelayTargetFault(firstFrameFault);
+	Gate *firstFrameLine = getGateForFaultActivation(firstFrameFault);
+	Gate *secondFrameLine = getGateForFaultActivation(secondFrameFault);
+	InfluenceSet result;
+	if (!firstFrameLine || !secondFrameLine)
+	{
+		result.impossible_ = true;
+		return influenceStructuralCache_.emplace(&fault, std::move(result)).first->second;
+	}
+
+	const size_t totalGate = static_cast<size_t>(pCircuit_->totalGate_);
+	if (influenceStructuralVisitedStamp_.size() != totalGate)
+	{
+		influenceStructuralVisitedStamp_.assign(totalGate, 0);
+		influenceStructuralForwardStamp_.assign(totalGate, 0);
+		influenceStructuralStack_.reserve(totalGate);
+		influenceStructuralInputIndices_.reserve(influenceInputGateIDs_.size());
+		influenceStructuralStamp_ = 0;
+	}
+	else if (influenceStructuralStamp_ >= INFINITE - 1)
+	{
+		std::fill(influenceStructuralVisitedStamp_.begin(), influenceStructuralVisitedStamp_.end(), 0);
+		std::fill(influenceStructuralForwardStamp_.begin(), influenceStructuralForwardStamp_.end(), 0);
+		influenceStructuralStamp_ = 0;
+	}
+	const int currentStamp = ++influenceStructuralStamp_;
+	influenceStructuralInputIndices_.clear();
+
+	auto addInput = [&](const int &gateID) {
+		const int inputIndex = influenceInputIndexByGate_[static_cast<size_t>(gateID)];
+		if (inputIndex < 0)
+		{
+			return;
+		}
+		influenceStructuralInputIndices_.push_back(inputIndex);
+	};
+	auto traceBackward = [&](const int &startGateID) {
+		influenceStructuralStack_.clear();
+		influenceStructuralStack_.push_back(startGateID);
+		while (!influenceStructuralStack_.empty())
+		{
+			const int gateID = influenceStructuralStack_.back();
+			influenceStructuralStack_.pop_back();
+			if (gateID < 0 || gateID >= pCircuit_->totalGate_ ||
+			    influenceStructuralVisitedStamp_[static_cast<size_t>(gateID)] == currentStamp)
+			{
+				continue;
+			}
+			influenceStructuralVisitedStamp_[static_cast<size_t>(gateID)] = currentStamp;
+			if (influenceInputIndexByGate_[static_cast<size_t>(gateID)] >= 0)
+			{
+				addInput(gateID);
+				continue;
+			}
+			for (const int &faninID : pCircuit_->circuitGates_[gateID].faninVector_)
+			{
+				influenceStructuralStack_.push_back(faninID);
+			}
+		}
+	};
+
+	traceBackward(firstFrameLine->gateId_);
+
+	influenceStructuralStack_.clear();
+	influenceStructuralStack_.push_back(secondFrameLine->gateId_);
+	while (!influenceStructuralStack_.empty())
+	{
+		const int gateID = influenceStructuralStack_.back();
+		influenceStructuralStack_.pop_back();
+		if (gateID < 0 || gateID >= pCircuit_->totalGate_ ||
+		    influenceStructuralForwardStamp_[static_cast<size_t>(gateID)] == currentStamp)
+		{
+			continue;
+		}
+		influenceStructuralForwardStamp_[static_cast<size_t>(gateID)] = currentStamp;
+		const Gate &gate = pCircuit_->circuitGates_[gateID];
+		if (gate.frame_ == 1 && (gate.gateType_ == Gate::PO || gate.gateType_ == Gate::PPO))
+		{
+			traceBackward(gateID);
+			continue;
+		}
+		for (const int &fanoutID : gate.fanoutVector_)
+		{
+			influenceStructuralStack_.push_back(fanoutID);
+		}
+	}
+	std::sort(influenceStructuralInputIndices_.begin(), influenceStructuralInputIndices_.end());
+	influenceStructuralInputIndices_.erase(std::unique(influenceStructuralInputIndices_.begin(), influenceStructuralInputIndices_.end()),
+	                                       influenceStructuralInputIndices_.end());
+	result.literals_.reserve(influenceStructuralInputIndices_.size());
+	for (const int &inputIndex : influenceStructuralInputIndices_)
+	{
+		InfluenceLiteral literal;
+		literal.inputIndex_ = inputIndex;
+		literal.valueMask_ = 3;
+		result.literals_.push_back(literal);
+	}
+	return influenceStructuralCache_.emplace(&fault, std::move(result)).first->second;
+}
+
+Atpg::InfluenceSet Atpg::computeTransitionFaultStructuralInfluence(const Fault &fault)
+{
+	return getTransitionFaultStructuralInfluence(fault);
+}
+
+bool Atpg::influenceSetHasBothValueRequirement(const InfluenceSet &set) const
+{
+	for (const InfluenceLiteral &literal : set.literals_)
+	{
+		if (literal.valueMask_ == 3)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void Atpg::buildInfluencePrimaryOrder(const FaultPtrList &faultPtrList)
+{
+	initializeTdfInfluenceMeasures();
+	influencePrimaryOrder_.clear();
+	influencePrimaryOrder_.reserve(faultPtrList.size());
+
+	struct PrimaryFaultScore
+	{
+		Fault *fault_;
+		size_t detSize_;
+		int gateID_;
+		int faultyLine_;
+		int faultType_;
+	};
+
+	std::vector<PrimaryFaultScore> scoredFaults;
+	scoredFaults.reserve(faultPtrList.size());
+	for (Fault *pFault : faultPtrList)
+	{
+		if (!pFault || pFault->faultState_ != Fault::UD)
+		{
+			continue;
+		}
+		const bool isTransitionDelayFault = (pFault->faultType_ == Fault::STR || pFault->faultType_ == Fault::STF);
+		if (!isTransitionDelayFault)
+		{
+			continue;
+		}
+		const InfluenceSet &det = getTransitionFaultDetectability(*pFault);
+		if (det.impossible_ || influenceSetHasBothValueRequirement(det))
+		{
+			continue;
+		}
+		scoredFaults.push_back({pFault, det.literals_.size(), pFault->gateID_, pFault->faultyLine_, static_cast<int>(pFault->faultType_)});
+	}
+
+	std::sort(scoredFaults.begin(), scoredFaults.end(), [](const PrimaryFaultScore &lhs, const PrimaryFaultScore &rhs) {
+		if (lhs.detSize_ != rhs.detSize_)
+			return lhs.detSize_ < rhs.detSize_;
+		if (lhs.gateID_ != rhs.gateID_)
+			return lhs.gateID_ < rhs.gateID_;
+		if (lhs.faultyLine_ != rhs.faultyLine_)
+			return lhs.faultyLine_ < rhs.faultyLine_;
+		return lhs.faultType_ < rhs.faultType_;
+	});
+	for (const PrimaryFaultScore &score : scoredFaults)
+	{
+		influencePrimaryOrder_.push_back(score.fault_);
+	}
+	influencePrimaryCursor_ = 0;
+	influencePrimaryOrderValid_ = true;
+}
+
+FaultPtrListIter Atpg::selectInfluencePrimaryFault(FaultPtrList &faultPtrList)
+{
+	if (!influencePrimaryOrderValid_)
+	{
+		buildInfluencePrimaryOrder(faultPtrList);
+	}
+	while (influencePrimaryCursor_ < influencePrimaryOrder_.size())
+	{
+		Fault *pFault = influencePrimaryOrder_[influencePrimaryCursor_++];
+		if (!pFault || pFault->faultState_ != Fault::UD)
+		{
+			continue;
+		}
+		FaultPtrListIter found = std::find(faultPtrList.begin(), faultPtrList.end(), pFault);
+		if (found != faultPtrList.end())
+		{
+			return found;
+		}
+	}
+	return faultPtrList.begin();
+}
+
+void Atpg::updateInfluenceSpecifiedInputsFromCircuit()
+{
+	initializeTdfInfluenceMeasures();
+	if (influenceSpecifiedInputValues_.size() != influenceInputGateIDs_.size())
+	{
+		influenceSpecifiedInputValues_.assign(influenceInputGateIDs_.size(), 0);
+	}
+	else
+	{
+		std::fill(influenceSpecifiedInputValues_.begin(), influenceSpecifiedInputValues_.end(), 0);
+	}
+	influenceSpecifiedInputIndices_.clear();
+	influenceSpecifiedInputIndices_.reserve(influenceInputGateIDs_.size());
+	for (size_t inputIndex = 0; inputIndex < influenceInputGateIDs_.size(); ++inputIndex)
+	{
+		const Value value = pCircuit_->circuitGates_[influenceInputGateIDs_[inputIndex]].atpgVal_;
+		if (value == L || value == B)
+		{
+			influenceSpecifiedInputValues_[inputIndex] = 1;
+			influenceSpecifiedInputIndices_.push_back(static_cast<int>(inputIndex));
+		}
+		else if (value == H || value == D)
+		{
+			influenceSpecifiedInputValues_[inputIndex] = 2;
+			influenceSpecifiedInputIndices_.push_back(static_cast<int>(inputIndex));
+		}
+	}
+}
+
+int Atpg::countInfluenceOverlap(const InfluenceSet &set) const
+{
+	if (set.impossible_)
+	{
+		return INFINITE;
+	}
+	int overlap = 0;
+	for (const InfluenceLiteral &literal : set.literals_)
+	{
+		if (influenceSpecifiedInputValues_[static_cast<size_t>(literal.inputIndex_)] != 0)
+		{
+			++overlap;
+		}
+	}
+	return overlap;
+}
+
+int Atpg::countInfluenceConflicts(const InfluenceSet &set) const
+{
+	if (set.impossible_)
+	{
+		return INFINITE;
+	}
+	int conflicts = 0;
+	for (const InfluenceLiteral &literal : set.literals_)
+	{
+		const unsigned char specified = influenceSpecifiedInputValues_[static_cast<size_t>(literal.inputIndex_)];
+		if (specified != 0 && (literal.valueMask_ & specified) == 0)
+		{
+			++conflicts;
+		}
+	}
+	return conflicts;
+}
+
+Gate *Atpg::findInfluenceInput(Gate *pGate, Value atpgValOfpGate)
+{
+	if (!useInfluenceInputBacktrace_ || !pGate)
+	{
+		return NULL;
+	}
+	initializeTdfInfluenceMeasures();
+	Gate *bestGate = NULL;
+	int bestConflicts = INFINITE;
+	int bestOverlap = INFINITE;
+	size_t bestSize = static_cast<size_t>(INFINITE);
+	int bestControlCost = INFINITE;
+
+	for (const int &faninID : pGate->faninVector_)
+	{
+		Gate *pFaninGate = &pCircuit_->circuitGates_[faninID];
+		if (pFaninGate == firstTimeFrameHeadLine_ || pFaninGate->atpgVal_ != X)
+		{
+			continue;
+		}
+		const InfluenceSet *set = NULL;
+		InfluenceSet anyControl;
+		if (atpgValOfpGate == L || atpgValOfpGate == H)
+		{
+			set = &getInfluenceControlSet(faninID, atpgValOfpGate);
+		}
+		else
+		{
+			anyControl = chooseSmallerInfluenceSet(getInfluenceControlSet(faninID, L), getInfluenceControlSet(faninID, H));
+			set = &anyControl;
+		}
+		const int conflicts = countInfluenceConflicts(*set);
+		const int overlap = countInfluenceOverlap(*set);
+		const size_t size = set->impossible_ ? static_cast<size_t>(INFINITE) : set->literals_.size();
+		const int controlCost = atpgValOfpGate == L ? pFaninGate->cc0_ : pFaninGate->cc1_;
+		if (!bestGate ||
+		    conflicts < bestConflicts ||
+		    (conflicts == bestConflicts && overlap < bestOverlap) ||
+		    (conflicts == bestConflicts && overlap == bestOverlap && size < bestSize) ||
+		    (conflicts == bestConflicts && overlap == bestOverlap && size == bestSize && controlCost < bestControlCost))
+		{
+			bestGate = pFaninGate;
+			bestConflicts = conflicts;
+			bestOverlap = overlap;
+			bestSize = size;
+			bestControlCost = controlCost;
+		}
+	}
+	return bestGate;
+}
+
 void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults, bool powerAwareSTC)
 {
 	const Fault &fTDF = *faultPtrListForGen.front();
 
+	const bool influenceDtc = pPatternProcessor->dynamicCompression_ == PatternProcessor::ON;
+	if (influenceDtc)
+	{
+		initializeTdfInfluenceMeasures();
+		influenceSpecifiedInputValues_.assign(influenceInputGateIDs_.size(), 0);
+		useInfluenceInputBacktrace_ = true;
+	}
 	SINGLE_PATTERN_GENERATION_STATUS result = generateSinglePatternOnTargetFault(Fault(fTDF.gateID_ + pCircuit_->numGate_, fTDF.faultType_, fTDF.faultyLine_, fTDF.equivalent_, fTDF.faultState_), false);
+	useInfluenceInputBacktrace_ = false;
 	if (result == PATTERN_FOUND)
 	{
 		Pattern pattern(pCircuit_);
@@ -587,189 +1309,272 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	pSimulator_->goodSim();
 	writeGoodSimValToPatternPO(pattern);
 
-	struct TdfDynamicCandidate
-	{
-		int overlap;
-		Fault *fault;
-	};
-	std::vector<TdfDynamicCandidate> candidates;
-	candidates.reserve(TDF_DTC_MAX_CANDIDATES);
-	std::vector<int> visitStamp(static_cast<size_t>(pCircuit_->totalGate_), 0);
-	std::vector<int> overlapCache(static_cast<size_t>(pCircuit_->totalGate_), -1);
-	std::vector<int> workQueue;
-	workQueue.reserve(TDF_DTC_WORK_QUEUE_RESERVE);
-	int currentVisitStamp = 0;
+	initializeTdfInfluenceMeasures();
+	resetPrevAtpgValStored();
+	storeCurrentAtpgVal();
+	updateInfluenceSpecifiedInputsFromCircuit();
 
-	auto candidateIsBetter = [](const TdfDynamicCandidate &lhs, const TdfDynamicCandidate &rhs) {
-		if (lhs.overlap != rhs.overlap)
-		{
-			return lhs.overlap > rhs.overlap;
-		}
-		if (lhs.fault->gateID_ != rhs.fault->gateID_)
-		{
-			return lhs.fault->gateID_ < rhs.fault->gateID_;
-		}
-		if (lhs.fault->faultyLine_ != rhs.fault->faultyLine_)
-		{
-			return lhs.fault->faultyLine_ < rhs.fault->faultyLine_;
-		}
-		return lhs.fault->faultType_ < rhs.fault->faultType_;
+	auto faultSimAndDropCurrentPattern = [&]() {
+		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faultPtrListForGen);
+		pSimulator_->goodSim();
 	};
-	auto insertCandidate = [&](const int &overlap, Fault *pFault) {
-		TdfDynamicCandidate candidate = {overlap, pFault};
-		if (candidates.size() < TDF_DTC_MAX_CANDIDATES)
+
+	faultSimAndDropCurrentPattern();
+
+	size_t selected = 0;
+	auto restoreCurrentAtpgValues = [&]() {
+		for (Gate &gate : pCircuit_->circuitGates_)
 		{
-			candidates.push_back(candidate);
-			size_t index = candidates.size() - 1;
-			while (index > 0 && candidateIsBetter(candidates[index], candidates[index - 1]))
+			if (gate.atpgVal_ != gate.prevAtpgValStored_)
 			{
-				std::swap(candidates[index], candidates[index - 1]);
-				--index;
+				gate.atpgVal_ = gate.prevAtpgValStored_;
 			}
-			return;
-		}
-		if (!candidateIsBetter(candidate, candidates.back()))
-		{
-			return;
-		}
-		candidates.back() = candidate;
-		for (size_t index = candidates.size() - 1; index > 0 && candidateIsBetter(candidates[index], candidates[index - 1]); --index)
-		{
-			std::swap(candidates[index], candidates[index - 1]);
 		}
 	};
 
-	for (Fault *pFault : faultPtrListForGen)
+	struct CandidateFaultInfo
 	{
-		if (pFault->faultState_ != Fault::UD || pFault == primaryFault)
+		Fault *fault;
+		Fault tdfTarget;
+		Gate *activationGate;
+		const InfluenceSet *detSet;
+		const InfluenceSet *structuralSet;
+	};
+
+	std::vector<CandidateFaultInfo> candidateFaults;
+	candidateFaults.reserve(TDF_DTC_MAX_CANDIDATE_WINDOW);
+	size_t windowCount = 0;
+	for (Fault *pFault : influencePrimaryOrder_)
+	{
+		if (windowCount >= TDF_DTC_MAX_CANDIDATE_WINDOW)
+		{
+			break;
+		}
+		if (!pFault || pFault->faultState_ != Fault::UD || pFault == primaryFault)
 		{
 			continue;
 		}
 
 		Fault tdfTarget = makeTransitionDelayTargetFault(*pFault);
-		Gate *pGateForActivation = getGateForFaultActivation(tdfTarget);
-		if (!pGateForActivation)
+		Gate *pActivationGate = getGateForFaultActivation(tdfTarget);
+		const InfluenceSet &detSet = getTransitionFaultDetectability(*pFault);
+		if (detSet.impossible_ || influenceSetHasBothValueRequirement(detSet))
 		{
 			continue;
 		}
-		if (((pGateForActivation->atpgVal_ == H) && (pFault->faultType_ == Fault::STR)) ||
-			((pGateForActivation->atpgVal_ == L) && (pFault->faultType_ == Fault::STF)))
+		candidateFaults.push_back({pFault, tdfTarget, pActivationGate, &detSet, NULL});
+		++windowCount;
+	}
+
+	std::unordered_set<Fault *> compactedFaults;
+	std::unordered_set<Fault *> rejectedFaults;
+	compactedFaults.reserve(TDF_DTC_MAX_SELECTED_FAULTS);
+	rejectedFaults.reserve(candidateFaults.size());
+
+	auto hasActivationConflict = [&](const CandidateFaultInfo &candidate) {
+		if (!candidate.activationGate)
 		{
-			continue;
+			return true;
 		}
-
-		int &overlap = overlapCache[static_cast<size_t>(tdfTarget.gateID_)];
-		if (overlap < 0)
+		const Value requiredValue = candidate.fault->faultType_ == Fault::STR ? H : L;
+		const Value currentValue = candidate.activationGate->atpgVal_;
+		if (currentValue == X || currentValue == requiredValue)
 		{
-			++currentVisitStamp;
-			workQueue.clear();
-			Gate *pGate = &pCircuit_->circuitGates_[tdfTarget.gateID_];
-			workQueue.push_back(pGate->gateId_);
-			visitStamp[static_cast<size_t>(pGate->gateId_)] = currentVisitStamp;
+			return false;
+		}
+		if ((currentValue == D && requiredValue == H) || (currentValue == B && requiredValue == L))
+		{
+			return false;
+		}
+		return true;
+	};
+	struct CandidateScore
+	{
+		int classRank;
+		int conflictCount;
+		int detOverlap;
+		int structuralOverlap;
+		size_t detSize;
+		int gateID;
+	};
 
-			overlap = 0;
-			for (size_t idx = 0; idx < workQueue.size(); ++idx)
+	auto getStructuralSet = [&](CandidateFaultInfo &candidate) -> const InfluenceSet & {
+		if (!candidate.structuralSet)
+		{
+			candidate.structuralSet = &getTransitionFaultStructuralInfluence(*candidate.fault);
+		}
+		return *candidate.structuralSet;
+	};
+
+	auto scoreCandidate = [&](CandidateFaultInfo &candidate) -> CandidateScore {
+		const InfluenceSet &structuralSet = getStructuralSet(candidate);
+		const int structuralOverlap = countInfluenceOverlap(structuralSet);
+		const int detOverlap = countInfluenceOverlap(*candidate.detSet);
+		const int conflictCount = countInfluenceConflicts(*candidate.detSet);
+		int classRank = 3;
+		if (structuralOverlap == 0)
+		{
+			classRank = 0;
+		}
+		else if (detOverlap == 0)
+		{
+			classRank = 1;
+		}
+		else if (conflictCount == 0)
+		{
+			classRank = 2;
+		}
+		CandidateScore score;
+		score.classRank = classRank;
+		score.conflictCount = conflictCount;
+		score.detOverlap = detOverlap;
+		score.structuralOverlap = structuralOverlap;
+		score.detSize = candidate.detSet->literals_.size();
+		score.gateID = candidate.fault->gateID_;
+		return score;
+	};
+
+	auto scoreLess = [](const CandidateScore &lhs, const CandidateScore &rhs) {
+		if (lhs.classRank != rhs.classRank)
+			return lhs.classRank < rhs.classRank;
+		if (lhs.conflictCount != rhs.conflictCount)
+			return lhs.conflictCount < rhs.conflictCount;
+		if (lhs.detOverlap != rhs.detOverlap)
+			return lhs.detOverlap < rhs.detOverlap;
+		if (lhs.structuralOverlap != rhs.structuralOverlap)
+			return lhs.structuralOverlap < rhs.structuralOverlap;
+		if (lhs.detSize != rhs.detSize)
+			return lhs.detSize < rhs.detSize;
+		return lhs.gateID < rhs.gateID;
+	};
+
+	auto isCandidateEligible = [&](const CandidateFaultInfo &candidate) {
+		return candidate.fault->faultState_ == Fault::UD &&
+		       compactedFaults.find(candidate.fault) == compactedFaults.end() &&
+		       rejectedFaults.find(candidate.fault) == rejectedFaults.end() &&
+		       !hasActivationConflict(candidate);
+	};
+
+	auto candidateSetBudget = [](const size_t &eligibleCount) -> size_t {
+		if (eligibleCount == 0 || TDF_DTC_CANDIDATE_SET_RATIO <= 0.0 || TDF_DTC_CANDIDATE_SET_RATIO >= 1.0)
+		{
+			return eligibleCount;
+		}
+		size_t budget = static_cast<size_t>(std::ceil(static_cast<double>(eligibleCount) * TDF_DTC_CANDIDATE_SET_RATIO));
+		if (budget < TDF_DTC_MIN_CANDIDATE_SET_SIZE)
+		{
+			budget = TDF_DTC_MIN_CANDIDATE_SET_SIZE;
+		}
+		return budget < eligibleCount ? budget : eligibleCount;
+	};
+
+	struct CheapCandidateInfo
+	{
+		CandidateFaultInfo *candidate;
+		int conflictCount;
+		int detOverlap;
+		size_t detSize;
+		int gateID;
+	};
+	std::vector<CheapCandidateInfo> cheapCandidates;
+	cheapCandidates.reserve(candidateFaults.size());
+	auto cheapCandidateLess = [](const CheapCandidateInfo &lhs, const CheapCandidateInfo &rhs) {
+		if (lhs.conflictCount != rhs.conflictCount)
+			return lhs.conflictCount < rhs.conflictCount;
+		if (lhs.detOverlap != rhs.detOverlap)
+			return lhs.detOverlap < rhs.detOverlap;
+		if (lhs.detSize != rhs.detSize)
+			return lhs.detSize < rhs.detSize;
+		return lhs.gateID < rhs.gateID;
+	};
+
+	while (selected < TDF_DTC_MAX_SELECTED_FAULTS)
+	{
+		CandidateFaultInfo *selectedCandidate = NULL;
+		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
+
+		if (TDF_DTC_CANDIDATE_SET_RATIO > 0.0 && TDF_DTC_CANDIDATE_SET_RATIO < 1.0)
+		{
+			cheapCandidates.clear();
+			for (CandidateFaultInfo &candidate : candidateFaults)
 			{
-				int gateID = workQueue[idx];
-				if (gateID_to_reachableByTargetFault_[gateID] == 1)
+				if (!isCandidateEligible(candidate))
 				{
-					++overlap;
+					continue;
 				}
-				for (int fanoutID : pCircuit_->circuitGates_[gateID].fanoutVector_)
+				cheapCandidates.push_back({&candidate,
+				                           countInfluenceConflicts(*candidate.detSet),
+				                           countInfluenceOverlap(*candidate.detSet),
+				                           candidate.detSet->literals_.size(),
+				                           candidate.fault->gateID_});
+			}
+			const size_t budget = candidateSetBudget(cheapCandidates.size());
+			if (budget < cheapCandidates.size())
+			{
+				std::sort(cheapCandidates.begin(), cheapCandidates.end(), cheapCandidateLess);
+				cheapCandidates.resize(budget);
+			}
+			for (CheapCandidateInfo &cheapCandidate : cheapCandidates)
+			{
+				const CandidateScore candidateScore = scoreCandidate(*cheapCandidate.candidate);
+				if (!selectedCandidate || scoreLess(candidateScore, bestScore))
 				{
-					if (visitStamp[static_cast<size_t>(fanoutID)] != currentVisitStamp)
-					{
-						visitStamp[static_cast<size_t>(fanoutID)] = currentVisitStamp;
-						workQueue.push_back(fanoutID);
-					}
+					selectedCandidate = cheapCandidate.candidate;
+					bestScore = candidateScore;
 				}
 			}
 		}
-		insertCandidate(overlap, pFault);
-	}
+		else
+		{
+			for (CandidateFaultInfo &candidate : candidateFaults)
+			{
+				if (!isCandidateEligible(candidate))
+				{
+					continue;
+				}
 
-	resetPrevAtpgValStored();
-	storeCurrentAtpgVal();
+				const CandidateScore candidateScore = scoreCandidate(candidate);
+				if (!selectedCandidate || scoreLess(candidateScore, bestScore))
+				{
+					selectedCandidate = &candidate;
+					bestScore = candidateScore;
+				}
+			}
+		}
 
-	size_t selected = 0;
-	size_t attempted = 0;
-	std::vector<int> dirtyGateIDs;
-	dirtyGateIDs.reserve(TDF_DTC_DIRTY_GATE_RESERVE);
-	std::vector<char> dirtyGateMarks(static_cast<size_t>(pCircuit_->totalGate_), 0);
-	auto restoreCurrentAtpgValues = [&]() {
-		for (Gate &gate : pCircuit_->circuitGates_)
-		{
-			gate.atpgVal_ = gate.prevAtpgValStored_;
-		}
-	};
-	auto clearDirtyAtpgValues = [&]() {
-		for (const int &gateID : dirtyGateIDs)
-		{
-			dirtyGateMarks[static_cast<size_t>(gateID)] = 0;
-		}
-		dirtyGateIDs.clear();
-	};
-	auto restoreDirtyAtpgValues = [&]() {
-		for (const int &gateID : dirtyGateIDs)
-		{
-			Gate &gate = pCircuit_->circuitGates_[gateID];
-			gate.atpgVal_ = gate.prevAtpgValStored_;
-		}
-		clearDirtyAtpgValues();
-	};
-	for (const auto &candidate : candidates)
-	{
-		if (selected >= TDF_DTC_MAX_SELECTED_FAULTS || attempted >= TDF_DTC_MAX_ATPG_ATTEMPTS)
+		if (!selectedCandidate)
 		{
 			break;
 		}
 
-		Fault *pFault = candidate.fault;
-		if (pFault->faultState_ != Fault::UD)
+		if (!xPathExists(selectedCandidate->activationGate))
 		{
+			rejectedFaults.insert(selectedCandidate->fault);
+			restoreCurrentAtpgValues();
 			continue;
 		}
 
-		Fault tdfTarget = makeTransitionDelayTargetFault(*pFault);
-		Gate *pGateForActivation = getGateForFaultActivation(tdfTarget);
-		if (!pGateForActivation)
+		useInfluenceInputBacktrace_ = true;
+		const SINGLE_PATTERN_GENERATION_STATUS status = generateSinglePatternOnTargetFault(selectedCandidate->tdfTarget, true);
+		useInfluenceInputBacktrace_ = false;
+		if (status == PATTERN_FOUND)
 		{
-			continue;
-		}
-
-		if (((pGateForActivation->atpgVal_ == H) && (pFault->faultType_ == Fault::STR)) ||
-			((pGateForActivation->atpgVal_ == L) && (pFault->faultType_ == Fault::STF)))
-		{
-			continue;
-		}
-
-		if (pGateForActivation->atpgVal_ != X)
-		{
-			setGateAtpgValAndRunImplication(*pGateForActivation, X, &dirtyGateIDs, &dirtyGateMarks);
-		}
-
-		if (!xPathExists(pGateForActivation))
-		{
-			restoreDirtyAtpgValues();
-			continue;
-		}
-
-		++attempted;
-		if (generateSinglePatternOnTargetFault(tdfTarget, true) == PATTERN_FOUND)
-		{
-			clearDirtyAtpgValues();
+			compactedFaults.insert(selectedCandidate->fault);
 			resetPrevAtpgValStored();
 			clearAllFaultEffectByEvaluation();
 			storeCurrentAtpgVal();
 			writeAtpgValToPatternPI(pattern);
+			updateInfluenceSpecifiedInputsFromCircuit();
+			faultSimAndDropCurrentPattern();
 			++selected;
 		}
 		else
 		{
 			restoreCurrentAtpgValues();
-			clearDirtyAtpgValues();
+			rejectedFaults.insert(selectedCandidate->fault);
 		}
 	}
+
 	return selected > 0;
 }
 
@@ -3445,7 +4250,11 @@ void Atpg::fanoutFreeBacktrace(Gate *pGate)
 			Value Val = cXOR2(pGate->atpgVal_, vInv);
 			if (Val == pGate->getInputCtrlValue())
 			{
-				Gate *pMinLevelGate = &pCircuit_->circuitGates_[pGate->minLevelOfFanins_];
+				Gate *pMinLevelGate = useInfluenceInputBacktrace_ ? findInfluenceInput(pGate, Val) : NULL;
+				if (!pMinLevelGate)
+				{
+					pMinLevelGate = &pCircuit_->circuitGates_[pGate->minLevelOfFanins_];
+				}
 				if (pMinLevelGate != firstTimeFrameHeadLine_)
 				{
 					pMinLevelGate->atpgVal_ = Val;
@@ -3957,6 +4766,15 @@ void Atpg::initializeForMultipleBacktrace()
 // **************************************************************************
 Gate *Atpg::findEasiestInput(Gate *pGate, Value atpgValOfpGate)
 {
+	if (useInfluenceInputBacktrace_)
+	{
+		Gate *pInfluenceInput = findInfluenceInput(pGate, atpgValOfpGate);
+		if (pInfluenceInput)
+		{
+			return pInfluenceInput;
+		}
+	}
+
 	// declaration of the return gate pointer
 	Gate *pRetGate = NULL;
 	// easiest input gate's scope(non-select yet)
