@@ -32,20 +32,20 @@
 #      ---------------------------------------------
 #      shift operations                           92
 #      shift cycles evaluated                    552
-#      total FFTC                               1516
-#      average FFTC                             2.75
+#      total FFTC                               1503
+#      average FFTC                             2.72
 #      maximum FFTC                                6
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                                355
+#      total FFTC                                351
 #      capture cycles evaluated                  184
-#      average FFTC                             1.93
+#      average FFTC                             1.91
 #      maximum FFTC                                6
 #      unknown transitions                         0
 #    -----------------------------------------------
-#    overall average FFTC                      2.542
+#    overall average FFTC                      2.519
 #  -------------------------------------------------
-#  ATPG runtime                            0.04491 s
+#  ATPG runtime                            0.04479 s
 #  -------------------------------------------------

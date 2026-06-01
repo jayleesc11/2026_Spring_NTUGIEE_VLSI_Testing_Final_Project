@@ -160,6 +160,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			return finalRemainingFaults;
 		};
 
+		sortPatternsForXID(pPatternProcessor);
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
 		XFill(pPatternProcessor);
 		reorderPatternsForShiftPower(pPatternProcessor);
@@ -5566,6 +5567,35 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 			std::cout << "    remaining faults: " << originalFaultList.size() << '\n';
 		}
 	}
+}
+
+void Atpg::sortPatternsForXID(PatternProcessor *pPatternProcessor)
+{
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2 || pCircuit_->numPPI_ <= 0)
+	{
+		return;
+	}
+	auto countPpiTransitions = [](const Pattern &pattern) -> size_t {
+		size_t transitions = 0;
+		bool prev = false;
+		bool hasPrev = false;
+		for (const Value &v : pattern.PPI_)
+		{
+			const bool bit = (v == H || v == D);
+			if (hasPrev && bit != prev)
+			{
+				++transitions;
+			}
+			prev = bit;
+			hasPrev = true;
+		}
+		return transitions;
+	};
+	std::stable_sort(pPatternProcessor->patternVector_.begin(),
+	                 pPatternProcessor->patternVector_.end(),
+	                 [&](const Pattern &a, const Pattern &b) {
+		                 return countPpiTransitions(a) < countPpiTransitions(b);
+	                 });
 }
 
 // **************************************************************************
