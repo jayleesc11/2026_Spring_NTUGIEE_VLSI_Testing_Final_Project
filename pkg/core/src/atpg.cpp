@@ -488,39 +488,108 @@ void Atpg::identifyGateUniquePath()
 // **************************************************************************
 void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults)
 {
-	const Fault &fTDF = *faultPtrListForGen.front();
+    // --- PHASE 1 PRE-PROCESSING ---
+    buildTDFParityMap();
+    groupFaultsByFFR(faultPtrListForGen); 
+    isGateConfined_.clear(); 
 
-	SINGLE_PATTERN_GENERATION_STATUS result = generateSinglePatternOnTargetFault(Fault(fTDF.gateID_ + pCircuit_->numGate_, fTDF.faultType_, fTDF.faultyLine_, fTDF.equivalent_, fTDF.faultState_), false);
-	if (result == PATTERN_FOUND)
-	{
-		Pattern pattern(pCircuit_);
-		pattern.initForTransitionDelayFault(pCircuit_);
-		pPatternProcessor->patternVector_.push_back(pattern);
-		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
+	dynamic_cc0_.assign(pCircuit_->totalGate_, 0);
+	dynamic_cc1_.assign(pCircuit_->totalGate_, 0);
 
-		if (pPatternProcessor->dynamicCompression_ == PatternProcessor::ON)
-		{
-			// TODO: implement dynamic test compression for transition delay faults.
-		}
-
-		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_.back());
-
-		pSimulator_->parallelFaultFaultSimWithOnePattern(pPatternProcessor->patternVector_.back(), faultPtrListForGen);
-		pSimulator_->goodSim();
-		writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.back());
+	for (int i = 0; i < pCircuit_->totalGate_; ++i) {
+		dynamic_cc0_[i] = pCircuit_->circuitGates_[i].cc0_;
+		dynamic_cc1_[i] = pCircuit_->circuitGates_[i].cc1_;
 	}
-	else if (result == FAULT_UNTESTABLE)
-	{
-		faultPtrListForGen.front()->faultState_ = Fault::AU;
-		numOfAtpgUntestableFaults += faultPtrListForGen.front()->equivalent_;
-		faultPtrListForGen.pop_front();
-	}
-	else
-	{
-		faultPtrListForGen.front()->faultState_ = Fault::AB;
-		faultPtrListForGen.push_back(faultPtrListForGen.front());
-		faultPtrListForGen.pop_front();
-	}
+
+    // Use the original queue-based approach
+    while (!faultPtrListForGen.empty())
+    {
+        Fault *pPrimaryFault = faultPtrListForGen.front();
+
+        // 1. Generate pattern for PRIMARY Target Fault
+        SINGLE_PATTERN_GENERATION_STATUS status = generateSinglePatternOnTargetFault(*pPrimaryFault, false);
+
+        if (status == PATTERN_FOUND)
+        {
+            // --- BEGIN PHASE 1 DYNAMIC TEST COMPACTION (DTC) ---
+            bool dtc_active = true;
+            int dtc_attempts = 0;
+            const int MAX_DTC_ATTEMPTS = 50; 
+
+            while (dtc_active && dtc_attempts < MAX_DTC_ATTEMPTS)
+            {
+                dtc_attempts++;
+
+				updateDynamicControllability();
+                
+                int objectiveGateId = -1;
+                Value objectiveValue = X;
+
+                // 2. Determine Objective 
+                if (determinePowerAwareObjective(objectiveGateId, objectiveValue))
+                {
+                    // 3. Mark Confined Cone
+                    markConfinedCone(objectiveGateId);
+
+                    // 4. Parity Backtrace 
+                    Fault *pSecondaryFault = selectPtfWithParityBacktrace(objectiveGateId, objectiveValue, faultPtrListForGen);
+
+                    if (pSecondaryFault != nullptr)
+                    {
+                        // 5. Generate pattern for SECONDARY Fault 
+                        SINGLE_PATTERN_GENERATION_STATUS secStatus = generateSinglePatternOnTargetFault(*pSecondaryFault, true);
+                        
+                        if (secStatus != PATTERN_FOUND) {
+                            dtc_active = false; 
+                        }
+                    }
+                    else
+                    {
+                        dtc_active = false;
+                    }
+                }
+                else
+                {
+                    dtc_active = false; 
+                }
+            }
+            // --- END PHASE 1 DTC ---
+
+            isGateConfined_.clear(); 
+
+            // 6. Standard Fault Simulation & X-Fill
+            Pattern newPattern(pCircuit_); 
+            writeAtpgValToPatternPI(newPattern); 
+            
+            adjacentFill(newPattern); 
+
+            // The simulator simulates the pattern and removes all detected faults 
+            // (INCLUDING pPrimaryFault) directly from faultPtrListForGen.
+            pSimulator_->parallelFaultFaultSimWithOnePattern(newPattern, faultPtrListForGen);
+
+            if (pPatternProcessor)
+            {
+                pPatternProcessor->patternVector_.push_back(newPattern);
+            }
+
+            // 7. Re-group remaining undetected faults by FFR
+            groupFaultsByFFR(faultPtrListForGen);
+        }
+        else if (status == FAULT_UNTESTABLE)
+        {
+            // Restore your original logic!
+            pPrimaryFault->faultState_ = Fault::AU;
+            numOfAtpgUntestableFaults += pPrimaryFault->equivalent_;
+            faultPtrListForGen.pop_front();
+        }
+        else // ABORT
+        {
+            // Restore your original logic!
+            pPrimaryFault->faultState_ = Fault::AB;
+            faultPtrListForGen.push_back(pPrimaryFault);
+            faultPtrListForGen.pop_front();
+        }
+    }
 }
 
 // **************************************************************************
@@ -5507,36 +5576,127 @@ void Atpg::updateDynamicControllability(Pattern &currentPattern)
     }
 }
 
-bool Atpg::determinePowerAwareObjective(Pattern &currentPattern, int &outObjectiveGateId, Value &outObjectiveValue)
+bool Atpg::determinePowerAwareObjective(int &outObjectiveGateId, Value &outObjectiveValue)
 {
-    // Iterate through all PPIs (Flip-Flops) to find a transition risk
+    // In circuit.h, PPOs are always the last gates in a time frame's gate array.
+    int tf1_ppo_start = pCircuit_->numGate_ - pCircuit_->numPPI_;
+    int tf2_ppo_start = pCircuit_->totalGate_ - pCircuit_->numPPI_;
+    
     for (int i = 0; i < pCircuit_->numPPI_; ++i)
     {
-        Value v1_state = currentPattern.PPI_[i]; // The known shift-in state for this flip-flop
+        Gate &tf1_ppo = pCircuit_->circuitGates_[tf1_ppo_start + i];
+        Gate &tf2_ppo = pCircuit_->circuitGates_[tf2_ppo_start + i];
         
-        // If the primary fault already forced this flip-flop to a known state (0 or 1)
-        if (v1_state == L || v1_state == H)
+        // If the launched state is known (0 or 1), but the captured state is unknown (X)
+        if ((tf1_ppo.atpgVal_ == L || tf1_ppo.atpgVal_ == H) && tf2_ppo.atpgVal_ == X)
         {
-            // Find the corresponding PPO gate in Time Frame 1
-            // In your circuit structure: PI -> PPI -> Comb -> PO -> PPO
-            int tf1_ppo_offset = pCircuit_->numPI_ + pCircuit_->numPPI_ + pCircuit_->numComb_ + pCircuit_->numPO_;
-            int tf1_ppo_gateID = tf1_ppo_offset + i;
-            
-            // The corresponding PPO in Time Frame 2
-            int tf2_ppo_gateID = tf1_ppo_gateID + pCircuit_->numGate_;
-            
-            Gate &tf2_ppo_gate = pCircuit_->circuitGates_[tf2_ppo_gateID];
+            outObjectiveGateId = tf2_ppo_start + i;
+            outObjectiveValue = tf1_ppo.atpgVal_; // Force capture to match launch
+            return true;
+        }
+    }
+    return false; // No more capture transitions to suppress
+}
 
-            // If the capture value is still unknown (X), we have our objective!
-            if (tf2_ppo_gate.atpgVal_ == X)
+void Atpg::groupFaultsByFFR(FaultPtrList &faultList)
+{
+    // Clear previous mappings
+    for (auto& faultListInStem : ffrStem_to_faults_) {
+        faultListInStem.clear();
+    }
+
+    // Populate the fast-lookup map
+    for (Fault* pFault : faultList) {
+        if (pFault->faultState_ != Fault::UD && pFault->faultState_ != Fault::PT) 
+            continue; 
+
+        int ffrStem = gateID_to_ffrStem_[pFault->gateID_];
+        if (ffrStem != -1) {
+            ffrStem_to_faults_[ffrStem].push_back(pFault);
+        }
+    }
+}
+
+Fault* Atpg::selectPtfWithParityBacktrace(int objectiveGateId, Value objectiveValue, FaultPtrList &faultList)
+{
+    std::vector<std::pair<int, int>> queue;
+    std::vector<bool> visited(pCircuit_->totalGate_, false);
+
+    queue.push_back({objectiveGateId, 0});
+    visited[objectiveGateId] = true;
+
+    int head = 0;
+    int targetValInt = (objectiveValue == H) ? 1 : 0;
+
+    while (head < queue.size())
+    {
+        int currGateID = queue[head].first;
+        int parityToObj = queue[head].second;
+        head++;
+
+        Gate &currGate = pCircuit_->circuitGates_[currGateID];
+
+        // Check if current gate is an FFR Stem and has undetected faults
+        if ((gateID_to_lineType_[currGateID] == HEAD_LINE || currGateID == objectiveGateId) && 
+            !ffrStem_to_faults_[currGateID].empty()) 
+        {
+            for (Fault* pFault : ffrStem_to_faults_[currGateID]) 
             {
-                outObjectiveGateId = tf2_ppo_gateID;
-                outObjectiveValue = v1_state; // Force TF2 to match TF1
-                return true; 
+                if (pFault->faultState_ == Fault::UD || pFault->faultState_ == Fault::PT) 
+                {
+                    int parityFaultToStem = gateID_to_parityToStem_[pFault->gateID_];
+                    int parityFaultToOutput = parityFaultToStem ^ parityToObj;
+                    int requiredStuckAt = targetValInt ^ parityFaultToOutput;
+                    
+                    Fault::FAULT_TYPE requiredType = (requiredStuckAt == 1) ? Fault::SA1 : Fault::SA0;
+
+                    if (pFault->faultType_ == requiredType) {
+                        return pFault; // Found the low-power secondary fault!
+                    }
+                }
+            }
+        }
+
+        // Continue BFS backward
+        for (int faninID : currGate.faninVector_) 
+        {
+            if (!visited[faninID]) 
+            {
+                visited[faninID] = true;
+                int isInverting = isGateInverting(currGate.gateType_) ? 1 : 0;
+                int newParity = parityToObj ^ isInverting;
+                queue.push_back({faninID, newParity});
             }
         }
     }
+    return nullptr; 
+}
+
+void Atpg::updateDynamicControllability()
+{
+    int cc_high = pCircuit_->numPPI_ / 4;
+    int cc_low = pCircuit_->numPPI_ / 20;
+
+    int tf1_ppi_start = pCircuit_->numPI_; // Start of V1 shift-in state
+    int tf1_ppo_start = pCircuit_->numGate_ - pCircuit_->numPPI_; // Start of V2 capture state
     
-    // No suitable objective found (all specified TF1 states have specified TF2 states)
-    return false; 
+    for (int i = 0; i < pCircuit_->numPPI_; ++i)
+    {
+        // Read directly from the ATPG assigned gate values
+        Value v1_state = pCircuit_->circuitGates_[tf1_ppi_start + i].atpgVal_;
+        Value v2_state = pCircuit_->circuitGates_[tf1_ppo_start + i].atpgVal_;
+
+        if (v1_state == X && v2_state == H) {
+            dynamic_cc0_[pCircuit_->circuitGates_[tf1_ppi_start + i].gateId_] = cc_high;
+            dynamic_cc1_[pCircuit_->circuitGates_[tf1_ppi_start + i].gateId_] = 0;
+        }
+        else if (v1_state == X && v2_state == L) {
+            dynamic_cc0_[pCircuit_->circuitGates_[tf1_ppi_start + i].gateId_] = 0;
+            dynamic_cc1_[pCircuit_->circuitGates_[tf1_ppi_start + i].gateId_] = cc_high;
+        }
+        else {
+            dynamic_cc0_[pCircuit_->circuitGates_[tf1_ppi_start + i].gateId_] = cc_low;
+            dynamic_cc1_[pCircuit_->circuitGates_[tf1_ppi_start + i].gateId_] = cc_low;
+        }
+    }
 }
