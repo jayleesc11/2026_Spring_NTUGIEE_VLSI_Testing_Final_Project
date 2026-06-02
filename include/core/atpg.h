@@ -26,14 +26,18 @@ namespace CoreNs
 	constexpr int NO_UNIQUE_PATH = -1;
 	constexpr int UNIQUE_PATH_SENSITIZE_FAIL = -2;
 	constexpr double STC_PEAK_POWER_LIMIT_RATIO = 1.0;
+	constexpr size_t STC_MAX_MERGE_PARTNER_CHECKS = 512;
 	constexpr size_t STC_RECOVERY_PATTERN_RETRY_LIMIT = 5;
 	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
 	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 4.0;
-	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 5;
-	constexpr double TDF_DTC_CANDIDATE_SET_RATIO = 1;
+	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 8;
+	constexpr size_t TDF_DTC_MAX_FAILED_ATTEMPTS = 8;
+	constexpr double TDF_DTC_MIN_X_DENSITY = 0.20;
+	constexpr double TDF_DTC_CANDIDATE_SET_RATIO = 0.5;
 	constexpr size_t TDF_DTC_MIN_CANDIDATE_SET_SIZE = 64;
 	constexpr size_t TDF_DTC_DIRTY_GATE_RESERVE = 64;
 	constexpr size_t TDF_DTC_MAX_CANDIDATE_WINDOW = 512;
+	constexpr size_t TDF_DTC_PRIMARY_COMPATIBILITY_WINDOW = 128;
 
 	class Atpg
 	{
@@ -137,6 +141,12 @@ namespace CoreNs
 		std::vector<int> influenceStructuralStack_;
 		std::vector<int> influenceStructuralInputIndices_;
 		int influenceStructuralStamp_;
+		size_t tdfDtcPatternCount_;
+		size_t tdfDtcSelectedFaults_;
+		size_t tdfDtcAttemptedCandidates_;
+		size_t tdfDtcRejectedCandidates_;
+		size_t tdfDtcDetectedDrops_;
+		size_t tdfDtcNewSpecifiedBits_;
 		std::vector<size_t> powerFillPiImpact_;									// cached response impact for each PI
 		std::vector<int> powerFillPiOrder_;											// PIs sorted by descending response impact
 		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
@@ -210,6 +220,8 @@ namespace CoreNs
 		void faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults);
 		void staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
 		void staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults);
+		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit);
+		void refreshXidDontCareMasks(PatternProcessor *pPatternProcessor);
 		void sortPatternsForXID(PatternProcessor *pPatternProcessor);
 		void XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 
@@ -315,6 +327,12 @@ namespace CoreNs
 		influencePrimaryOrderValid_ = false;
 		influencePrimaryCursor_ = 0;
 		influenceStructuralStamp_ = 0;
+		tdfDtcPatternCount_ = 0;
+		tdfDtcSelectedFaults_ = 0;
+		tdfDtcAttemptedCandidates_ = 0;
+		tdfDtcRejectedCandidates_ = 0;
+		tdfDtcDetectedDrops_ = 0;
+		tdfDtcNewSpecifiedBits_ = 0;
 	}
 
 	// **************************************************************************

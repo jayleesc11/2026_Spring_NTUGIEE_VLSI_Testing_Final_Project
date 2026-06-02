@@ -7,6 +7,7 @@
 
 #include "atpg.h"
 #include <algorithm>
+#include <cstdint>
 #include <cmath>
 #include <cstdlib>
 #include <deque>
@@ -53,6 +54,12 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	influencePrimaryOrderValid_ = false;
 	influencePrimaryCursor_ = 0;
 	influencePrimaryOrder_.clear();
+	tdfDtcPatternCount_ = 0;
+	tdfDtcSelectedFaults_ = 0;
+	tdfDtcAttemptedCandidates_ = 0;
+	tdfDtcRejectedCandidates_ = 0;
+	tdfDtcDetectedDrops_ = 0;
+	tdfDtcNewSpecifiedBits_ = 0;
 	setupCircuitParameter();
 	pPatternProcessor->init(pCircuit_);
 
@@ -162,11 +169,30 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 
 		sortPatternsForXID(pPatternProcessor);
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
+		const size_t postXidPatternCountBeforeStc = pPatternProcessor->patternVector_.size();
+		const size_t postXidMergedPatterns = compactCompatibleTestCubes(pPatternProcessor, true);
+		if (postXidMergedPatterns > 0)
+		{
+			refreshXidDontCareMasks(pPatternProcessor);
+			std::cout << "#  post-XID static cube compaction";
+			std::cout << "    patterns: " << postXidPatternCountBeforeStc << " -> " << pPatternProcessor->patternVector_.size() << '\n';
+		}
 		XFill(pPatternProcessor);
 		reorderPatternsForShiftPower(pPatternProcessor);
 		postProcessPowerFill(pPatternProcessor);
 
 		originalFaultPtrList = faultSimFinalPowerAwarePatterns();
+	}
+
+	if (tdfDtcAttemptedCandidates_ > 0 || tdfDtcSelectedFaults_ > 0)
+	{
+		std::cout << "#  TDF DTC adaptive summary";
+		std::cout << "    patterns: " << tdfDtcPatternCount_ << '\n';
+		std::cout << "    selected faults: " << tdfDtcSelectedFaults_ << '\n';
+		std::cout << "    attempted candidates: " << tdfDtcAttemptedCandidates_ << '\n';
+		std::cout << "    rejected candidates: " << tdfDtcRejectedCandidates_ << '\n';
+		std::cout << "    dropped faults after accepts: " << tdfDtcDetectedDrops_ << '\n';
+		std::cout << "    newly specified bits: " << tdfDtcNewSpecifiedBits_ << '\n';
 	}
 
 	// finish calculation equivalent faults left
@@ -1062,6 +1088,9 @@ void Atpg::buildInfluencePrimaryOrder(const FaultPtrList &faultPtrList)
 	struct PrimaryFaultScore
 	{
 		Fault *fault_;
+		const InfluenceSet *detSet_;
+		size_t compatibleCount_;
+		size_t structuralReachCount_;
 		size_t detSize_;
 		int gateID_;
 		int faultyLine_;
@@ -1086,10 +1115,65 @@ void Atpg::buildInfluencePrimaryOrder(const FaultPtrList &faultPtrList)
 		{
 			continue;
 		}
-		scoredFaults.push_back({pFault, det.literals_.size(), pFault->gateID_, pFault->faultyLine_, static_cast<int>(pFault->faultType_)});
+		const size_t structuralReachCount = pFault->gateID_ >= 0 && pFault->gateID_ < pCircuit_->totalGate_
+		                                        ? static_cast<size_t>(pCircuit_->circuitGates_[pFault->gateID_].numFO_)
+		                                        : 0;
+		scoredFaults.push_back({pFault, &det, 0, structuralReachCount, det.literals_.size(), pFault->gateID_, pFault->faultyLine_, static_cast<int>(pFault->faultType_)});
+	}
+
+	auto influenceSetsCompatible = [](const InfluenceSet &lhs, const InfluenceSet &rhs) {
+		if (lhs.impossible_ || rhs.impossible_)
+		{
+			return false;
+		}
+		size_t lhsIndex = 0;
+		size_t rhsIndex = 0;
+		while (lhsIndex < lhs.literals_.size() && rhsIndex < rhs.literals_.size())
+		{
+			const InfluenceLiteral &lhsLiteral = lhs.literals_[lhsIndex];
+			const InfluenceLiteral &rhsLiteral = rhs.literals_[rhsIndex];
+			if (lhsLiteral.inputIndex_ < rhsLiteral.inputIndex_)
+			{
+				++lhsIndex;
+				continue;
+			}
+			if (rhsLiteral.inputIndex_ < lhsLiteral.inputIndex_)
+			{
+				++rhsIndex;
+				continue;
+			}
+			if ((lhsLiteral.valueMask_ & rhsLiteral.valueMask_) == 0)
+			{
+				return false;
+			}
+			++lhsIndex;
+			++rhsIndex;
+		}
+		return true;
+	};
+
+	const size_t compatibilityWindow = std::min(scoredFaults.size(), TDF_DTC_PRIMARY_COMPATIBILITY_WINDOW);
+	for (PrimaryFaultScore &score : scoredFaults)
+	{
+		for (size_t otherIndex = 0; otherIndex < compatibilityWindow; ++otherIndex)
+		{
+			const PrimaryFaultScore &other = scoredFaults[otherIndex];
+			if (score.fault_ == other.fault_)
+			{
+				continue;
+			}
+			if (influenceSetsCompatible(*score.detSet_, *other.detSet_))
+			{
+				++score.compatibleCount_;
+			}
+		}
 	}
 
 	std::sort(scoredFaults.begin(), scoredFaults.end(), [](const PrimaryFaultScore &lhs, const PrimaryFaultScore &rhs) {
+		if (lhs.compatibleCount_ != rhs.compatibleCount_)
+			return lhs.compatibleCount_ > rhs.compatibleCount_;
+		if (lhs.structuralReachCount_ != rhs.structuralReachCount_)
+			return lhs.structuralReachCount_ > rhs.structuralReachCount_;
 		if (lhs.detSize_ != rhs.detSize_)
 			return lhs.detSize_ < rhs.detSize_;
 		if (lhs.gateID_ != rhs.gateID_)
@@ -1323,6 +1407,12 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	faultSimAndDropCurrentPattern();
 
 	size_t selected = 0;
+	size_t attemptedCandidates = 0;
+	size_t rejectedCandidates = 0;
+	size_t recentFailedAttempts = 0;
+	std::vector<size_t> acceptedFaultDrops;
+	std::vector<size_t> acceptedXCosts;
+
 	auto restoreCurrentAtpgValues = [&]() {
 		for (Gate &gate : pCircuit_->circuitGates_)
 		{
@@ -1331,6 +1421,60 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 				gate.atpgVal_ = gate.prevAtpgValStored_;
 			}
 		}
+	};
+
+	auto isSpecifiedInputValue = [](const Value &value) {
+		return value == L || value == H || value == B || value == D;
+	};
+
+	auto countXBits = [&](const Pattern &targetPattern) {
+		size_t xBits = 0;
+		auto countVectorX = [&](const std::vector<Value> &values) {
+			for (const Value &value : values)
+			{
+				if (value == X)
+				{
+					++xBits;
+				}
+			}
+		};
+		countVectorX(targetPattern.PI1_);
+		countVectorX(targetPattern.PI2_);
+		countVectorX(targetPattern.PPI_);
+		countVectorX(targetPattern.SI_);
+		return xBits;
+	};
+
+	auto countInputBits = [](const Pattern &targetPattern) {
+		return targetPattern.PI1_.size() + targetPattern.PI2_.size() + targetPattern.PPI_.size() + targetPattern.SI_.size();
+	};
+
+	auto currentXDensity = [&]() {
+		const size_t inputBits = countInputBits(pattern);
+		if (inputBits == 0)
+		{
+			return 0.0;
+		}
+		return static_cast<double>(countXBits(pattern)) / static_cast<double>(inputBits);
+	};
+
+	auto countNewlySpecifiedBits = [&](const Pattern &before, const Pattern &after) {
+		size_t newlySpecified = 0;
+		auto countVectorNewlySpecified = [&](const std::vector<Value> &beforeValues, const std::vector<Value> &afterValues) {
+			const size_t valueCount = std::min(beforeValues.size(), afterValues.size());
+			for (size_t i = 0; i < valueCount; ++i)
+			{
+				if (!isSpecifiedInputValue(beforeValues[i]) && isSpecifiedInputValue(afterValues[i]))
+				{
+					++newlySpecified;
+				}
+			}
+		};
+		countVectorNewlySpecified(before.PI1_, after.PI1_);
+		countVectorNewlySpecified(before.PI2_, after.PI2_);
+		countVectorNewlySpecified(before.PPI_, after.PPI_);
+		countVectorNewlySpecified(before.SI_, after.SI_);
+		return newlySpecified;
 	};
 
 	struct CandidateFaultInfo
@@ -1395,6 +1539,8 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		int conflictCount;
 		int detOverlap;
 		int structuralOverlap;
+		int observabilityCost;
+		int controlCost;
 		size_t detSize;
 		int gateID;
 	};
@@ -1413,11 +1559,11 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		const int detOverlap = countInfluenceOverlap(*candidate.detSet);
 		const int conflictCount = countInfluenceConflicts(*candidate.detSet);
 		int classRank = 3;
-		if (structuralOverlap == 0)
+		if (conflictCount == 0 && structuralOverlap == 0)
 		{
 			classRank = 0;
 		}
-		else if (detOverlap == 0)
+		else if (conflictCount == 0 && detOverlap == 0)
 		{
 			classRank = 1;
 		}
@@ -1430,6 +1576,15 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		score.conflictCount = conflictCount;
 		score.detOverlap = detOverlap;
 		score.structuralOverlap = structuralOverlap;
+		score.observabilityCost = candidate.activationGate ? candidate.activationGate->co_ : INFINITE;
+		if (candidate.activationGate)
+		{
+			score.controlCost = candidate.fault->faultType_ == Fault::STR ? candidate.activationGate->cc1_ : candidate.activationGate->cc0_;
+		}
+		else
+		{
+			score.controlCost = INFINITE;
+		}
 		score.detSize = candidate.detSet->literals_.size();
 		score.gateID = candidate.fault->gateID_;
 		return score;
@@ -1444,6 +1599,10 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 			return lhs.detOverlap < rhs.detOverlap;
 		if (lhs.structuralOverlap != rhs.structuralOverlap)
 			return lhs.structuralOverlap < rhs.structuralOverlap;
+		if (lhs.observabilityCost != rhs.observabilityCost)
+			return lhs.observabilityCost < rhs.observabilityCost;
+		if (lhs.controlCost != rhs.controlCost)
+			return lhs.controlCost < rhs.controlCost;
 		if (lhs.detSize != rhs.detSize)
 			return lhs.detSize < rhs.detSize;
 		return lhs.gateID < rhs.gateID;
@@ -1453,6 +1612,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		return candidate.fault->faultState_ == Fault::UD &&
 		       compactedFaults.find(candidate.fault) == compactedFaults.end() &&
 		       rejectedFaults.find(candidate.fault) == rejectedFaults.end() &&
+		       countInfluenceConflicts(*candidate.detSet) == 0 &&
 		       !hasActivationConflict(candidate);
 	};
 
@@ -1474,6 +1634,8 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		CandidateFaultInfo *candidate;
 		int conflictCount;
 		int detOverlap;
+		int observabilityCost;
+		int controlCost;
 		size_t detSize;
 		int gateID;
 	};
@@ -1484,15 +1646,21 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 			return lhs.conflictCount < rhs.conflictCount;
 		if (lhs.detOverlap != rhs.detOverlap)
 			return lhs.detOverlap < rhs.detOverlap;
+		if (lhs.observabilityCost != rhs.observabilityCost)
+			return lhs.observabilityCost < rhs.observabilityCost;
+		if (lhs.controlCost != rhs.controlCost)
+			return lhs.controlCost < rhs.controlCost;
 		if (lhs.detSize != rhs.detSize)
 			return lhs.detSize < rhs.detSize;
 		return lhs.gateID < rhs.gateID;
 	};
 
-	while (selected < TDF_DTC_MAX_SELECTED_FAULTS)
+	while (selected < TDF_DTC_MAX_SELECTED_FAULTS &&
+	       recentFailedAttempts < TDF_DTC_MAX_FAILED_ATTEMPTS &&
+	       currentXDensity() >= TDF_DTC_MIN_X_DENSITY)
 	{
 		CandidateFaultInfo *selectedCandidate = NULL;
-		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
+		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
 
 		if (TDF_DTC_CANDIDATE_SET_RATIO > 0.0 && TDF_DTC_CANDIDATE_SET_RATIO < 1.0)
 		{
@@ -1506,6 +1674,8 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 				cheapCandidates.push_back({&candidate,
 				                           countInfluenceConflicts(*candidate.detSet),
 				                           countInfluenceOverlap(*candidate.detSet),
+				                           candidate.activationGate ? candidate.activationGate->co_ : INFINITE,
+				                           candidate.activationGate ? (candidate.fault->faultType_ == Fault::STR ? candidate.activationGate->cc1_ : candidate.activationGate->cc0_) : INFINITE,
 				                           candidate.detSet->literals_.size(),
 				                           candidate.fault->gateID_});
 			}
@@ -1548,9 +1718,13 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 			break;
 		}
 
+		restoreCurrentAtpgValues();
+		++attemptedCandidates;
 		if (!xPathExists(selectedCandidate->activationGate))
 		{
 			rejectedFaults.insert(selectedCandidate->fault);
+			++rejectedCandidates;
+			++recentFailedAttempts;
 			restoreCurrentAtpgValues();
 			continue;
 		}
@@ -1558,21 +1732,49 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		useInfluenceInputBacktrace_ = true;
 		const SINGLE_PATTERN_GENERATION_STATUS status = generateSinglePatternOnTargetFault(selectedCandidate->tdfTarget, true);
 		useInfluenceInputBacktrace_ = false;
-		if (status == PATTERN_FOUND)
-		{
-			compactedFaults.insert(selectedCandidate->fault);
-			resetPrevAtpgValStored();
-			clearAllFaultEffectByEvaluation();
-			storeCurrentAtpgVal();
-			writeAtpgValToPatternPI(pattern);
-			updateInfluenceSpecifiedInputsFromCircuit();
-			faultSimAndDropCurrentPattern();
-			++selected;
-		}
-		else
+		if (status != PATTERN_FOUND)
 		{
 			restoreCurrentAtpgValues();
 			rejectedFaults.insert(selectedCandidate->fault);
+			++rejectedCandidates;
+			++recentFailedAttempts;
+			continue;
+		}
+
+		clearAllFaultEffectByEvaluation();
+		Pattern candidatePattern = pattern;
+		writeAtpgValToPatternPI(candidatePattern);
+		const size_t xCost = countNewlySpecifiedBits(pattern, candidatePattern);
+		const size_t remainingBeforeAccept = faultPtrListForGen.size();
+		pSimulator_->parallelFaultFaultSimWithOnePattern(candidatePattern, faultPtrListForGen);
+		pSimulator_->goodSim();
+		const size_t acceptedDelta = remainingBeforeAccept >= faultPtrListForGen.size() ? remainingBeforeAccept - faultPtrListForGen.size() : 0;
+
+		pattern = std::move(candidatePattern);
+		compactedFaults.insert(selectedCandidate->fault);
+		resetPrevAtpgValStored();
+		storeCurrentAtpgVal();
+		updateInfluenceSpecifiedInputsFromCircuit();
+
+		acceptedFaultDrops.push_back(acceptedDelta);
+		acceptedXCosts.push_back(xCost);
+		++selected;
+		recentFailedAttempts = 0;
+	}
+
+	if (selected > 0 || attemptedCandidates > 0)
+	{
+		++tdfDtcPatternCount_;
+		tdfDtcSelectedFaults_ += selected;
+		tdfDtcAttemptedCandidates_ += attemptedCandidates;
+		tdfDtcRejectedCandidates_ += rejectedCandidates;
+		for (const size_t &dropCount : acceptedFaultDrops)
+		{
+			tdfDtcDetectedDrops_ += dropCount;
+		}
+		for (const size_t &xCost : acceptedXCosts)
+		{
+			tdfDtcNewSpecifiedBits_ += xCost;
 		}
 	}
 
@@ -5149,11 +5351,11 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 	}
 }
 
-void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults)
+size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit)
 {
-	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty())
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2)
 	{
-		return;
+		return 0;
 	}
 
 	auto normalizeBinaryInput = [](const Value &value) -> int {
@@ -5166,29 +5368,6 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 			return 1;
 		}
 		return -1;
-	};
-
-	auto valuesCompatible = [&](const std::vector<Value> &lhs, const std::vector<Value> &rhs) {
-		if (lhs.size() != rhs.size())
-		{
-			return false;
-		}
-		for (size_t i = 0; i < lhs.size(); ++i)
-		{
-			const int lhsValue = normalizeBinaryInput(lhs[i]);
-			const int rhsValue = normalizeBinaryInput(rhs[i]);
-			if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
-			{
-				return false;
-			}
-		}
-		return true;
-	};
-
-	auto nonScanInputsCompatible = [&](const Pattern &lhs, const Pattern &rhs) {
-		return valuesCompatible(lhs.PI1_, rhs.PI1_) &&
-		       valuesCompatible(lhs.PI2_, rhs.PI2_) &&
-		       valuesCompatible(lhs.SI_, rhs.SI_);
 	};
 
 	auto mergeValue = [&](const Value &lhs, const Value &rhs) {
@@ -5262,140 +5441,278 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 		return power;
 	};
 
-	auto compactTestCubes = [&](PatternProcessor *pProcessor) {
-		std::vector<int> scanScratch;
-		auto weightedScanTransitionPower = [&](const Pattern &pattern) -> long long {
-			scanScratch.resize(pattern.PPI_.size());
-			for (size_t i = 0; i < pattern.PPI_.size(); ++i)
-			{
-				const size_t ppiIndex = pattern.PPI_.size() - 1 - i;
-				scanScratch[i] = normalizeBinaryInput(pattern.PPI_[ppiIndex]);
-			}
-			return scanTransitionPowerFromBits(scanScratch);
-		};
-
-		std::vector<Pattern> cubes = pProcessor->patternVector_;
-		std::vector<char> active(cubes.size(), 1);
-		std::vector<long long> scanPower(cubes.size(), 0);
-		for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	std::vector<int> scanScratch;
+	auto weightedScanTransitionPower = [&](const Pattern &pattern) -> long long {
+		scanScratch.resize(pattern.PPI_.size());
+		for (size_t i = 0; i < pattern.PPI_.size(); ++i)
 		{
-			scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex]);
+			const size_t ppiIndex = pattern.PPI_.size() - 1 - i;
+			scanScratch[i] = normalizeBinaryInput(pattern.PPI_[ppiIndex]);
 		}
-		long long initialPeakScanPower = 0;
-		for (const long long &power : scanPower)
-		{
-			if (power > initialPeakScanPower)
-			{
-				initialPeakScanPower = power;
-			}
-		}
-		const double peakPowerLimit = static_cast<double>(initialPeakScanPower) * STC_PEAK_POWER_LIMIT_RATIO;
+		return scanTransitionPowerFromBits(scanScratch);
+	};
 
-		auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
-			if (!nonScanInputsCompatible(cubes[lhs], cubes[rhs]) || cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size())
+	std::vector<Pattern> cubes = pPatternProcessor->patternVector_;
+	std::vector<char> active(cubes.size(), 1);
+	std::vector<long long> scanPower(cubes.size(), 0);
+	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	{
+		scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex]);
+	}
+
+	struct CubeCompatibilityMask
+	{
+		std::vector<std::uint64_t> nonScanLow_;
+		std::vector<std::uint64_t> nonScanHigh_;
+		std::vector<std::uint64_t> scanLow_;
+		std::vector<std::uint64_t> scanHigh_;
+	};
+
+	auto maskWordCount = [](const size_t &bitCount) -> size_t {
+		return (bitCount + 63) / 64;
+	};
+
+	auto setMaskBit = [](std::vector<std::uint64_t> &mask, const size_t &bitIndex) {
+		mask[bitIndex / 64] |= static_cast<std::uint64_t>(1) << (bitIndex % 64);
+	};
+
+	auto markMaskedValue = [&](CubeCompatibilityMask &mask, const bool &scanValue, const size_t &bitIndex, const Value &value) {
+		const int binaryValue = normalizeBinaryInput(value);
+		if (binaryValue < 0)
+		{
+			return;
+		}
+		if (scanValue)
+		{
+			setMaskBit(binaryValue == 0 ? mask.scanLow_ : mask.scanHigh_, bitIndex);
+		}
+		else
+		{
+			setMaskBit(binaryValue == 0 ? mask.nonScanLow_ : mask.nonScanHigh_, bitIndex);
+		}
+	};
+
+	std::vector<CubeCompatibilityMask> cubeMasks(cubes.size());
+	auto rebuildCubeMask = [&](const size_t &patternIndex) {
+		const Pattern &cube = cubes[patternIndex];
+		const size_t nonScanBitCount = cube.PI1_.size() + cube.PI2_.size() + cube.SI_.size();
+		const size_t scanBitCount = cube.PPI_.size();
+		CubeCompatibilityMask &mask = cubeMasks[patternIndex];
+		mask.nonScanLow_.assign(maskWordCount(nonScanBitCount), 0);
+		mask.nonScanHigh_.assign(maskWordCount(nonScanBitCount), 0);
+		mask.scanLow_.assign(maskWordCount(scanBitCount), 0);
+		mask.scanHigh_.assign(maskWordCount(scanBitCount), 0);
+
+		size_t bitIndex = 0;
+		for (const Value &value : cube.PI1_)
+		{
+			markMaskedValue(mask, false, bitIndex++, value);
+		}
+		for (const Value &value : cube.PI2_)
+		{
+			markMaskedValue(mask, false, bitIndex++, value);
+		}
+		for (const Value &value : cube.SI_)
+		{
+			markMaskedValue(mask, false, bitIndex++, value);
+		}
+		for (size_t i = 0; i < cube.PPI_.size(); ++i)
+		{
+			markMaskedValue(mask, true, i, cube.PPI_[i]);
+		}
+	};
+
+	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	{
+		rebuildCubeMask(patternIndex);
+	}
+
+	auto maskVectorsCompatible = [](const std::vector<std::uint64_t> &lhsLow,
+	                                const std::vector<std::uint64_t> &lhsHigh,
+	                                const std::vector<std::uint64_t> &rhsLow,
+	                                const std::vector<std::uint64_t> &rhsHigh) {
+		if (lhsLow.size() != rhsLow.size() || lhsHigh.size() != rhsHigh.size() || lhsLow.size() != lhsHigh.size())
+		{
+			return false;
+		}
+		for (size_t wordIndex = 0; wordIndex < lhsLow.size(); ++wordIndex)
+		{
+			if ((lhsLow[wordIndex] & rhsHigh[wordIndex]) != 0 ||
+			    (lhsHigh[wordIndex] & rhsLow[wordIndex]) != 0)
 			{
 				return false;
 			}
+		}
+		return true;
+	};
 
-			scanScratch.resize(cubes[lhs].PPI_.size());
-			for (size_t i = 0; i < cubes[lhs].PPI_.size(); ++i)
-			{
-				const size_t ppiIndex = cubes[lhs].PPI_.size() - 1 - i;
-				const int lhsValue = normalizeBinaryInput(cubes[lhs].PPI_[ppiIndex]);
-				const int rhsValue = normalizeBinaryInput(cubes[rhs].PPI_[ppiIndex]);
-				if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
-				{
-					return false;
-				}
-				scanScratch[i] = lhsValue >= 0 ? lhsValue : rhsValue;
-			}
+	auto cubeMasksCompatible = [&](const size_t &lhs, const size_t &rhs) {
+		const CubeCompatibilityMask &lhsMask = cubeMasks[lhs];
+		const CubeCompatibilityMask &rhsMask = cubeMasks[rhs];
+		return maskVectorsCompatible(lhsMask.nonScanLow_, lhsMask.nonScanHigh_, rhsMask.nonScanLow_, rhsMask.nonScanHigh_) &&
+		       maskVectorsCompatible(lhsMask.scanLow_, lhsMask.scanHigh_, rhsMask.scanLow_, rhsMask.scanHigh_);
+	};
 
-			const long long mergedPower = scanTransitionPowerFromBits(scanScratch);
-			if (static_cast<double>(mergedPower) > peakPowerLimit)
+	long long initialPeakScanPower = 0;
+	for (const long long &power : scanPower)
+	{
+		if (power > initialPeakScanPower)
+		{
+			initialPeakScanPower = power;
+		}
+	}
+	const double peakPowerLimit = static_cast<double>(initialPeakScanPower) * STC_PEAK_POWER_LIMIT_RATIO;
+
+	auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
+		if (cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size() || !cubeMasksCompatible(lhs, rhs))
+		{
+			return false;
+		}
+
+		scanScratch.resize(cubes[lhs].PPI_.size());
+		for (size_t i = 0; i < cubes[lhs].PPI_.size(); ++i)
+		{
+			const size_t ppiIndex = cubes[lhs].PPI_.size() - 1 - i;
+			const int lhsValue = normalizeBinaryInput(cubes[lhs].PPI_[ppiIndex]);
+			const int rhsValue = normalizeBinaryInput(cubes[rhs].PPI_[ppiIndex]);
+			if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
 			{
 				return false;
 			}
-			cost = mergedPower - scanPower[lhs] - scanPower[rhs];
-			return true;
-		};
+			scanScratch[i] = lhsValue >= 0 ? lhsValue : rhsValue;
+		}
 
-		auto nextActiveFrom = [&](const size_t &startIndex) -> size_t {
-			for (size_t offset = 0; offset < cubes.size(); ++offset)
-			{
-				const size_t patternIndex = (startIndex + offset) % cubes.size();
-				if (active[patternIndex])
-				{
-					return patternIndex;
-				}
-			}
-			return cubes.size();
-		};
-
-		size_t activeCount = cubes.size();
-		size_t selectionCursor = 0;
-		while (activeCount > 1)
+		const long long mergedPower = scanTransitionPowerFromBits(scanScratch);
+		if (preservePowerLimit && static_cast<double>(mergedPower) > peakPowerLimit)
 		{
-			bool mergedThisRound = false;
-			for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
+			return false;
+		}
+		cost = mergedPower - scanPower[lhs] - scanPower[rhs];
+		return true;
+	};
+
+	auto nextActiveFrom = [&](const size_t &startIndex) -> size_t {
+		for (size_t offset = 0; offset < cubes.size(); ++offset)
+		{
+			const size_t patternIndex = (startIndex + offset) % cubes.size();
+			if (active[patternIndex])
 			{
-				const size_t selected = nextActiveFrom(selectionCursor);
-				if (selected == cubes.size())
-				{
-					break;
-				}
-				selectionCursor = (selected + 1) % cubes.size();
+				return patternIndex;
+			}
+		}
+		return cubes.size();
+	};
 
-				bool foundBest = false;
-				size_t bestOther = cubes.size();
-				long long bestCost = 0;
-				for (size_t other = 0; other < cubes.size(); ++other)
-				{
-					if (!active[other] || other == selected)
-					{
-						continue;
-					}
-					long long cost = 0;
-					if (!mergeCostIfCompatible(selected, other, cost))
-					{
-						continue;
-					}
-					if (!foundBest || cost < bestCost || (cost == bestCost && other < bestOther))
-					{
-						foundBest = true;
-						bestOther = other;
-						bestCost = cost;
-					}
-				}
+	size_t activeCount = cubes.size();
+	size_t selectionCursor = 0;
+	while (activeCount > 1)
+	{
+		bool mergedThisRound = false;
+		for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
+		{
+			const size_t selected = nextActiveFrom(selectionCursor);
+			if (selected == cubes.size())
+			{
+				break;
+			}
+			selectionCursor = (selected + 1) % cubes.size();
 
-				if (!foundBest)
+			bool foundBest = false;
+			size_t bestOther = cubes.size();
+			long long bestCost = 0;
+			size_t checkedPartners = 0;
+			for (size_t offset = 1; offset < cubes.size() && checkedPartners < STC_MAX_MERGE_PARTNER_CHECKS; ++offset)
+			{
+				const size_t other = (selected + offset) % cubes.size();
+				if (!active[other] || other == selected)
 				{
 					continue;
 				}
-
-				mergePattern(cubes[selected], cubes[bestOther]);
-				scanPower[selected] = weightedScanTransitionPower(cubes[selected]);
-				active[bestOther] = 0;
-				--activeCount;
-				mergedThisRound = true;
-				break;
+				++checkedPartners;
+				long long cost = 0;
+				if (!mergeCostIfCompatible(selected, other, cost))
+				{
+					continue;
+				}
+				if (!foundBest || cost < bestCost || (cost == bestCost && other < bestOther))
+				{
+					foundBest = true;
+					bestOther = other;
+					bestCost = cost;
+				}
 			}
 
-			if (!mergedThisRound)
+			if (!foundBest)
 			{
-				break;
+				continue;
 			}
+
+			mergePattern(cubes[selected], cubes[bestOther]);
+			rebuildCubeMask(selected);
+			scanPower[selected] = weightedScanTransitionPower(cubes[selected]);
+			active[bestOther] = 0;
+			--activeCount;
+			mergedThisRound = true;
+			break;
 		}
 
-		pProcessor->patternVector_.clear();
-		pProcessor->patternVector_.reserve(activeCount);
-		for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+		if (!mergedThisRound)
 		{
-			if (active[patternIndex])
+			break;
+		}
+	}
+
+	const size_t originalCount = pPatternProcessor->patternVector_.size();
+	pPatternProcessor->patternVector_.clear();
+	pPatternProcessor->patternVector_.reserve(activeCount);
+	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
+	{
+		if (active[patternIndex])
+		{
+			pPatternProcessor->patternVector_.push_back(std::move(cubes[patternIndex]));
+		}
+	}
+	return originalCount - pPatternProcessor->patternVector_.size();
+}
+
+void Atpg::refreshXidDontCareMasks(PatternProcessor *pPatternProcessor)
+{
+	if (!pPatternProcessor)
+	{
+		return;
+	}
+	for (Pattern &pattern : pPatternProcessor->patternVector_)
+	{
+		pattern.PI1XidDontCare_.assign(pCircuit_->numPI_, 0);
+		pattern.PI2XidDontCare_.assign(pCircuit_->numPI_, 0);
+		pattern.PPIXidDontCare_.assign(pCircuit_->numPPI_, 0);
+		for (int i = 0; i < pCircuit_->numPI_; ++i)
+		{
+			if (i < static_cast<int>(pattern.PI1_.size()) && pattern.PI1_[i] == X)
 			{
-				pProcessor->patternVector_.push_back(std::move(cubes[patternIndex]));
+				pattern.PI1XidDontCare_[i] = 1;
+			}
+			if (i < static_cast<int>(pattern.PI2_.size()) && pattern.PI2_[i] == X)
+			{
+				pattern.PI2XidDontCare_[i] = 1;
 			}
 		}
-	};
+		for (int i = 0; i < pCircuit_->numPPI_; ++i)
+		{
+			if (i < static_cast<int>(pattern.PPI_.size()) && pattern.PPI_[i] == X)
+			{
+				pattern.PPIXidDontCare_[i] = 1;
+			}
+		}
+	}
+}
+
+void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults)
+{
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty())
+	{
+		return;
+	}
 
 	auto updatePatternOutputs = [&](PatternProcessor *pProcessor) {
 		for (Pattern &pattern : pProcessor->patternVector_)
@@ -5448,7 +5765,7 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 		baselineRemainingFaultSet.insert(pFault);
 	}
 
-	compactTestCubes(pPatternProcessor);
+	compactCompatibleTestCubes(pPatternProcessor, true);
 
 	if (pPatternProcessor->XFillMode_ != PatternProcessor::XFILL_OFF)
 	{
@@ -5530,7 +5847,7 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrLi
 			PatternProcessor noXFillRecoveryProcessor;
 			runRecoveryAtpg(recoveryTargets, noXFillRecoveryProcessor, PatternProcessor::XFILL_OFF);
 			fallbackRecoveredPatternCountBeforeSTC = noXFillRecoveryProcessor.patternVector_.size();
-			compactTestCubes(&noXFillRecoveryProcessor);
+			compactCompatibleTestCubes(&noXFillRecoveryProcessor, true);
 			noXFillRecoveryProcessor.XFillMode_ = pPatternProcessor->XFillMode_;
 			if (noXFillRecoveryProcessor.XFillMode_ != PatternProcessor::XFILL_OFF)
 			{
