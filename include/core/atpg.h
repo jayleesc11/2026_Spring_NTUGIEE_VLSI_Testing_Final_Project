@@ -14,7 +14,9 @@
 #include <vector> // added by wang
 #include <stack>	// added by wang
 #include <algorithm>
+#include <list>
 #include <unordered_map>
+#include <unordered_set>
 #include "decision_tree.h"
 #include "simulator.h"
 
@@ -29,6 +31,7 @@ namespace CoreNs
 	constexpr size_t STC_MAX_MERGE_PARTNER_CHECKS = 512;
 	constexpr size_t STC_RECOVERY_PATTERN_RETRY_LIMIT = 5;
 	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
+	constexpr double CAPTURE_PEAK_PPI_REPAIR_TRIGGER_RATIO = 0.9;
 	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 4.0;
 	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 8;
 	constexpr size_t TDF_DTC_MAX_FAILED_ATTEMPTS = 8;
@@ -151,7 +154,7 @@ namespace CoreNs
 		std::vector<int> powerFillPiOrder_;											// PIs sorted by descending response impact
 		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
 		std::vector<std::vector<int>> powerFillPi2FanoutCones_;			// affected gates for incremental PI2 power fill simulation
-		Gate *firstTimeFrameHeadLine_;														// this parameter is for multiple time frame
+		Gate *firstTimeFrameHeadLine_;
 
 		// ---------------private methods----------------- //
 

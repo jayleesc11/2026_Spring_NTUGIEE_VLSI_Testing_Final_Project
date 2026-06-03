@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cmath>
 #include <cstdlib>
+#include <ctime>
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
@@ -83,6 +84,17 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 
 	pPatternProcessor->patternVector_.clear();
 	pPatternProcessor->patternVector_.reserve(MAX_LIST_SIZE);
+	std::clock_t powerPhaseLastClock = std::clock();
+	auto printPowerPhaseTime = [&](const char *label) {
+		if (!powerAware)
+		{
+			return;
+		}
+		const std::clock_t nowClock = std::clock();
+		const double elapsed = static_cast<double>(nowClock - powerPhaseLastClock) / static_cast<double>(CLOCKS_PER_SEC);
+		std::cout << "#  ATPG phase time    " << label << ": " << elapsed << " s\n";
+		powerPhaseLastClock = nowClock;
+	};
 
 	// start ATPG
 	bool isTransitionDelayFault = false;
@@ -107,7 +119,9 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		}
 
 		isTransitionDelayFault = (originalFaultPtrList.front()->faultType_ == Fault::STR || originalFaultPtrList.front()->faultType_ == Fault::STF);
-		if (isTransitionDelayFault && pPatternProcessor->dynamicCompression_ == PatternProcessor::ON && originalFaultPtrList.size() > 1)
+		if (isTransitionDelayFault &&
+		    pPatternProcessor->dynamicCompression_ == PatternProcessor::ON &&
+		    originalFaultPtrList.size() > 1)
 		{
 			FaultPtrListIter bestIt = selectInfluencePrimaryFault(originalFaultPtrList);
 			if (bestIt != originalFaultPtrList.begin())
@@ -126,6 +140,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			StuckAtFaultATPG(originalFaultPtrList, pPatternProcessor, numOfAtpgUntestableFaults);
 		}
 	}
+	printPowerPhaseTime("initial ATPG");
 	if (pPatternProcessor->staticCompression_ != PatternProcessor::ON && !unresolvedAtpgFaults.empty())
 	{
 		faultSimUndetectedFaultsWithPatternSet(pPatternProcessor, unresolvedAtpgFaults);
@@ -141,6 +156,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		{
 			staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
 		}
+		printPowerPhaseTime("static compression");
 		originalFaultPtrList = faultPtrListForSTC;
 	}
 	if (powerAware)
@@ -168,9 +184,12 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		};
 
 		sortPatternsForXID(pPatternProcessor);
+		printPowerPhaseTime("sort for XID");
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
+		printPowerPhaseTime("XID relaxation");
 		const size_t postXidPatternCountBeforeStc = pPatternProcessor->patternVector_.size();
 		const size_t postXidMergedPatterns = compactCompatibleTestCubes(pPatternProcessor, true);
+		printPowerPhaseTime("post-XID compaction");
 		if (postXidMergedPatterns > 0)
 		{
 			refreshXidDontCareMasks(pPatternProcessor);
@@ -178,10 +197,14 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			std::cout << "    patterns: " << postXidPatternCountBeforeStc << " -> " << pPatternProcessor->patternVector_.size() << '\n';
 		}
 		XFill(pPatternProcessor);
+		printPowerPhaseTime("XFill");
 		reorderPatternsForShiftPower(pPatternProcessor);
+		printPowerPhaseTime("shift reorder");
 		postProcessPowerFill(pPatternProcessor);
+		printPowerPhaseTime("power fill repair");
 
 		originalFaultPtrList = faultSimFinalPowerAwarePatterns();
+		printPowerPhaseTime("final fault simulation");
 	}
 
 	if (tdfDtcAttemptedCandidates_ > 0 || tdfDtcSelectedFaults_ > 0)
@@ -1329,28 +1352,36 @@ Gate *Atpg::findInfluenceInput(Gate *pGate, Value atpgValOfpGate)
 
 void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults, bool powerAwareSTC)
 {
-	const Fault &fTDF = *faultPtrListForGen.front();
+	if (faultPtrListForGen.empty())
+	{
+		return;
+	}
 
-	const bool influenceDtc = pPatternProcessor->dynamicCompression_ == PatternProcessor::ON;
-	if (influenceDtc)
+	Fault *pPrimaryFault = faultPtrListForGen.front();
+	const bool dynamicCompression = pPatternProcessor && pPatternProcessor->dynamicCompression_ == PatternProcessor::ON;
+
+	if (dynamicCompression)
 	{
 		initializeTdfInfluenceMeasures();
 		influenceSpecifiedInputValues_.assign(influenceInputGateIDs_.size(), 0);
 		useInfluenceInputBacktrace_ = true;
 	}
-	SINGLE_PATTERN_GENERATION_STATUS result = generateSinglePatternOnTargetFault(Fault(fTDF.gateID_ + pCircuit_->numGate_, fTDF.faultType_, fTDF.faultyLine_, fTDF.equivalent_, fTDF.faultState_), false);
+
+	SINGLE_PATTERN_GENERATION_STATUS result = generateSinglePatternOnTargetFault(makeTransitionDelayTargetFault(*pPrimaryFault), false);
 	useInfluenceInputBacktrace_ = false;
+
 	if (result == PATTERN_FOUND)
 	{
 		Pattern pattern(pCircuit_);
 		pattern.initForTransitionDelayFault(pCircuit_);
-		pPatternProcessor->patternVector_.push_back(pattern);
-		writeAtpgValToPatternPI(pPatternProcessor->patternVector_.back());
+		writeAtpgValToPatternPI(pattern);
 
-		if (pPatternProcessor->dynamicCompression_ == PatternProcessor::ON)
+		if (dynamicCompression)
 		{
-			applyTransitionDelayDynamicCompression(faultPtrListForGen, pPatternProcessor->patternVector_.back());
+			applyTransitionDelayDynamicCompression(faultPtrListForGen, pattern);
 		}
+
+		pPatternProcessor->patternVector_.push_back(pattern);
 
 		Pattern *pFaultSimPattern = &pPatternProcessor->patternVector_.back();
 		Pattern filledPatternForFaultSim;
@@ -1374,14 +1405,14 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 	}
 	else if (result == FAULT_UNTESTABLE)
 	{
-		faultPtrListForGen.front()->faultState_ = Fault::AU;
-		numOfAtpgUntestableFaults += faultPtrListForGen.front()->equivalent_;
+		pPrimaryFault->faultState_ = Fault::AU;
+		numOfAtpgUntestableFaults += pPrimaryFault->equivalent_;
 		faultPtrListForGen.pop_front();
 	}
 	else
 	{
-		faultPtrListForGen.front()->faultState_ = Fault::AB;
-		faultPtrListForGen.push_back(faultPtrListForGen.front());
+		pPrimaryFault->faultState_ = Fault::AB;
+		faultPtrListForGen.push_back(pPrimaryFault);
 		faultPtrListForGen.pop_front();
 	}
 }
@@ -5001,9 +5032,10 @@ Gate *Atpg::findEasiestInput(Gate *pGate, Value atpgValOfpGate)
 				continue;
 			}
 
-			if (pFaninGate->cc0_ < easyControlVal)
+			const int controlVal = pFaninGate->cc0_;
+			if (controlVal < easyControlVal)
 			{
-				easyControlVal = pFaninGate->cc0_;
+				easyControlVal = controlVal;
 				pRetGate = pFaninGate;
 			}
 		}
@@ -5019,9 +5051,10 @@ Gate *Atpg::findEasiestInput(Gate *pGate, Value atpgValOfpGate)
 				continue;
 			}
 
-			if (pFaninGate->cc1_ < easyControlVal)
+			const int controlVal = pFaninGate->cc1_;
+			if (controlVal < easyControlVal)
 			{
-				easyControlVal = pFaninGate->cc1_;
+				easyControlVal = controlVal;
 				pRetGate = pFaninGate;
 			}
 		}
@@ -8574,6 +8607,68 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			pattern.PPO_ = savedPPO_;
 			return false;
 		}
+
+		bool applyCapturePeakPpiCandidate(Pattern &pattern, const size_t &patternIndex, double &currentScore)
+		{
+			if (pattern.PPIXidDontCare_.size() != scanLength_ ||
+			    pattern.PPO1_.empty() ||
+			    pattern.PPO_.empty())
+			{
+				return false;
+			}
+
+			const double currentLaunchCost = calculateCaptureStateCost(pattern.PPI_, pattern.PPO1_);
+			const double currentResponseCost = calculateCaptureStateCost(pattern.PPO1_, pattern.PPO_);
+			const double currentPeakCost = currentLaunchCost > currentResponseCost ? currentLaunchCost : currentResponseCost;
+			const double ppiRepairTrigger = CAPTURE_PEAK_PPI_REPAIR_TRIGGER_RATIO * static_cast<double>(scanLength_);
+			if (currentPeakCost <= ppiRepairTrigger)
+			{
+				return false;
+			}
+
+			std::vector<Value> savedPPI = pattern.PPI_;
+			savedPO1_ = pattern.PO1_;
+			savedPO2_ = pattern.PO2_;
+			savedPPO1_ = pattern.PPO1_;
+			savedPPO_ = pattern.PPO_;
+
+			const std::vector<Value> &targetValues = currentLaunchCost >= currentResponseCost ? savedPPO1_ : savedPPO_;
+			bool changed = false;
+			for (size_t i = 0; i < scanLength_; ++i)
+			{
+				if (!pattern.PPIXidDontCare_[i])
+				{
+					continue;
+				}
+				const Value targetValue = normalizeBinaryValue(getValueOrUnknown(targetValues, i));
+				if (!isBinaryValue(targetValue) || pattern.PPI_[i] == targetValue)
+				{
+					continue;
+				}
+				pattern.PPI_[i] = targetValue;
+				changed = true;
+			}
+			if (!changed)
+			{
+				return false;
+			}
+
+			simulateGoodOutputs(pattern);
+			const double candidatePeakCost = calculateCapturePeakCost(pattern);
+			const double candidateScore = calculatePostFillScore(patternIndex);
+			if (candidatePeakCost < currentPeakCost || candidateScore < currentScore)
+			{
+				currentScore = candidateScore;
+				return true;
+			}
+
+			pattern.PPI_ = savedPPI;
+			pattern.PO1_ = savedPO1_;
+			pattern.PO2_ = savedPO2_;
+			pattern.PPO1_ = savedPPO1_;
+			pattern.PPO_ = savedPPO_;
+			return false;
+		}
 	};
 
 	PowerFillPostProcessContext postProcessContext = {this, pPatternProcessor, scanLength, 0.0};
@@ -8631,6 +8726,8 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 				}
 			}
 		}
+
+		postProcessContext.applyCapturePeakPpiCandidate(pattern, patternIndex, currentScore);
 
 		savedPPI = pattern.PPI_;
 		savedPO1 = pattern.PO1_;

@@ -319,7 +319,7 @@ Pattern "_pattern_" {
    "pattern 16":
        Call "load_unload" {
            "test_so"=LLLLHLLH;
-           "test_si"=11111111;
+           "test_si"=11110000;
        }
        Call "capture_CK" {
            "_pi"=00000000000000;
