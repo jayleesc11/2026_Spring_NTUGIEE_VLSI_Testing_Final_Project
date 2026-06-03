@@ -14,15 +14,15 @@
 #include <vector> // added by wang
 #include <stack>	// added by wang
 #include <algorithm>
-#include <list>
 #include <unordered_map>
-#include <unordered_set>
 #include "decision_tree.h"
 #include "simulator.h"
 
 namespace CoreNs
 {
 	constexpr int BACKTRACK_LIMIT = 500;
+	constexpr int TDF_POWER_PRIMARY_BACKTRACK_LIMIT = 48;
+	constexpr int TDF_DTC_BACKTRACK_LIMIT = 12;
 	constexpr int INFINITE = 0x7fffffff;
 	constexpr int MAX_LIST_SIZE = 1000;
 	constexpr int NO_UNIQUE_PATH = -1;
@@ -150,11 +150,11 @@ namespace CoreNs
 		size_t tdfDtcRejectedCandidates_;
 		size_t tdfDtcDetectedDrops_;
 		size_t tdfDtcNewSpecifiedBits_;
-		std::vector<size_t> powerFillPiImpact_;									// cached response impact for each PI
-		std::vector<int> powerFillPiOrder_;											// PIs sorted by descending response impact
+		std::vector<size_t> powerFillPiImpact_;							// cached response impact for each PI
+		std::vector<int> powerFillPiOrder_;								// PIs sorted by descending response impact
 		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
 		std::vector<std::vector<int>> powerFillPi2FanoutCones_;			// affected gates for incremental PI2 power fill simulation
-		Gate *firstTimeFrameHeadLine_;
+		Gate *firstTimeFrameHeadLine_;									// this parameter is for multiple time frame
 
 		// ---------------private methods----------------- //
 
@@ -175,7 +175,7 @@ namespace CoreNs
 		void clearAllFaultEffectByEvaluation();
 		void clearFaultEffectOnGateAtpgVal(Gate &gate);
 
-		SINGLE_PATTERN_GENERATION_STATUS generateSinglePatternOnTargetFault(Fault targetFault, bool isAtStageDTC);
+		SINGLE_PATTERN_GENERATION_STATUS generateSinglePatternOnTargetFault(Fault targetFault, bool isAtStageDTC, int backtrackLimit = BACKTRACK_LIMIT);
 
 		// initialization at the start of single pattern generation
 		Gate *initializeForSinglePatternGeneration(Fault &targetFault, int &BackImpLevel, IMPLICATION_STATUS &implicationStatus, const bool &isAtStageDTC);

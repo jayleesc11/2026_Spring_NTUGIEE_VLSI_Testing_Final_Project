@@ -10,18 +10,18 @@
 #    --------------------------  -------------------
 #    UD (undetected)                              36
 #    PT (possibly testable)                        0
-#    AU (atpg untestable)                         84
+#    AU (atpg untestable)                         81
 #    RE (redundant)                                0
-#    AB (atpg abort)                               0
+#    AB (atpg abort)                               3
 #    TI (tied)                                     0
 #    --------------------------  -------------------
 #    DT (detected)                              2502
 #  -------------------------------------------------
 #  Coverage                               percentage
 #    --------------------------  -------------------
-#    test coverage                            98.58%
+#    test coverage                            98.47%
 #    fault coverage                           95.42%
-#    atpg effectiveness                       98.63%
+#    atpg effectiveness                       98.51%
 #  -------------------------------------------------
 #  #Patterns                                     243
 #  -------------------------------------------------
@@ -47,5 +47,5 @@
 #    -----------------------------------------------
 #    overall average FFTC                       3.78
 #  -------------------------------------------------
-#  ATPG runtime                             0.2086 s
+#  ATPG runtime                             0.2044 s
 #  -------------------------------------------------

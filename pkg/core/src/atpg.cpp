@@ -82,6 +82,47 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	// record pattern set when lower undetected fault/ lower test length with same undetected fault
 	numOfAtpgUntestableFaults = 0;
 
+	if (powerAware)
+	{
+		initializeTdfInfluenceMeasures();
+		size_t learnedUntestableFaults = 0;
+		for (FaultPtrListIter it = originalFaultPtrList.begin(); it != originalFaultPtrList.end();)
+		{
+			Fault *pFault = *it;
+			const bool isTransitionDelayFault = pFault && (pFault->faultType_ == Fault::STR || pFault->faultType_ == Fault::STF);
+			if (isTransitionDelayFault && pFault->faultState_ == Fault::UD)
+			{
+				const InfluenceSet &det = getTransitionFaultDetectability(*pFault);
+				if (det.impossible_)
+				{
+					pFault->faultState_ = Fault::AU;
+					numOfAtpgUntestableFaults += pFault->equivalent_;
+					learnedUntestableFaults += static_cast<size_t>(pFault->equivalent_);
+					it = originalFaultPtrList.erase(it);
+					continue;
+				}
+			}
+			++it;
+		}
+		for (FaultPtrListIter it = faultPtrListForSTC.begin(); it != faultPtrListForSTC.end();)
+		{
+			Fault *pFault = *it;
+			if (pFault && pFault->faultState_ == Fault::AU)
+			{
+				it = faultPtrListForSTC.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+		if (learnedUntestableFaults > 0)
+		{
+			std::cout << "#  TDF structural learning";
+			std::cout << "    AU faults: " << learnedUntestableFaults << '\n';
+		}
+	}
+
 	pPatternProcessor->patternVector_.clear();
 	pPatternProcessor->patternVector_.reserve(MAX_LIST_SIZE);
 	std::clock_t powerPhaseLastClock = std::clock();
@@ -1367,7 +1408,8 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		useInfluenceInputBacktrace_ = true;
 	}
 
-	SINGLE_PATTERN_GENERATION_STATUS result = generateSinglePatternOnTargetFault(makeTransitionDelayTargetFault(*pPrimaryFault), false);
+	const int primaryBacktrackLimit = powerAwareSTC ? TDF_POWER_PRIMARY_BACKTRACK_LIMIT : BACKTRACK_LIMIT;
+	SINGLE_PATTERN_GENERATION_STATUS result = generateSinglePatternOnTargetFault(makeTransitionDelayTargetFault(*pPrimaryFault), false, primaryBacktrackLimit);
 	useInfluenceInputBacktrace_ = false;
 
 	if (result == PATTERN_FOUND)
@@ -1761,7 +1803,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		}
 
 		useInfluenceInputBacktrace_ = true;
-		const SINGLE_PATTERN_GENERATION_STATUS status = generateSinglePatternOnTargetFault(selectedCandidate->tdfTarget, true);
+		const SINGLE_PATTERN_GENERATION_STATUS status = generateSinglePatternOnTargetFault(selectedCandidate->tdfTarget, true, TDF_DTC_BACKTRACK_LIMIT);
 		useInfluenceInputBacktrace_ = false;
 		if (status != PATTERN_FOUND)
 		{
@@ -2305,7 +2347,7 @@ void Atpg::clearFaultEffectOnGateAtpgVal(Gate &gate)
 //            ]
 // Date       [ KOREAL Ver. 1.0 started 2013/08/10 last modified 2023/01/05 ]
 // **************************************************************************
-Atpg::SINGLE_PATTERN_GENERATION_STATUS Atpg::generateSinglePatternOnTargetFault(Fault targetFault, bool isAtStageDTC)
+Atpg::SINGLE_PATTERN_GENERATION_STATUS Atpg::generateSinglePatternOnTargetFault(Fault targetFault, bool isAtStageDTC, int backtrackLimit)
 {
 
 	int backwardImplicationLevel = 0;							// backward imply level
@@ -2340,7 +2382,7 @@ Atpg::SINGLE_PATTERN_GENERATION_STATUS Atpg::generateSinglePatternOnTargetFault(
 				++numOfBacktrack;
 			}
 			// Abort if numOfBacktrack reaching the BACKTRACK_LIMIT
-			if (numOfBacktrack > BACKTRACK_LIMIT)
+			if (numOfBacktrack > backtrackLimit)
 			{
 				genStatus = ABORT;
 				Finish = true;
@@ -2413,7 +2455,7 @@ Atpg::SINGLE_PATTERN_GENERATION_STATUS Atpg::generateSinglePatternOnTargetFault(
 					++numOfBacktrack;
 				}
 				// Abort if numOfBacktrack reaching the BACKTRACK_LIMIT
-				if (numOfBacktrack > BACKTRACK_LIMIT)
+				if (numOfBacktrack > backtrackLimit)
 				{
 					genStatus = ABORT;
 					Finish = true;
