@@ -229,7 +229,10 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
 		printPowerPhaseTime("XID relaxation");
 		const size_t postXidPatternCountBeforeStc = pPatternProcessor->patternVector_.size();
-		const size_t postXidMergedPatterns = compactCompatibleTestCubes(pPatternProcessor, true);
+		const size_t postXidMaxMergedPatterns =
+		    (postXidPatternCountBeforeStc + POST_XID_COMPACTION_MERGE_DIVISOR - 1) /
+		    POST_XID_COMPACTION_MERGE_DIVISOR;
+		const size_t postXidMergedPatterns = compactCompatibleTestCubes(pPatternProcessor, true, postXidMaxMergedPatterns);
 		printPowerPhaseTime("post-XID compaction");
 		if (postXidMergedPatterns > 0)
 		{
@@ -5428,7 +5431,13 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 
 size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit)
 {
-	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2)
+	return compactCompatibleTestCubes(pPatternProcessor, preservePowerLimit,
+	                                  pPatternProcessor ? pPatternProcessor->patternVector_.size() : 0);
+}
+
+size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns)
+{
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2 || maxMergedPatterns == 0)
 	{
 		return 0;
 	}
@@ -5679,8 +5688,9 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 	};
 
 	size_t activeCount = cubes.size();
+	size_t mergedPatterns = 0;
 	size_t selectionCursor = 0;
-	while (activeCount > 1)
+	while (activeCount > 1 && mergedPatterns < maxMergedPatterns)
 	{
 		bool mergedThisRound = false;
 		for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
@@ -5727,6 +5737,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 			scanPower[selected] = weightedScanTransitionPower(cubes[selected]);
 			active[bestOther] = 0;
 			--activeCount;
+			++mergedPatterns;
 			mergedThisRound = true;
 			break;
 		}
@@ -8308,6 +8319,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 		PatternProcessor *pPatternProcessor_;
 		const size_t scanLength_;
 		double captureBudget_;
+		std::vector<double> captureBitWeights_;
 		std::vector<Value> savedPO1_;
 		std::vector<Value> savedPO2_;
 		std::vector<Value> savedPPO1_;
@@ -8342,6 +8354,12 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 				return 1.0;
 			}
 			return normalizedFrom == normalizedTo ? 0.0 : 1.0;
+		}
+
+		double captureTransitionCost(const size_t &index, const Value &fromValue, const Value &toValue) const
+		{
+			const double weight = index < captureBitWeights_.size() ? captureBitWeights_[index] : 1.0;
+			return weight * transitionCost(fromValue, toValue);
 		}
 
 		Value getValueOrUnknown(const std::vector<Value> &values, const size_t &index) const
@@ -8407,15 +8425,15 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			{
 				for (size_t i = 0; i < scanLength_; ++i)
 				{
-					cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO1_, i));
-					cost += transitionCost(getValueOrUnknown(pattern.PPO1_, i), getValueOrUnknown(pattern.PPO_, i));
+					cost += captureTransitionCost(i, getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO1_, i));
+					cost += captureTransitionCost(i, getValueOrUnknown(pattern.PPO1_, i), getValueOrUnknown(pattern.PPO_, i));
 				}
 			}
 			else
 			{
 				for (size_t i = 0; i < scanLength_; ++i)
 				{
-					cost += transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO_, i));
+					cost += captureTransitionCost(i, getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO_, i));
 				}
 			}
 			return cost;
@@ -8442,6 +8460,54 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 			return calculateCaptureStateCost(pattern.PPI_, pattern.PPO_);
 		}
 
+		void initializeCaptureBitWeights()
+		{
+			captureBitWeights_.assign(scanLength_, 1.0);
+			if (scanLength_ == 0 || pPatternProcessor_->patternVector_.empty())
+			{
+				return;
+			}
+
+			std::vector<size_t> toggleCounts(scanLength_, 0);
+			size_t maxToggleCount = 0;
+			for (const Pattern &pattern : pPatternProcessor_->patternVector_)
+			{
+				for (size_t i = 0; i < scanLength_; ++i)
+				{
+					size_t bitToggles = 0;
+					if (!pattern.PPO1_.empty())
+					{
+						if (transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO1_, i)) > 0.0)
+						{
+							++bitToggles;
+						}
+						if (transitionCost(getValueOrUnknown(pattern.PPO1_, i), getValueOrUnknown(pattern.PPO_, i)) > 0.0)
+						{
+							++bitToggles;
+						}
+					}
+					else if (transitionCost(getValueOrUnknown(pattern.PPI_, i), getValueOrUnknown(pattern.PPO_, i)) > 0.0)
+					{
+						++bitToggles;
+					}
+					toggleCounts[i] += bitToggles;
+					if (toggleCounts[i] > maxToggleCount)
+					{
+						maxToggleCount = toggleCounts[i];
+					}
+				}
+			}
+			if (maxToggleCount == 0)
+			{
+				return;
+			}
+			for (size_t i = 0; i < scanLength_; ++i)
+			{
+				const double normalizedHotness = static_cast<double>(toggleCounts[i]) / static_cast<double>(maxToggleCount);
+				captureBitWeights_[i] = 1.0 + 0.25 * normalizedHotness;
+			}
+		}
+
 		void initializeCaptureBudget()
 		{
 			captureBudget_ = 0.0;
@@ -8453,7 +8519,8 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 					captureBudget_ = baselineCapturePeakCost;
 				}
 			}
-			captureBudget_ *= CAPTURE_PEAK_BUDGET_RATIO;
+			const double peakHeadroom = std::min(1.0, captureBudget_ * (1.0 - CAPTURE_PEAK_BUDGET_RATIO));
+			captureBudget_ = captureBudget_ * CAPTURE_PEAK_BUDGET_RATIO + peakHeadroom;
 		}
 
 		double calculateCapturePeakPenalty(const Pattern &pattern) const
@@ -8714,6 +8781,7 @@ void Atpg::postProcessPowerFill(PatternProcessor *pPatternProcessor)
 	};
 
 	PowerFillPostProcessContext postProcessContext = {this, pPatternProcessor, scanLength, 0.0};
+	postProcessContext.initializeCaptureBitWeights();
 	postProcessContext.initializeCaptureBudget();
 	std::vector<Value> savedPPI;
 	std::vector<Value> savedPO1;
