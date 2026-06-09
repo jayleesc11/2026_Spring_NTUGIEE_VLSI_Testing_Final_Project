@@ -199,6 +199,21 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		}
 		printPowerPhaseTime("static compression");
 		originalFaultPtrList = faultPtrListForSTC;
+		if (isTransitionDelayFault && powerAware)
+		{
+			const size_t preXidPatternCount = pPatternProcessor->patternVector_.size();
+			FaultPtrList preXidRemainingFaults;
+			const size_t prunedPatterns =
+			    pruneRedundantPatternsByReverseFaultSimulation(pPatternProcessor, faultVectorForXid, preXidRemainingFaults);
+			faultPtrListForSTC = preXidRemainingFaults;
+			originalFaultPtrList = faultPtrListForSTC;
+			if (prunedPatterns > 0)
+			{
+				std::cout << "#  pre-XID reverse STC";
+				std::cout << "    patterns: " << preXidPatternCount << " -> " << pPatternProcessor->patternVector_.size() << '\n';
+			}
+			printPowerPhaseTime("pre-XID reverse STC");
+		}
 	}
 	if (powerAware)
 	{
@@ -229,10 +244,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		XIDRelaxPatternSet(pPatternProcessor, faultVectorForXid);
 		printPowerPhaseTime("XID relaxation");
 		const size_t postXidPatternCountBeforeStc = pPatternProcessor->patternVector_.size();
-		const size_t postXidMaxMergedPatterns =
-		    (postXidPatternCountBeforeStc + POST_XID_COMPACTION_MERGE_DIVISOR - 1) /
-		    POST_XID_COMPACTION_MERGE_DIVISOR;
-		const size_t postXidMergedPatterns = compactCompatibleTestCubes(pPatternProcessor, true, postXidMaxMergedPatterns);
+		const size_t postXidMergedPatterns = compactCompatibleTestCubes(pPatternProcessor, true);
 		printPowerPhaseTime("post-XID compaction");
 		if (postXidMergedPatterns > 0)
 		{
@@ -5427,6 +5439,147 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 		// 	delete (*rit);
 		// }
 	}
+}
+
+size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults, FaultPtrList &remainingFaults)
+{
+	remainingFaults.clear();
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || faults.empty())
+	{
+		return 0;
+	}
+
+	for (Fault *pFault : faults)
+	{
+		if (!pFault || pFault->faultyLine_ < 0)
+		{
+			continue;
+		}
+		if (pFault->faultState_ == Fault::DT || pFault->faultState_ == Fault::UD)
+		{
+			pFault->faultState_ = Fault::UD;
+			pFault->detection_ = 0;
+			remainingFaults.push_back(pFault);
+		}
+	}
+	if (remainingFaults.empty())
+	{
+		return 0;
+	}
+
+	std::vector<Pattern> originalPatterns = std::move(pPatternProcessor->patternVector_);
+	auto binaryValue = [](const Value &value) {
+		if (value == L || value == B)
+		{
+			return 0;
+		}
+		if (value == H || value == D)
+		{
+			return 1;
+		}
+		return -1;
+	};
+	auto captureTransitionCount = [&](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) {
+		size_t transitions = 0;
+		const size_t compareSize = std::min(fromValues.size(), toValues.size());
+		for (size_t i = 0; i < compareSize; ++i)
+		{
+			const int fromValue = binaryValue(fromValues[i]);
+			const int toValue = binaryValue(toValues[i]);
+			if (fromValue < 0 || toValue < 0 || fromValue != toValue)
+			{
+				++transitions;
+			}
+		}
+		transitions += fromValues.size() > toValues.size() ? fromValues.size() - toValues.size() : toValues.size() - fromValues.size();
+		return transitions;
+	};
+	auto scanTransitionCount = [&](const Pattern &pattern) {
+		size_t transitions = 0;
+		for (size_t i = 1; i < pattern.PPI_.size(); ++i)
+		{
+			const int previousValue = binaryValue(pattern.PPI_[i - 1]);
+			const int currentValue = binaryValue(pattern.PPI_[i]);
+			if (previousValue < 0 || currentValue < 0 || previousValue != currentValue)
+			{
+				++transitions;
+			}
+		}
+		return transitions;
+	};
+	struct ReversePruneOrder
+	{
+		size_t index_;
+		size_t scanTransitions_;
+		size_t captureTotal_;
+		size_t capturePeak_;
+	};
+	std::vector<ReversePruneOrder> pruneOrder;
+	pruneOrder.reserve(originalPatterns.size());
+	for (size_t patternIndex = 0; patternIndex < originalPatterns.size(); ++patternIndex)
+	{
+		const Pattern &pattern = originalPatterns[patternIndex];
+		const size_t launchCapture = captureTransitionCount(pattern.PPI_, pattern.PPO1_.empty() ? pattern.PPO_ : pattern.PPO1_);
+		const size_t captureResponse = pattern.PPO1_.empty() ? 0 : captureTransitionCount(pattern.PPO1_, pattern.PPO_);
+		ReversePruneOrder entry;
+		entry.index_ = patternIndex;
+		entry.scanTransitions_ = scanTransitionCount(pattern);
+		entry.captureTotal_ = launchCapture + captureResponse;
+		entry.capturePeak_ = launchCapture > captureResponse ? launchCapture : captureResponse;
+		pruneOrder.push_back(entry);
+	}
+	std::stable_sort(pruneOrder.begin(), pruneOrder.end(), [](const ReversePruneOrder &lhs, const ReversePruneOrder &rhs) {
+		if (lhs.scanTransitions_ != rhs.scanTransitions_)
+		{
+			return lhs.scanTransitions_ < rhs.scanTransitions_;
+		}
+		if (lhs.capturePeak_ != rhs.capturePeak_)
+		{
+			return lhs.capturePeak_ < rhs.capturePeak_;
+		}
+		if (lhs.captureTotal_ != rhs.captureTotal_)
+		{
+			return lhs.captureTotal_ < rhs.captureTotal_;
+		}
+		return lhs.index_ > rhs.index_;
+	});
+
+	std::vector<char> keepPattern(originalPatterns.size(), 0);
+	size_t keptPatternCount = 0;
+	FaultPtrList::size_type leftFaultCount = remainingFaults.size();
+	for (const ReversePruneOrder &entry : pruneOrder)
+	{
+		const size_t patternIndex = entry.index_;
+		pSimulator_->parallelFaultFaultSimWithOnePattern(originalPatterns[patternIndex], remainingFaults);
+		if (leftFaultCount > remainingFaults.size())
+		{
+			leftFaultCount = remainingFaults.size();
+			keepPattern[patternIndex] = 1;
+			++keptPatternCount;
+		}
+		else if (leftFaultCount < remainingFaults.size())
+		{
+			std::cerr << "Bug: pruneRedundantPatternsByReverseFaultSimulation() unexpected behavior\n";
+			std::cin.get();
+		}
+	}
+
+	if (keptPatternCount == 0 || keptPatternCount == originalPatterns.size())
+	{
+		pPatternProcessor->patternVector_ = std::move(originalPatterns);
+		return 0;
+	}
+
+	pPatternProcessor->patternVector_.clear();
+	pPatternProcessor->patternVector_.reserve(keptPatternCount);
+	for (size_t patternIndex = 0; patternIndex < originalPatterns.size(); ++patternIndex)
+	{
+		if (keepPattern[patternIndex])
+		{
+			pPatternProcessor->patternVector_.push_back(std::move(originalPatterns[patternIndex]));
+		}
+	}
+	return originalPatterns.size() - keptPatternCount;
 }
 
 size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit)

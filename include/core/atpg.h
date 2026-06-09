@@ -30,7 +30,6 @@ namespace CoreNs
 	constexpr double STC_PEAK_POWER_LIMIT_RATIO = 1.0;
 	constexpr size_t STC_MAX_MERGE_PARTNER_CHECKS = 512;
 	constexpr size_t STC_RECOVERY_PATTERN_RETRY_LIMIT = 5;
-	constexpr size_t POST_XID_COMPACTION_MERGE_DIVISOR = 12;
 	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
 	constexpr double CAPTURE_PEAK_PPI_REPAIR_TRIGGER_RATIO = 0.9;
 	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 1.5;
@@ -224,6 +223,7 @@ namespace CoreNs
 		void faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults);
 		void staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
 		void staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults);
+		size_t pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults, FaultPtrList &remainingFaults);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns);
 		void refreshXidDontCareMasks(PatternProcessor *pPatternProcessor);
