@@ -1,7 +1,7 @@
 read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
  Begin reading netlist ( techlib/NangateOpenCellLibrary.v )...
  End parsing Verilog file techlib/NangateOpenCellLibrary.v with 0 errors.
- End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.02 sec, Memory=0MB
+ End reading netlist: #modules=164, top=XOR2_X2, #lines=5402, CPU_time=0.05 sec, Memory=0MB
 read_netlist mod_netlist/s27.v -format verilog
  Begin reading netlist ( mod_netlist/s27.v )...
  End parsing Verilog file mod_netlist/s27.v with 0 errors.
@@ -64,6 +64,7 @@ puts "ATPG mode: power-aware LOC/TDF"
 ATPG mode: power-aware LOC/TDF
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
+set_atpg -power_effort high -power_budget 100
 add_faults -all
  88 faults were added to fault list.
 run_atpg -auto_compression
@@ -76,7 +77,7 @@ run_atpg -auto_compression
  ---------  -------------  ------------  --------  --------
  Begin deterministic ATPG: #uncollapsed_faults=72, abort_limit=10...
  Optimized clock launch transition fault ATPG is enabled.
- 14             72      0         0/0/0   100.00%      0.00
+ 12             72      0         0/0/0   100.00%      0.00
  
    Uncollapsed Transition Fault Summary Report
  -----------------------------------------------
@@ -93,9 +94,9 @@ run_atpg -auto_compression
  -----------------------------------------------
             Pattern Summary Report
  -----------------------------------------------
- #internal patterns                          14
+ #internal patterns                          12
      #basic_scan patterns                     1
-     #fast_sequential patterns               13
+     #fast_sequential patterns               11
  -----------------------------------------------
             CPU Usage Summary Report
  -----------------------------------------------
@@ -111,79 +112,71 @@ report_power -per_pattern -percentage
         pattern    load cycle   shift cycle     switching    percentage
               0             0             2             1        33.33%
               1             0             0             1        33.33%
-              2             0             0             3       100.00%
-              3             0             2             2        66.67%
-              4             0             0             2        66.67%
-              5             0             0             1        33.33%
-              6             0             2             3       100.00%
+              2             0             0             1        33.33%
+              3             0             0             2        66.67%
+              4             0             1             3       100.00%
+              5             0             0             2        66.67%
+              6             0             0             3       100.00%
               7             0             0             2        66.67%
-              8             0             0             2        66.67%
-              9             0             0             2        66.67%
-             10             0             0             1        33.33%
-             11             0             0             2        66.67%
-             12             0             0             2        66.67%
-             13             0             0             0         0.00%
+              8             0             0             1        33.33%
+              9             0             0             1        33.33%
+             10             0             1             2        66.67%
+             11             0             0             1        33.33%
       Average
         pattern           average switching    percentage
               0                        0.33        11.11%
-              1                        1.00        33.33%
-              2                        2.00        66.67%
+              1                        0.67        22.22%
+              2                        0.67        22.22%
               3                        1.33        44.44%
-              4                        1.67        55.56%
+              4                        2.67        88.89%
               5                        1.00        33.33%
               6                        2.33        77.78%
-              7                        1.00        33.33%
-              8                        1.33        44.44%
+              7                        1.67        55.56%
+              8                        0.67        22.22%
               9                        1.00        33.33%
-             10                        1.00        33.33%
-             11                        2.00        66.67%
-             12                        1.67        55.56%
-             13                        0.00         0.00%
+             10                        1.33        44.44%
+             11                        1.00        33.33%
  
      Capture Results:
       Peak
         pattern capture cycle     switching    percentage
               0             0             0         0.00%
-              1             1             3       100.00%
+              1             1             2        66.67%
               2             0             2        66.67%
-              3             1             2        66.67%
-              4             0             1        33.33%
-              5             0             2        66.67%
-              6             0             2        66.67%
-              7             1             1        33.33%
-              8             0             3       100.00%
-              9             0             1        33.33%
-             10             0             0         0.00%
-             11             0             0         0.00%
-             12             0             3       100.00%
-             13             0             1        33.33%
+              3             0             3       100.00%
+              4             1             2        66.67%
+              5             0             3       100.00%
+              6             1             2        66.67%
+              7             0             1        33.33%
+              8             0             1        33.33%
+              9             0             0         0.00%
+             10             0             2        66.67%
+             11             0             3       100.00%
       Average
         pattern           average switching    percentage
               0                        0.00         0.00%
-              1                        2.00        66.67%
+              1                        1.00        33.33%
               2                        2.00        66.67%
-              3                        1.50        50.00%
-              4                        0.50        16.67%
-              5                        1.50        50.00%
+              3                        2.00        66.67%
+              4                        1.50        50.00%
+              5                        2.00        66.67%
               6                        1.50        50.00%
-              7                        0.50        16.67%
-              8                        2.00        66.67%
-              9                        0.50        16.67%
-             10                        0.00         0.00%
-             11                        0.00         0.00%
-             12                        1.50        50.00%
-             13                        0.50        16.67%
+              7                        1.00        33.33%
+              8                        0.50        16.67%
+              9                        0.00         0.00%
+             10                        1.00        33.33%
+             11                        1.50        50.00%
  ------------------------------------------------------------------------------
                                 Power Analysis Summary
  ------------------------------------------------------------------------------
       Number of Scan Cells                       3
-      Number of Patterns                         0-13
+      Number of Patterns                         0-11
       Cycles Per Load                            3
-      Average Shift Switching                    1.26 42.06%
-      Average Capture Switching                  1.04 34.57%
-      Peak Shift Switching                       3 100.00% (pattern: 2 cycle: 0)
-      Peak Capture Switching                     3 100.00% (pattern: 1)
+      Average Shift Switching                    1.22 40.74%
+      Average Capture Switching                  1.22 40.58%
+      Peak Shift Switching                       3 100.00% (pattern: 4 cycle: 1)
+      Peak Capture Switching                     3 100.00% (pattern: 3)
 write_patterns tmax/pat_power/s27.stil -format stil -replace
- Patterns written reference 87 V statements, generating 117 test cycles
- End writing file 's27.stil' with 14 patterns, File_size = 7834, CPU_time = 0.0 sec.
+ Patterns written reference 74 V statements, generating 100 test cycles
+ End writing file 's27.stil' with 12 patterns, File_size = 7417, CPU_time = 0.0 sec.
 exit

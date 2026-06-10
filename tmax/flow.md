@@ -57,6 +57,7 @@ set_atpg -fill 0
 # power
 set_atpg -fill adjacent
 set_atpg -shift_power_effort high -shift_power_budget 100
+set_atpg -power_effort high -power_budget 100
 ```
 
 Finally, by default:

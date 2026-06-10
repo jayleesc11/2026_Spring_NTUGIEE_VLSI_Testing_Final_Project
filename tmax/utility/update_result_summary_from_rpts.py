@@ -14,6 +14,7 @@ CSV_PATH = os.path.join(TMAX_DIR, 'result_summary.csv')
 
 def ensure_header(header, rows):
     derived_columns = (
+        'powerpatterns_delta_pct_vs_method',
         'overall_avg_fftc',
         'poweroverall_avg_fftc_delta_pct_vs_method',
         'runtime_sec',
@@ -158,6 +159,9 @@ def update_delta_columns(rows):
         power_row = power_by_circuit.get(row.get('circuit'))
         if not power_row:
             continue
+        row['powerpatterns_delta_pct_vs_method'] = format_power_delta_pct(
+            power_row.get('patterns'), row.get('patterns')
+        )
         row['poweroverall_avg_fftc_delta_pct_vs_method'] = format_power_delta_pct(
             power_row.get('overall_avg_fftc'), row.get('overall_avg_fftc')
         )
