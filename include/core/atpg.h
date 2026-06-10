@@ -222,13 +222,12 @@ namespace CoreNs
 		// static test compression
 		void faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults);
 		void staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
-		void staticTestCompression(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList, int &numOfAtpgUntestableFaults);
-		size_t pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults, FaultPtrList &remainingFaults);
+		void staticTestCompression(PatternProcessor *pPatternProcessor);
+		void recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrList &remainingFaults);
+		size_t pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns);
-		void refreshXidDontCareMasks(PatternProcessor *pPatternProcessor);
-		void sortPatternsForXID(PatternProcessor *pPatternProcessor);
-		void XIDRelaxPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
+		void refreshPowerFillDontCareMasks(PatternProcessor *pPatternProcessor);
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
 
