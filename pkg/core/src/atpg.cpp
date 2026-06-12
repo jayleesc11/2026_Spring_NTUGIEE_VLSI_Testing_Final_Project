@@ -42,13 +42,10 @@ using namespace CoreNs;
 // 								extractor containing the fault list extracted from the
 // 								target circuit.
 //
-// 								[in] isMFO : A flag specifying whether the MFO mode is
-// 								activated. MFO stands for multiple fault order, which is a
-// 								heuristic with Multiple Fault Orderings.
 // 						]
 // Date       [ Ver. 1.0 started 2013/08/13	last modified 2023/01/05 ]
 // **************************************************************************
-void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool isMFO, bool powerAware)
+void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool powerAware)
 {
 	Fault *pCurrentFault = NULL;
 	FaultPtrList originalFaultPtrList, faultPtrListForSTC;
@@ -80,8 +77,6 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	// testClearFaultEffect(originalFaultPtrList); // only used for debug
 
 	int numOfAtpgUntestableFaults = 0;
-	// record pattern set when lower undetected fault/ lower test length with same undetected fault
-	numOfAtpgUntestableFaults = 0;
 
 	if (powerAware)
 	{
@@ -185,7 +180,7 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 	printPowerPhaseTime("initial ATPG");
 	if (pPatternProcessor->staticCompression_ != PatternProcessor::ON && !unresolvedAtpgFaults.empty())
 	{
-		faultSimUndetectedFaultsWithPatternSet(pPatternProcessor, unresolvedAtpgFaults);
+		unresolvedAtpgFaults = faultSimPatternSet(pPatternProcessor, unresolvedAtpgFaults);
 		originalFaultPtrList.splice(originalFaultPtrList.end(), unresolvedAtpgFaults);
 	}
 	if (pPatternProcessor->staticCompression_ == PatternProcessor::ON)
@@ -199,73 +194,30 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 			staticTestCompressionByReverseFaultSimulation(pPatternProcessor, faultPtrListForSTC);
 		}
 		printPowerPhaseTime("static compression");
-		originalFaultPtrList = faultPtrListForSTC;
+		if (!powerAware)
+		{
+			originalFaultPtrList = faultPtrListForSTC;
+		}
 	}
 	if (powerAware)
 	{
-		auto faultSimFinalPowerAwarePatterns = [&]() {
-			FaultPtrList finalRemainingFaults;
-			for (Fault *pFault : faultVectorForXid)
-			{
-				if (pFault->faultState_ == Fault::DT || pFault->faultState_ == Fault::UD)
-				{
-					pFault->faultState_ = Fault::UD;
-				}
-				pFault->detection_ = 0;
-				finalRemainingFaults.push_back(pFault);
-			}
-			for (const Pattern &pattern : pPatternProcessor->patternVector_)
-			{
-				if (finalRemainingFaults.empty())
-				{
-					break;
-				}
-				pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, finalRemainingFaults);
-			}
-			return finalRemainingFaults;
-		};
-		auto pruneRedundantPatterns = [&]() {
-			// Iterate the reverse-fault-sim prune to a fixpoint. A single pass is a
-			// greedy essential-first set cover; a pattern kept early can become
-			// redundant once later patterns are kept, so re-running with freshly
-			// recomputed essentials removes more (yielding an irredundant set, cf.
-			// Lin/Rajski/Pomeranz/Reddy ITC'01). Each pass shrinks fast, so the
-			// added fault-sim cost is small.
-			const size_t prePrunePatternCount = pPatternProcessor->patternVector_.size();
-			size_t totalPruned = 0;
-			for (size_t pass = 0; pass < PRUNE_MAX_PASSES; ++pass)
-			{
-				const size_t prunedPatterns = pruneRedundantPatternsByReverseFaultSimulation(pPatternProcessor, faultVectorForXid);
-				totalPruned += prunedPatterns;
-				if (prunedPatterns == 0)
-				{
-					break;
-				}
-			}
-			if (totalPruned > 0)
-			{
-				std::cout << "#  redundant pattern prune";
-				std::cout << "    patterns: " << prePrunePatternCount << " -> " << pPatternProcessor->patternVector_.size() << '\n';
-			}
-		};
-
 		powerAwareXFill(pPatternProcessor);
 		printPowerPhaseTime("power-aware X-fill");
 
 		// Restore fault coverage after the final power-aware fill. The following
 		// prune pass only removes patterns that are redundant under fault
 		// simulation, and final fault simulation validates the resulting set.
-		FaultPtrList remainingAfterPowerFill = faultSimFinalPowerAwarePatterns();
+		FaultPtrList remainingAfterPowerFill = faultSimPatternSet(pPatternProcessor, faultVectorForXid);
 		recoverFaultCoverage(pPatternProcessor, remainingAfterPowerFill);
 		printPowerPhaseTime("post-powerfill recovery");
 
-		pruneRedundantPatterns();
+		pruneRedundantPatterns(pPatternProcessor, faultVectorForXid);
 		printPowerPhaseTime("redundant pattern prune");
 
 		reorderPatternsForShiftPower(pPatternProcessor);
 		printPowerPhaseTime("shift reorder");
 
-		originalFaultPtrList = faultSimFinalPowerAwarePatterns();
+		originalFaultPtrList = faultSimPatternSet(pPatternProcessor, faultVectorForXid);
 		printPowerPhaseTime("final fault simulation");
 	}
 
@@ -684,10 +636,10 @@ void Atpg::initializeTdfInfluenceMeasures()
 		set.impossible_ = true;
 		return set;
 	};
-	auto chooseControl = [&](const int &gateID, const Value &value) -> InfluenceSet {
+	auto chooseControl = [&](int gateID, Value value) -> InfluenceSet {
 		return value == L ? influenceRc0_[static_cast<size_t>(gateID)] : influenceRc1_[static_cast<size_t>(gateID)];
 	};
-	auto unionAllFanins = [&](const Gate &gate, const Value &value) -> InfluenceSet {
+	auto unionAllFanins = [&](const Gate &gate, Value value) -> InfluenceSet {
 		InfluenceSet result;
 		for (const int &faninID : gate.faninVector_)
 		{
@@ -695,7 +647,7 @@ void Atpg::initializeTdfInfluenceMeasures()
 		}
 		return result;
 	};
-	auto chooseOneFanin = [&](const Gate &gate, const Value &value) -> InfluenceSet {
+	auto chooseOneFanin = [&](const Gate &gate, Value value) -> InfluenceSet {
 		InfluenceSet best = makeImpossible();
 		for (const int &faninID : gate.faninVector_)
 		{
@@ -703,10 +655,10 @@ void Atpg::initializeTdfInfluenceMeasures()
 		}
 		return best;
 	};
-	auto chooseAnyControl = [&](const int &gateID) -> InfluenceSet {
+	auto chooseAnyControl = [&](int gateID) -> InfluenceSet {
 		return chooseSmallerInfluenceSet(influenceRc0_[static_cast<size_t>(gateID)], influenceRc1_[static_cast<size_t>(gateID)]);
 	};
-	auto xorControl = [&](const Gate &gate, const Value &outputValue, const bool &inverted) -> InfluenceSet {
+	auto xorControl = [&](const Gate &gate, Value outputValue, bool inverted) -> InfluenceSet {
 		if (gate.numFI_ <= 0 || gate.numFI_ > 4)
 		{
 			return makeImpossible();
@@ -901,7 +853,7 @@ void Atpg::initializeTdfInfluenceMeasures()
 	tdfInfluenceMeasuresValid_ = true;
 }
 
-const Atpg::InfluenceSet &Atpg::getInfluenceControlSet(const int &gateID, const Value &value) const
+const Atpg::InfluenceSet &Atpg::getInfluenceControlSet(int gateID, Value value) const
 {
 	static const InfluenceSet impossibleSet = []() {
 		InfluenceSet set;
@@ -915,7 +867,7 @@ const Atpg::InfluenceSet &Atpg::getInfluenceControlSet(const int &gateID, const 
 	return value == L ? influenceRc0_[static_cast<size_t>(gateID)] : influenceRc1_[static_cast<size_t>(gateID)];
 }
 
-Atpg::InfluenceSet Atpg::makeInfluenceLiteralSet(const int &gateID, const Value &value) const
+Atpg::InfluenceSet Atpg::makeInfluenceLiteralSet(int gateID, Value value) const
 {
 	InfluenceSet set;
 	if (gateID < 0 || gateID >= static_cast<int>(influenceInputIndexByGate_.size()))
@@ -1032,11 +984,6 @@ const Atpg::InfluenceSet &Atpg::getTransitionFaultDetectability(const Fault &fau
 	return influenceDetCache_.emplace(&fault, std::move(det)).first->second;
 }
 
-Atpg::InfluenceSet Atpg::computeTransitionFaultDetectability(const Fault &fault)
-{
-	return getTransitionFaultDetectability(fault);
-}
-
 const Atpg::InfluenceSet &Atpg::getTransitionFaultStructuralInfluence(const Fault &fault)
 {
 	initializeTdfInfluenceMeasures();
@@ -1075,7 +1022,7 @@ const Atpg::InfluenceSet &Atpg::getTransitionFaultStructuralInfluence(const Faul
 	const int currentStamp = ++influenceStructuralStamp_;
 	influenceStructuralInputIndices_.clear();
 
-	auto addInput = [&](const int &gateID) {
+	auto addInput = [&](int gateID) {
 		const int inputIndex = influenceInputIndexByGate_[static_cast<size_t>(gateID)];
 		if (inputIndex < 0)
 		{
@@ -1083,7 +1030,7 @@ const Atpg::InfluenceSet &Atpg::getTransitionFaultStructuralInfluence(const Faul
 		}
 		influenceStructuralInputIndices_.push_back(inputIndex);
 	};
-	auto traceBackward = [&](const int &startGateID) {
+	auto traceBackward = [&](int startGateID) {
 		influenceStructuralStack_.clear();
 		influenceStructuralStack_.push_back(startGateID);
 		while (!influenceStructuralStack_.empty())
@@ -1145,11 +1092,6 @@ const Atpg::InfluenceSet &Atpg::getTransitionFaultStructuralInfluence(const Faul
 		result.literals_.push_back(literal);
 	}
 	return influenceStructuralCache_.emplace(&fault, std::move(result)).first->second;
-}
-
-Atpg::InfluenceSet Atpg::computeTransitionFaultStructuralInfluence(const Fault &fault)
-{
-	return getTransitionFaultStructuralInfluence(fault);
 }
 
 bool Atpg::influenceSetHasBothValueRequirement(const InfluenceSet &set) const
@@ -1498,19 +1440,15 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	storeCurrentAtpgVal();
 	updateInfluenceSpecifiedInputsFromCircuit();
 
-	auto faultSimAndDropCurrentPattern = [&]() {
-		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faultPtrListForGen);
-		pSimulator_->goodSim();
-	};
-
-	faultSimAndDropCurrentPattern();
+	pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faultPtrListForGen);
+	pSimulator_->goodSim();
 
 	size_t selected = 0;
 	size_t attemptedCandidates = 0;
 	size_t rejectedCandidates = 0;
 	size_t recentFailedAttempts = 0;
-	std::vector<size_t> acceptedFaultDrops;
-	std::vector<size_t> acceptedXCosts;
+	size_t acceptedFaultDrops = 0;
+	size_t acceptedXCosts = 0;
 
 	auto restoreCurrentAtpgValues = [&]() {
 		for (Gate &gate : pCircuit_->circuitGates_)
@@ -1522,7 +1460,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		}
 	};
 
-	auto isSpecifiedInputValue = [](const Value &value) {
+	auto isSpecifiedInputValue = [](Value value) {
 		return value == L || value == H || value == B || value == D;
 	};
 
@@ -1544,17 +1482,13 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		return xBits;
 	};
 
-	auto countInputBits = [](const Pattern &targetPattern) {
-		return targetPattern.PI1_.size() + targetPattern.PI2_.size() + targetPattern.PPI_.size() + targetPattern.SI_.size();
-	};
-
+	const size_t inputBitCount = pattern.PI1_.size() + pattern.PI2_.size() + pattern.PPI_.size() + pattern.SI_.size();
 	auto currentXDensity = [&]() {
-		const size_t inputBits = countInputBits(pattern);
-		if (inputBits == 0)
+		if (inputBitCount == 0)
 		{
 			return 0.0;
 		}
-		return static_cast<double>(countXBits(pattern)) / static_cast<double>(inputBits);
+		return static_cast<double>(countXBits(pattern)) / static_cast<double>(inputBitCount);
 	};
 
 	auto countNewlySpecifiedBits = [&](const Pattern &before, const Pattern &after) {
@@ -1715,7 +1649,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		       !hasActivationConflict(candidate);
 	};
 
-	auto candidateSetBudget = [](const size_t &eligibleCount) -> size_t {
+	auto candidateSetBudget = [](size_t eligibleCount) -> size_t {
 		if (eligibleCount == 0 || TDF_DTC_CANDIDATE_SET_RATIO <= 0.0 || TDF_DTC_CANDIDATE_SET_RATIO >= 1.0)
 		{
 			return eligibleCount;
@@ -1761,54 +1695,35 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		CandidateFaultInfo *selectedCandidate = NULL;
 		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
 
-		if (TDF_DTC_CANDIDATE_SET_RATIO > 0.0 && TDF_DTC_CANDIDATE_SET_RATIO < 1.0)
+		cheapCandidates.clear();
+		for (CandidateFaultInfo &candidate : candidateFaults)
 		{
-			cheapCandidates.clear();
-			for (CandidateFaultInfo &candidate : candidateFaults)
+			if (!isCandidateEligible(candidate))
 			{
-				if (!isCandidateEligible(candidate))
-				{
-					continue;
-				}
-				cheapCandidates.push_back({&candidate,
-				                           countInfluenceConflicts(*candidate.detSet),
-				                           countInfluenceOverlap(*candidate.detSet),
-				                           candidate.activationGate ? candidate.activationGate->co_ : INFINITE,
-				                           candidate.activationGate ? (candidate.fault->faultType_ == Fault::STR ? candidate.activationGate->cc1_ : candidate.activationGate->cc0_) : INFINITE,
-				                           candidate.detSet->literals_.size(),
-				                           candidate.fault->gateID_});
+				continue;
 			}
-			const size_t budget = candidateSetBudget(cheapCandidates.size());
-			if (budget < cheapCandidates.size())
-			{
-				std::sort(cheapCandidates.begin(), cheapCandidates.end(), cheapCandidateLess);
-				cheapCandidates.resize(budget);
-			}
-			for (CheapCandidateInfo &cheapCandidate : cheapCandidates)
-			{
-				const CandidateScore candidateScore = scoreCandidate(*cheapCandidate.candidate);
-				if (!selectedCandidate || scoreLess(candidateScore, bestScore))
-				{
-					selectedCandidate = cheapCandidate.candidate;
-					bestScore = candidateScore;
-				}
-			}
+			cheapCandidates.push_back({&candidate,
+			                           countInfluenceConflicts(*candidate.detSet),
+			                           countInfluenceOverlap(*candidate.detSet),
+			                           candidate.activationGate ? candidate.activationGate->co_ : INFINITE,
+			                           candidate.activationGate ? (candidate.fault->faultType_ == Fault::STR ? candidate.activationGate->cc1_ : candidate.activationGate->cc0_) : INFINITE,
+			                           candidate.detSet->literals_.size(),
+			                           candidate.fault->gateID_});
 		}
-		else
+		const size_t budget = candidateSetBudget(cheapCandidates.size());
+		if (budget < cheapCandidates.size())
 		{
-			for (CandidateFaultInfo &candidate : candidateFaults)
-			{
-				if (!isCandidateEligible(candidate))
-				{
-					continue;
-				}
+			std::sort(cheapCandidates.begin(), cheapCandidates.end(), cheapCandidateLess);
+			cheapCandidates.resize(budget);
+		}
 
-				const CandidateScore candidateScore = scoreCandidate(candidate);
-				if (!selectedCandidate || scoreLess(candidateScore, bestScore))
-				{
-					selectedCandidate = &candidate;
-					bestScore = candidateScore;
-				}
+		for (CheapCandidateInfo &cheapCandidate : cheapCandidates)
+		{
+			const CandidateScore candidateScore = scoreCandidate(*cheapCandidate.candidate);
+			if (!selectedCandidate || scoreLess(candidateScore, bestScore))
+			{
+				selectedCandidate = cheapCandidate.candidate;
+				bestScore = candidateScore;
 			}
 		}
 
@@ -1855,8 +1770,8 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		storeCurrentAtpgVal();
 		updateInfluenceSpecifiedInputsFromCircuit();
 
-		acceptedFaultDrops.push_back(acceptedDelta);
-		acceptedXCosts.push_back(xCost);
+		acceptedFaultDrops += acceptedDelta;
+		acceptedXCosts += xCost;
 		++selected;
 		recentFailedAttempts = 0;
 	}
@@ -1867,14 +1782,8 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		tdfDtcSelectedFaults_ += selected;
 		tdfDtcAttemptedCandidates_ += attemptedCandidates;
 		tdfDtcRejectedCandidates_ += rejectedCandidates;
-		for (const size_t &dropCount : acceptedFaultDrops)
-		{
-			tdfDtcDetectedDrops_ += dropCount;
-		}
-		for (const size_t &xCost : acceptedXCosts)
-		{
-			tdfDtcNewSpecifiedBits_ += xCost;
-		}
+		tdfDtcDetectedDrops_ += acceptedFaultDrops;
+		tdfDtcNewSpecifiedBits_ += acceptedXCosts;
 	}
 
 	return selected > 0;
@@ -2117,7 +2026,7 @@ Gate *Atpg::getGateForFaultActivation(const Fault &faultToActivate)
 // **************************************************************************
 void Atpg::setGateAtpgValAndRunImplication(Gate &gate, const Value &val, std::vector<int> *modifiedGateIDs, std::vector<char> *modifiedGateMarks)
 {
-	auto recordModifiedGate = [&](const int &gateID) {
+	auto recordModifiedGate = [&](int gateID) {
 		if (!modifiedGateIDs || !modifiedGateMarks)
 		{
 			return;
@@ -2602,7 +2511,7 @@ Atpg::SINGLE_PATTERN_GENERATION_STATUS Atpg::generateSinglePatternOnTargetFault(
 //            ]
 // Date       [ last modified 2023/01/05 ]
 // **************************************************************************
-Gate *Atpg::initializeForSinglePatternGeneration(Fault &targetFault, int &backwardImplicationLevel, IMPLICATION_STATUS &implicationStatus, const bool &isAtStageDTC)
+Gate *Atpg::initializeForSinglePatternGeneration(Fault &targetFault, int &backwardImplicationLevel, IMPLICATION_STATUS &implicationStatus, bool isAtStageDTC)
 {
 	Gate *gFaultyLine = &pCircuit_->circuitGates_[targetFault.gateID_];
 	currentTargetFault_ = targetFault;
@@ -3513,7 +3422,7 @@ bool Atpg::checkForUnjustifiedBoundLines()
 //            ]
 // Date       [ WYH Ver. 1.0 started 2013/08/15 last modified 2023/01/06 ]
 // **************************************************************************
-void Atpg::findFinalObjective(BACKTRACE_STATUS &backtraceFlag, const bool &faultCanPropToPO, Gate *&pLastDFrontier)
+void Atpg::findFinalObjective(BACKTRACE_STATUS &backtraceFlag, bool faultCanPropToPO, Gate *&pLastDFrontier)
 {
 	int index;
 	Gate *pGate = NULL;
@@ -5399,29 +5308,60 @@ Atpg::IMPLICATION_STATUS Atpg::evaluateAndSetFaultyGateAtpgVal(Gate *pGate)
 //            ]
 // Date       [ started 2020/07/08    last modified 2023/01/06 ]
 // **************************************************************************
-void Atpg::faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults)
+void Atpg::resetFaultsForFaultSim(const FaultPtrList &faults)
 {
-	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || faults.empty())
-	{
-		return;
-	}
-
 	for (Fault *pFault : faults)
 	{
-		if (pFault->faultState_ == Fault::DT)
+		if (!pFault)
+		{
+			continue;
+		}
+		if (pFault->faultState_ == Fault::DT || pFault->faultState_ == Fault::UD)
 		{
 			pFault->faultState_ = Fault::UD;
 		}
 		pFault->detection_ = 0;
 	}
+}
+
+void Atpg::updatePatternOutput(Pattern &pattern)
+{
+	pSimulator_->assignPatternToCircuitInputs(pattern);
+	pSimulator_->goodSim();
+	writeGoodSimValToPatternPO(pattern);
+}
+
+FaultPtrList Atpg::faultSimPatternSet(PatternProcessor *pPatternProcessor, const FaultPtrList &faults)
+{
+	FaultPtrList remainingFaults = faults;
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || remainingFaults.empty())
+	{
+		return remainingFaults;
+	}
+
+	resetFaultsForFaultSim(remainingFaults);
 	for (const Pattern &pattern : pPatternProcessor->patternVector_)
 	{
-		if (faults.empty())
+		if (remainingFaults.empty())
 		{
 			break;
 		}
-		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, faults);
+		pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, remainingFaults);
 	}
+	return remainingFaults;
+}
+
+FaultPtrList Atpg::faultSimPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults)
+{
+	FaultPtrList faultList;
+	for (Fault *pFault : faults)
+	{
+		if (pFault)
+		{
+			faultList.push_back(pFault);
+		}
+	}
+	return faultSimPatternSet(pPatternProcessor, faultList);
 }
 
 void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList)
@@ -5450,6 +5390,25 @@ void Atpg::staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatt
 		// 	delete (*rit);
 		// }
 	}
+}
+
+size_t Atpg::pruneRedundantPatterns(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults)
+{
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || faults.empty())
+	{
+		return 0;
+	}
+
+	// Run the reverse-fault-sim prune once. This is a greedy essential-first set
+	// cover; final fault simulation validates the resulting pattern set.
+	const size_t prePrunePatternCount = pPatternProcessor->patternVector_.size();
+	const size_t prunedPatterns = pruneRedundantPatternsByReverseFaultSimulation(pPatternProcessor, faults);
+	if (prunedPatterns > 0)
+	{
+		std::cout << "#  redundant pattern prune";
+		std::cout << "    patterns: " << prePrunePatternCount << " -> " << pPatternProcessor->patternVector_.size() << '\n';
+	}
+	return prunedPatterns;
 }
 
 size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults)
@@ -5484,7 +5443,7 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	pSimulator_->collectFaultDetectionStatsWithAllPatterns(pPatternProcessor, pruneFaults, firstDetectorByFault, detectionCountByFault);
 
 	std::vector<Pattern> originalPatterns = std::move(pPatternProcessor->patternVector_);
-	auto binaryValue = [](const Value &value) {
+	auto binaryValue = [](Value value) {
 		if (value == L || value == B)
 		{
 			return 0;
@@ -5525,7 +5484,6 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	};
 	struct PrunePatternMetric
 	{
-		size_t index_;
 		size_t scanTransitions_;
 		size_t capturePeak_;
 	};
@@ -5537,7 +5495,6 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 		const size_t launchCapture = captureTransitionCount(pattern.PPI_, pattern.PPO1_.empty() ? pattern.PPO_ : pattern.PPO1_);
 		const size_t captureResponse = pattern.PPO1_.empty() ? 0 : captureTransitionCount(pattern.PPO1_, pattern.PPO_);
 		PrunePatternMetric entry;
-		entry.index_ = patternIndex;
 		entry.scanTransitions_ = scanTransitionCount(pattern);
 		entry.capturePeak_ = launchCapture > captureResponse ? launchCapture : captureResponse;
 		patternMetrics.push_back(entry);
@@ -5567,7 +5524,7 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	}
 
 	std::vector<size_t> essentialFirstOrder = forwardIndexOrder;
-	std::stable_sort(essentialFirstOrder.begin(), essentialFirstOrder.end(), [&](const size_t &lhs, const size_t &rhs) {
+	std::stable_sort(essentialFirstOrder.begin(), essentialFirstOrder.end(), [&](size_t lhs, size_t rhs) {
 		if (essentialPattern[lhs] != essentialPattern[rhs])
 		{
 			return essentialPattern[lhs] > essentialPattern[rhs];
@@ -5598,7 +5555,7 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	std::vector<char> keepPattern(originalPatterns.size(), 0);
 	size_t keptPatternCount = 0;
 	FaultPtrList::size_type leftFaultCount = orderedRemainingFaults.size();
-	for (const size_t &patternIndex : essentialFirstOrder)
+	for (size_t patternIndex : essentialFirstOrder)
 	{
 		pSimulator_->parallelFaultFaultSimWithOnePattern(originalPatterns[patternIndex], orderedRemainingFaults);
 		if (leftFaultCount > orderedRemainingFaults.size())
@@ -5632,12 +5589,6 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	return originalPatterns.size() - keptPatternCount;
 }
 
-size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit)
-{
-	return compactCompatibleTestCubes(pPatternProcessor, preservePowerLimit,
-	                                  pPatternProcessor ? pPatternProcessor->patternVector_.size() : 0);
-}
-
 size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns)
 {
 	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2 || maxMergedPatterns == 0)
@@ -5645,7 +5596,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		return 0;
 	}
 
-	auto normalizeBinaryInput = [](const Value &value) -> int {
+	auto normalizeBinaryInput = [](Value value) -> int {
 		if (value == L || value == B)
 		{
 			return 0;
@@ -5657,7 +5608,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		return -1;
 	};
 
-	auto mergeValue = [&](const Value &lhs, const Value &rhs) {
+	auto mergeValue = [&](Value lhs, Value rhs) {
 		if (normalizeBinaryInput(lhs) >= 0)
 		{
 			return lhs;
@@ -5766,15 +5717,15 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		std::vector<std::uint64_t> scanHigh_;
 	};
 
-	auto maskWordCount = [](const size_t &bitCount) -> size_t {
+	auto maskWordCount = [](size_t bitCount) -> size_t {
 		return (bitCount + 63) / 64;
 	};
 
-	auto setMaskBit = [](std::vector<std::uint64_t> &mask, const size_t &bitIndex) {
+	auto setMaskBit = [](std::vector<std::uint64_t> &mask, size_t bitIndex) {
 		mask[bitIndex / 64] |= static_cast<std::uint64_t>(1) << (bitIndex % 64);
 	};
 
-	auto markMaskedValue = [&](CubeCompatibilityMask &mask, const bool &scanValue, const size_t &bitIndex, const Value &value) {
+	auto markMaskedValue = [&](CubeCompatibilityMask &mask, bool scanValue, size_t bitIndex, Value value) {
 		const int binaryValue = normalizeBinaryInput(value);
 		if (binaryValue < 0)
 		{
@@ -5791,7 +5742,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 	};
 
 	std::vector<CubeCompatibilityMask> cubeMasks(cubes.size());
-	auto rebuildCubeMask = [&](const size_t &patternIndex) {
+	auto rebuildCubeMask = [&](size_t patternIndex) {
 		const Pattern &cube = cubes[patternIndex];
 		const size_t nonScanBitCount = cube.PI1_.size() + cube.PI2_.size() + cube.SI_.size();
 		const size_t scanBitCount = cube.PPI_.size();
@@ -5844,7 +5795,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		return true;
 	};
 
-	auto cubeMasksCompatible = [&](const size_t &lhs, const size_t &rhs) {
+	auto cubeMasksCompatible = [&](size_t lhs, size_t rhs) {
 		const CubeCompatibilityMask &lhsMask = cubeMasks[lhs];
 		const CubeCompatibilityMask &rhsMask = cubeMasks[rhs];
 		return maskVectorsCompatible(lhsMask.nonScanLow_, lhsMask.nonScanHigh_, rhsMask.nonScanLow_, rhsMask.nonScanHigh_) &&
@@ -5877,7 +5828,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 	const double peakPowerLimit = static_cast<double>(initialPeakScanPower) * STC_PEAK_POWER_LIMIT_RATIO;
 	const double peakCountLimit = static_cast<double>(initialPeakScanCount) * STC_PEAK_COUNT_LIMIT_RATIO;
 
-	auto mergeCostIfCompatible = [&](const size_t &lhs, const size_t &rhs, long long &cost) {
+	auto mergeCostIfCompatible = [&](size_t lhs, size_t rhs, long long &cost) {
 		if (cubes[lhs].PPI_.size() != cubes[rhs].PPI_.size() || !cubeMasksCompatible(lhs, rhs))
 		{
 			return false;
@@ -5910,7 +5861,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		return true;
 	};
 
-	auto nextActiveFrom = [&](const size_t &startIndex) -> size_t {
+	auto nextActiveFrom = [&](size_t startIndex) -> size_t {
 		for (size_t offset = 0; offset < cubes.size(); ++offset)
 		{
 			const size_t patternIndex = (startIndex + offset) % cubes.size();
@@ -6006,7 +5957,7 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor)
 	// Keep the merged patterns as cubes. The following X-fill and power-fill
 	// stages consume the remaining X bits directly; coverage is recovered after
 	// those fills have produced the final specified patterns.
-	compactCompatibleTestCubes(pPatternProcessor, true);
+	compactCompatibleTestCubes(pPatternProcessor, true, pPatternProcessor->patternVector_.size());
 }
 
 void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrList &remainingFaults)
@@ -6016,85 +5967,9 @@ void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrLis
 		return;
 	}
 
-	auto resetFaultsForFaultSim = [](const FaultPtrList &faults) {
-		for (Fault *pFault : faults)
-		{
-			if (pFault->faultState_ == Fault::DT || pFault->faultState_ == Fault::UD)
-			{
-				pFault->faultState_ = Fault::UD;
-			}
-			pFault->detection_ = 0;
-		}
-	};
-	auto updatePatternOutputs = [&](PatternProcessor *pProcessor) {
-		for (Pattern &pattern : pProcessor->patternVector_)
-		{
-			pSimulator_->assignPatternToCircuitInputs(pattern);
-			pSimulator_->goodSim();
-			writeGoodSimValToPatternPO(pattern);
-		}
-	};
-	auto faultSimRemainingWithPatternSet = [&](PatternProcessor *pProcessor, const FaultPtrList &faults) {
-		FaultPtrList remaining = faults;
-		resetFaultsForFaultSim(remaining);
-		for (const Pattern &pattern : pProcessor->patternVector_)
-		{
-			if (remaining.empty())
-			{
-				break;
-			}
-			pSimulator_->parallelFaultFaultSimWithOnePattern(pattern, remaining);
-		}
-		return remaining;
-	};
-
 	const FaultPtrList recoveryTargets = remainingFaults;
 	const FaultPtrList::size_type recoveryTargetFaultCount = recoveryTargets.size();
 	const size_t patternCountBeforeRecovery = pPatternProcessor->patternVector_.size();
-
-	auto initializeRecoveryProcessor = [&](PatternProcessor &processor, const PatternProcessor::XFillMode &xFillMode) {
-		processor.init(pCircuit_);
-		processor.staticCompression_ = PatternProcessor::OFF;
-		processor.dynamicCompression_ = pPatternProcessor->dynamicCompression_;
-		processor.XFillMode_ = xFillMode;
-		processor.type_ = pPatternProcessor->type_;
-		processor.patternVector_.reserve(recoveryTargetFaultCount);
-	};
-
-	auto runRecoveryAtpg = [&](const FaultPtrList &targetFaults,
-	                           PatternProcessor &recoveryProcessor,
-	                           const PatternProcessor::XFillMode &xFillMode) {
-		initializeRecoveryProcessor(recoveryProcessor, xFillMode);
-		FaultPtrList recoveryFaults = targetFaults;
-		resetFaultsForFaultSim(recoveryFaults);
-		int recoveryUntestableFaults = 0;
-		Fault *pRecoveryCurrentFault = NULL;
-		while (!recoveryFaults.empty())
-		{
-			if (recoveryFaults.front()->faultState_ == Fault::AB)
-			{
-				recoveryFaults.pop_front();
-				continue;
-			}
-
-			pRecoveryCurrentFault = recoveryFaults.front();
-			const FaultPtrList::size_type faultCountBeforeAtpg = recoveryFaults.size();
-			if (pRecoveryCurrentFault->faultType_ == Fault::STR || pRecoveryCurrentFault->faultType_ == Fault::STF)
-			{
-				TransitionDelayFaultATPG(recoveryFaults, &recoveryProcessor, recoveryUntestableFaults);
-			}
-			else
-			{
-				StuckAtFaultATPG(recoveryFaults, &recoveryProcessor, recoveryUntestableFaults);
-			}
-			if (!recoveryFaults.empty() &&
-			    recoveryFaults.front() == pRecoveryCurrentFault &&
-			    recoveryFaults.size() == faultCountBeforeAtpg)
-			{
-				recoveryFaults.pop_front();
-			}
-		}
-	};
 
 	// Recover lost coverage with a single no-XFill DTC pass (keeps cubes with X so
 	// DTC can compact more), then statically compact those cubes and apply the
@@ -6103,11 +5978,46 @@ void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrLis
 	// the cubes directly halves the recovery runtime and yields the more compact
 	// no-XFill result unconditionally.
 	PatternProcessor recoveryProcessor;
-	runRecoveryAtpg(recoveryTargets, recoveryProcessor, PatternProcessor::XFILL_OFF);
+	recoveryProcessor.init(pCircuit_);
+	recoveryProcessor.staticCompression_ = PatternProcessor::OFF;
+	recoveryProcessor.dynamicCompression_ = pPatternProcessor->dynamicCompression_;
+	recoveryProcessor.XFillMode_ = PatternProcessor::XFILL_OFF;
+	recoveryProcessor.type_ = pPatternProcessor->type_;
+	recoveryProcessor.patternVector_.reserve(recoveryTargetFaultCount);
+
+	FaultPtrList recoveryFaults = recoveryTargets;
+	resetFaultsForFaultSim(recoveryFaults);
+	int recoveryUntestableFaults = 0;
+	while (!recoveryFaults.empty())
+	{
+		if (recoveryFaults.front()->faultState_ == Fault::AB)
+		{
+			recoveryFaults.pop_front();
+			continue;
+		}
+
+		Fault *pRecoveryCurrentFault = recoveryFaults.front();
+		const FaultPtrList::size_type faultCountBeforeAtpg = recoveryFaults.size();
+		if (pRecoveryCurrentFault->faultType_ == Fault::STR || pRecoveryCurrentFault->faultType_ == Fault::STF)
+		{
+			TransitionDelayFaultATPG(recoveryFaults, &recoveryProcessor, recoveryUntestableFaults);
+		}
+		else
+		{
+			StuckAtFaultATPG(recoveryFaults, &recoveryProcessor, recoveryUntestableFaults);
+		}
+		if (!recoveryFaults.empty() &&
+		    recoveryFaults.front() == pRecoveryCurrentFault &&
+		    recoveryFaults.size() == faultCountBeforeAtpg)
+		{
+			recoveryFaults.pop_front();
+		}
+	}
+
 	const size_t fallbackRecoveredPatternCountBeforeStc = recoveryProcessor.patternVector_.size();
 	if (recoveryProcessor.patternVector_.size() > STC_RECOVERY_PATTERN_RETRY_LIMIT)
 	{
-		compactCompatibleTestCubes(&recoveryProcessor, true);
+		compactCompatibleTestCubes(&recoveryProcessor, true, recoveryProcessor.patternVector_.size());
 	}
 	recoveryProcessor.XFillMode_ = pPatternProcessor->XFillMode_;
 	if (recoveryProcessor.XFillMode_ != PatternProcessor::XFILL_OFF)
@@ -6116,7 +6026,10 @@ void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrLis
 	}
 	else
 	{
-		updatePatternOutputs(&recoveryProcessor);
+		for (Pattern &pattern : recoveryProcessor.patternVector_)
+		{
+			updatePatternOutput(pattern);
+		}
 	}
 
 	pPatternProcessor->patternVector_.reserve(patternCountBeforeRecovery + recoveryProcessor.patternVector_.size());
@@ -6125,7 +6038,7 @@ void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrLis
 		pPatternProcessor->patternVector_.push_back(std::move(pattern));
 	}
 
-	remainingFaults = faultSimRemainingWithPatternSet(pPatternProcessor, recoveryTargets);
+	remainingFaults = faultSimPatternSet(pPatternProcessor, recoveryTargets);
 	const size_t recoveredPatternCount = pPatternProcessor->patternVector_.size() - patternCountBeforeRecovery;
 	if (recoveredPatternCount > 0 || recoveryTargetFaultCount != remainingFaults.size())
 	{
@@ -6796,7 +6709,7 @@ void Atpg::runFillProbabilityForwardPass(const Pattern &pattern)
 	const int numGate = pCircuit_->numGate_;
 	fillSignalProb_.assign(totalGate, 0.5);
 
-	auto valueProb = [](const Value &value) -> double {
+	auto valueProb = [](Value value) -> double {
 		if (value == L || value == B)
 		{
 			return 0.0;
@@ -6807,7 +6720,7 @@ void Atpg::runFillProbabilityForwardPass(const Pattern &pattern)
 		}
 		return 0.5;
 	};
-	auto xorProb = [](const double &a, const double &b) -> double {
+	auto xorProb = [](double a, double b) -> double {
 		return a * (1.0 - b) + b * (1.0 - a);
 	};
 
@@ -6923,40 +6836,7 @@ void Atpg::runFillProbabilityForwardPass(const Pattern &pattern)
 	}
 }
 
-// Expected capture cost of a (still partially specified) pattern under the
-// probability model: sum over flip-flops of the toggle probabilities of the
-// launch-vs-first-capture and first-vs-second-capture pairs. Used to single
-// out the capture-peak-risk patterns before any fill value is committed.
-double Atpg::computeExpectedCaptureCost(const Pattern &pattern)
-{
-	runFillProbabilityForwardPass(pattern);
-	const int numPI = pCircuit_->numPI_;
-	const int numPPI = pCircuit_->numPPI_;
-	const int numGate = pCircuit_->numGate_;
-	const int ppo1Offset = numGate - numPPI;
-	const int ppoOffset = ppo1Offset + numGate * (pCircuit_->numFrame_ - 1);
-	auto pairToggleProbability = [&](const int &gateA, const int &gateB) {
-		const double pa = fillSignalProb_[gateA];
-		const double pb = fillSignalProb_[gateB];
-		return pa + pb - 2.0 * pa * pb;
-	};
-	double expectedCaptureCost = 0.0;
-	for (int j = 0; j < numPPI; ++j)
-	{
-		if (pCircuit_->numFrame_ > 1)
-		{
-			expectedCaptureCost += pairToggleProbability(numPI + j, ppo1Offset + j);
-			expectedCaptureCost += pairToggleProbability(ppo1Offset + j, ppoOffset + j);
-		}
-		else
-		{
-			expectedCaptureCost += pairToggleProbability(numPI + j, ppoOffset + j);
-		}
-	}
-	return expectedCaptureCost;
-}
-
-void Atpg::computeFillCostGradient(const Pattern &pattern, const bool &capturePriority)
+void Atpg::computeFillCostGradient(const Pattern &pattern, bool capturePriority)
 {
 	runFillProbabilityForwardPass(pattern);
 	const int totalGate = pCircuit_->totalGate_;
@@ -6972,7 +6852,7 @@ void Atpg::computeFillCostGradient(const Pattern &pattern, const bool &capturePr
 	// run costs still apply in powerAwareFillPattern either way).
 	const int ppo1Offset = numGate - numPPI;
 	const int ppoOffset = ppo1Offset + numGate * (pCircuit_->numFrame_ - 1);
-	auto seedPairCost = [&](const int &gateA, const int &gateB, const double &weight) {
+	auto seedPairCost = [&](int gateA, int gateB, double weight) {
 		fillCostGradient_[gateA] += weight * (1.0 - 2.0 * fillSignalProb_[gateB]);
 		fillCostGradient_[gateB] += weight * (1.0 - 2.0 * fillSignalProb_[gateA]);
 	};
@@ -7086,7 +6966,7 @@ void Atpg::computeFillCostGradient(const Pattern &pattern, const bool &capturePr
 			case Gate::XNOR3:
 			{
 				const double sign = gate.gateType_ == Gate::XNOR3 ? -1.0 : 1.0;
-				auto pairXor = [](const double &a, const double &b) {
+				auto pairXor = [](double a, double b) {
 					return a * (1.0 - b) + b * (1.0 - a);
 				};
 				fillCostGradient_[gate.faninVector_[0]] += sign * adjoint * (1.0 - 2.0 * pairXor(p[1], p[2]));
@@ -7168,7 +7048,7 @@ void Atpg::powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMo
 	}
 
 	const int numPPI = std::min(pCircuit_->numPPI_, static_cast<int>(pattern.PPI_.size()));
-	auto flankBinaryValue = [](const Value &value) -> Value {
+	auto flankBinaryValue = [](Value value) -> Value {
 		if (value == L || value == B)
 		{
 			return L;
@@ -7197,7 +7077,7 @@ void Atpg::powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMo
 		// Exact scan-in boundary cost of filling the run with v: the pair
 		// (runStart-1, runStart) weighs runStart shift cycles and the pair
 		// (runEnd, runEnd+1) weighs runEnd+1.
-		auto runLoadCost = [&](const Value &fillValue) -> double {
+		auto runLoadCost = [&](Value fillValue) -> double {
 			double cost = 0.0;
 			if (leftFlank != X && leftFlank != fillValue)
 			{
@@ -7284,8 +7164,6 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	const size_t patternCount = pPatternProcessor->patternVector_.size();
 	struct PreFillInputs
 	{
-		std::vector<Value> PI1_;
-		std::vector<Value> PI2_;
 		std::vector<Value> PPI_;
 		std::vector<Value> SI_;
 	};
@@ -7293,11 +7171,9 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
 	{
 		Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
-		preFillInputs[patternIndex] = {pattern.PI1_, pattern.PI2_, pattern.PPI_, pattern.SI_};
+		preFillInputs[patternIndex] = {pattern.PPI_, pattern.SI_};
 		powerAwareFillPattern(pattern);
-		pSimulator_->assignPatternToCircuitInputs(pattern);
-		pSimulator_->goodSim();
-		writeGoodSimValToPatternPO(pattern);
+		updatePatternOutput(pattern);
 	}
 
 	// Stage 2: the REALIZED per-pattern capture peak (the larger toggle count
@@ -7310,10 +7186,10 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	// criterion-triggered and committed unconditionally — no candidate
 	// comparison and no rollback.
 	auto realizedCapturePeak = [&](const Pattern &pattern) -> size_t {
-		const size_t comparePairs = std::min(pattern.PPI_.size(), pattern.PPO_.size());
 		auto toggleCount = [&](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) {
 			size_t toggles = 0;
-			for (size_t j = 0; j < comparePairs && j < fromValues.size() && j < toValues.size(); ++j)
+			const size_t comparePairs = std::min(fromValues.size(), toValues.size());
+			for (size_t j = 0; j < comparePairs; ++j)
 			{
 				if ((fromValues[j] == L || fromValues[j] == H) && (toValues[j] == L || toValues[j] == H) && fromValues[j] != toValues[j])
 				{
@@ -7330,14 +7206,9 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	};
 
 	std::vector<size_t> capturePeak(patternCount, 0);
-	size_t maxCapturePeak = 0;
 	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
 	{
 		capturePeak[patternIndex] = realizedCapturePeak(pPatternProcessor->patternVector_[patternIndex]);
-		if (capturePeak[patternIndex] > maxCapturePeak)
-		{
-			maxCapturePeak = capturePeak[patternIndex];
-		}
 	}
 
 	// Iterate to the fixpoint: re-fill every not-yet-re-filled pattern in the
@@ -7350,7 +7221,7 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	std::vector<char> refilledOnce(patternCount, 0);
 	for (size_t refillIteration = 0; refillIteration < CAPTURE_REFILL_MAX_TIERS; ++refillIteration)
 	{
-		maxCapturePeak = 0;
+		size_t maxCapturePeak = 0;
 		for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
 		{
 			if (capturePeak[patternIndex] > maxCapturePeak)
@@ -7378,9 +7249,7 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 			pattern.PPI_ = preFillInputs[patternIndex].PPI_;
 			pattern.SI_ = preFillInputs[patternIndex].SI_;
 			powerAwareFillPattern(pattern, FILL_CAPTURE_PRIORITY);
-			pSimulator_->assignPatternToCircuitInputs(pattern);
-			pSimulator_->goodSim();
-			writeGoodSimValToPatternPO(pattern);
+			updatePatternOutput(pattern);
 			capturePeak[patternIndex] = realizedCapturePeak(pattern);
 			refilledOnce[patternIndex] = 1;
 			refilledAny = true;
@@ -7399,13 +7268,13 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	// (unload + capture at their exact metric weights), which smooths both the
 	// scan vector and the response they ship into the next load.
 	const int numPPI = pCircuit_->numPPI_;
-	auto realizedShiftPeak = [&](const size_t &patternIndex) -> size_t {
+	auto realizedShiftPeak = [&](size_t patternIndex) -> size_t {
 		const Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
 		if (numPPI <= 0 || pattern.PPI_.empty())
 		{
 			return 0;
 		}
-		auto chainValue = [&](const int &i) -> Value {
+		auto chainValue = [&](int i) -> Value {
 			if (patternIndex == 0)
 			{
 				return L;
@@ -7413,11 +7282,11 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 			const Pattern &previousPattern = pPatternProcessor->patternVector_[patternIndex - 1];
 			return i < static_cast<int>(previousPattern.PPO_.size()) ? previousPattern.PPO_[i] : X;
 		};
-		auto scanInAt = [&](const int &cycle) -> Value {
+		auto scanInAt = [&](int cycle) -> Value {
 			const int ppiIndex = numPPI - 1 - cycle;
 			return ppiIndex < static_cast<int>(pattern.PPI_.size()) ? pattern.PPI_[ppiIndex] : X;
 		};
-		auto edgeCost = [](const Value &fromValue, const Value &toValue) -> size_t {
+		auto edgeCost = [](Value fromValue, Value toValue) -> size_t {
 			if ((fromValue != L && fromValue != H) || (toValue != L && toValue != H))
 			{
 				return 1;
@@ -7465,7 +7334,7 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 		}
 		const double shiftRefillThreshold = SHIFT_REFILL_TRIGGER_RATIO * static_cast<double>(maxShiftPeak);
 		bool refilledAny = false;
-		auto shiftRefillOne = [&](const size_t &patternIndex) {
+		auto shiftRefillOne = [&](size_t patternIndex) {
 			if (refilledOnce[patternIndex])
 			{
 				return false;
@@ -7475,9 +7344,7 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 			pattern.PPI_ = preFillInputs[patternIndex].PPI_;
 			pattern.SI_ = preFillInputs[patternIndex].SI_;
 			powerAwareFillPattern(pattern, FILL_SHIFT_PRIORITY);
-			pSimulator_->assignPatternToCircuitInputs(pattern);
-			pSimulator_->goodSim();
-			writeGoodSimValToPatternPO(pattern);
+			updatePatternOutput(pattern);
 			refilledOnce[patternIndex] = 1;
 			shiftPeak[patternIndex] = realizedShiftPeak(patternIndex);
 			if (patternIndex + 1 < patternCount)
@@ -7520,7 +7387,7 @@ void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 	}
 
 	const size_t scanLength = static_cast<size_t>(pCircuit_->numPPI_);
-	auto valueToBit = [](const Value &value) -> int {
+	auto valueToBit = [](Value value) -> int {
 		return (value == H || value == D) ? 1 : 0;
 	};
 	auto patternTailBit = [&](const Pattern &pattern) -> int {
@@ -7549,7 +7416,7 @@ void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 
 	std::vector<size_t> order;
 	order.reserve(patternCount);
-	auto take = [&](const int &bucket) -> size_t {
+	auto take = [&](int bucket) -> size_t {
 		const size_t patternIndex = buckets[bucket].front();
 		buckets[bucket].pop_front();
 		return patternIndex;
@@ -7608,7 +7475,7 @@ void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 
 	std::vector<Pattern> reorderedPatterns;
 	reorderedPatterns.reserve(patternCount);
-	for (const size_t &patternIndex : order)
+	for (size_t patternIndex : order)
 	{
 		reorderedPatterns.push_back(std::move(pPatternProcessor->patternVector_[patternIndex]));
 	}

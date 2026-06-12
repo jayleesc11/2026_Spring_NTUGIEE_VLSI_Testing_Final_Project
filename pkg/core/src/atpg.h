@@ -31,7 +31,6 @@ namespace CoreNs
 	constexpr double STC_PEAK_COUNT_LIMIT_RATIO = 2.0;
 	constexpr size_t STC_MAX_MERGE_PARTNER_CHECKS = 512;
 	constexpr size_t STC_RECOVERY_PATTERN_RETRY_LIMIT = 5;
-	constexpr size_t PRUNE_MAX_PASSES = 1;
 	constexpr double CAPTURE_REFILL_TRIGGER_RATIO = 0.9;
 	constexpr size_t CAPTURE_REFILL_MAX_TIERS = 2;
 	constexpr double CAPTURE_TOGGLE_WEIGHT_RATIO = 0.1;
@@ -44,7 +43,6 @@ namespace CoreNs
 	constexpr double TDF_DTC_MIN_X_DENSITY = 0.20;
 	constexpr double TDF_DTC_CANDIDATE_SET_RATIO = 0.5;
 	constexpr size_t TDF_DTC_MIN_CANDIDATE_SET_SIZE = 64;
-	constexpr size_t TDF_DTC_DIRTY_GATE_RESERVE = 64;
 	constexpr size_t TDF_DTC_MAX_CANDIDATE_WINDOW = 512;
 	constexpr size_t TDF_DTC_PRIMARY_COMPATIBILITY_WINDOW = 128;
 
@@ -97,7 +95,7 @@ namespace CoreNs
 		};
 
 		// class Atpg main method
-		void generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool isMFO, bool powerAware = false);
+		void generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtract *pFaultListExtractor, bool powerAware = false);
 
 	private:
 		Circuit *pCircuit_;																				// the circuit built on read verilog
@@ -189,7 +187,7 @@ namespace CoreNs
 		SINGLE_PATTERN_GENERATION_STATUS generateSinglePatternOnTargetFault(Fault targetFault, bool isAtStageDTC, int backtrackLimit = BACKTRACK_LIMIT);
 
 		// initialization at the start of single pattern generation
-		Gate *initializeForSinglePatternGeneration(Fault &targetFault, int &BackImpLevel, IMPLICATION_STATUS &implicationStatus, const bool &isAtStageDTC);
+		Gate *initializeForSinglePatternGeneration(Fault &targetFault, int &BackImpLevel, IMPLICATION_STATUS &implicationStatus, bool isAtStageDTC);
 		void initializeObjectivesAndFrontiers();
 		void initializeCircuitWithFaultyGate(Gate &gFaultyLine, bool isAtStageDTC);
 
@@ -206,7 +204,7 @@ namespace CoreNs
 		void updateDFrontiers();
 		bool checkIfFaultHasPropagatedToPO(bool &faultHasPropagatedToPO);
 		bool checkForUnjustifiedBoundLines();
-		void findFinalObjective(BACKTRACE_STATUS &backtraceFlag, const bool &faultCanPropToPO, Gate *&pLastDFrontier);
+		void findFinalObjective(BACKTRACE_STATUS &backtraceFlag, bool faultCanPropToPO, Gate *&pLastDFrontier);
 		void clearAllObjectives();
 		void assignAtpgValToFinalObjectiveGates();
 		void justifyFreeLines(Fault &originalFault);
@@ -231,25 +229,26 @@ namespace CoreNs
 		IMPLICATION_STATUS evaluateAndSetFaultyGateAtpgVal(Gate *pGate);
 
 		// static test compression
-		void faultSimUndetectedFaultsWithPatternSet(PatternProcessor *pPatternProcessor, FaultPtrList &faults);
+		void resetFaultsForFaultSim(const FaultPtrList &faults);
+		void updatePatternOutput(Pattern &pattern);
+		FaultPtrList faultSimPatternSet(PatternProcessor *pPatternProcessor, const FaultPtrList &faults);
+		FaultPtrList faultSimPatternSet(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 		void staticTestCompressionByReverseFaultSimulation(PatternProcessor *pPatternProcessor, FaultPtrList &originalFaultList);
 		void staticTestCompression(PatternProcessor *pPatternProcessor);
 		void recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrList &remainingFaults);
+		size_t pruneRedundantPatterns(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 		size_t pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
-		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns);
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
 
 		void initializeTdfInfluenceMeasures();
-		const InfluenceSet &getInfluenceControlSet(const int &gateID, const Value &value) const;
-		InfluenceSet makeInfluenceLiteralSet(const int &gateID, const Value &value) const;
+		const InfluenceSet &getInfluenceControlSet(int gateID, Value value) const;
+		InfluenceSet makeInfluenceLiteralSet(int gateID, Value value) const;
 		InfluenceSet unionInfluenceSets(const InfluenceSet &lhs, const InfluenceSet &rhs) const;
 		InfluenceSet chooseSmallerInfluenceSet(const InfluenceSet &lhs, const InfluenceSet &rhs) const;
 		const InfluenceSet &getTransitionFaultDetectability(const Fault &fault);
 		const InfluenceSet &getTransitionFaultStructuralInfluence(const Fault &fault);
-		InfluenceSet computeTransitionFaultDetectability(const Fault &fault);
-		InfluenceSet computeTransitionFaultStructuralInfluence(const Fault &fault);
 		bool influenceSetHasBothValueRequirement(const InfluenceSet &set) const;
 		void buildInfluencePrimaryOrder(const FaultPtrList &faultPtrList);
 		FaultPtrListIter selectInfluencePrimaryFault(FaultPtrList &faultPtrList);
@@ -298,8 +297,7 @@ namespace CoreNs
 		void randomFill(Pattern &pattern);
 		void adjacentFill(Pattern &pattern);
 		void runFillProbabilityForwardPass(const Pattern &pattern);
-		double computeExpectedCaptureCost(const Pattern &pattern);
-		void computeFillCostGradient(const Pattern &pattern, const bool &capturePriority);
+		void computeFillCostGradient(const Pattern &pattern, bool capturePriority);
 		void powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMode = FILL_BALANCED);
 		void powerAwareXFill(PatternProcessor *pPatternProcessor);
 		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);

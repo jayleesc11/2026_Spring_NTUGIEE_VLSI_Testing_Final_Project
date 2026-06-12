@@ -1386,7 +1386,7 @@ bool RunAtpgCmd::exec(const std::vector<std::string> &argv)
 	{
 		fanMgr_->pcoll->XFillMode_ = PatternProcessor::XFILL_ADJACENT;
 	}
-	fanMgr_->atpg->generatePatternSet(fanMgr_->pcoll, fanMgr_->fListExtract, true, powerAware);
+	fanMgr_->atpg->generatePatternSet(fanMgr_->pcoll, fanMgr_->fListExtract, powerAware);
 
 	fanMgr_->tmusg.getPeriodUsage(fanMgr_->atpgStat);
 	std::cout << "#  Finished pattern generation";
