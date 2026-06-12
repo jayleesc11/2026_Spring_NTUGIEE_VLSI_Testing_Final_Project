@@ -302,7 +302,6 @@ namespace CoreNs
 		void powerAwareXFill(PatternProcessor *pPatternProcessor);
 		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);
 		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
-		void XFill(PatternProcessor *pPatternProcessor); // final X-fill pass for compressed pattern sets
 
 		// function not used or removed
 		void checkLevelInfo();																		// for debug use

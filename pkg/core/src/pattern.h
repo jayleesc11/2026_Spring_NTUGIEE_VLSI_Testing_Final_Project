@@ -29,9 +29,6 @@ namespace CoreNs
 		std::vector<Value> PO2_;
 		std::vector<Value> PPO1_;
 		std::vector<Value> PPO_;
-		std::vector<char> PI1XidDontCare_;
-		std::vector<char> PI2XidDontCare_;
-		std::vector<char> PPIXidDontCare_;
 		std::vector<bool> captureClockEnabled_;
 		inline void initForTransitionDelayFault(Circuit *pCircuit);
 	};
@@ -39,10 +36,7 @@ namespace CoreNs
 			: PI1_(pCircuit->numPI_),
 				PPI_(pCircuit->numPPI_),
 				PO1_(pCircuit->numPO_),
-				PPO_(pCircuit->numPPI_),
-				PI1XidDontCare_(pCircuit->numPI_, 0),
-				PI2XidDontCare_(pCircuit->numPI_, 0),
-				PPIXidDontCare_(pCircuit->numPPI_, 0){};
+				PPO_(pCircuit->numPPI_){};
 
 	// **************************************************************************
 	// Function   [ Pattern::initForTransitionDelayFault ]

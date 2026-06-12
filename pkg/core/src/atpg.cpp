@@ -7503,23 +7503,3 @@ void Atpg::xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern)
 			break;
 	}
 }
-
-// **************************************************************************
-// Function   [ Atpg::XFill ]
-// Commenter  [ HKY CYW ]
-// Synopsis   [ usage: do X-Fill on generated pattern
-//              in:    Pattern list
-//              out:   void //TODO
-//            ]
-// Date       [ HKY Ver. 1.0 started 2014/09/01 ]
-// **************************************************************************
-void Atpg::XFill(PatternProcessor *pPatternProcessor)
-{
-	for (int i = 0; i < (int)pPatternProcessor->patternVector_.size(); ++i)
-	{
-		xFillPattern(pPatternProcessor, pPatternProcessor->patternVector_[i]);
-		pSimulator_->assignPatternToCircuitInputs(pPatternProcessor->patternVector_.at(i));
-		pSimulator_->goodSim();
-		writeGoodSimValToPatternPO(pPatternProcessor->patternVector_.at(i));
-	}
-}
