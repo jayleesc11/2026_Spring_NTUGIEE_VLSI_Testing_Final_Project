@@ -27,12 +27,18 @@ namespace CoreNs
 	constexpr int MAX_LIST_SIZE = 1000;
 	constexpr int NO_UNIQUE_PATH = -1;
 	constexpr int UNIQUE_PATH_SENSITIZE_FAIL = -2;
-	constexpr double STC_PEAK_POWER_LIMIT_RATIO = 1.0;
+	constexpr double STC_PEAK_POWER_LIMIT_RATIO = 1.5;
+	constexpr double STC_PEAK_COUNT_LIMIT_RATIO = 2.0;
 	constexpr size_t STC_MAX_MERGE_PARTNER_CHECKS = 512;
 	constexpr size_t STC_RECOVERY_PATTERN_RETRY_LIMIT = 5;
-	constexpr double CAPTURE_PEAK_BUDGET_RATIO = 0.8;
-	constexpr double CAPTURE_PEAK_PPI_REPAIR_TRIGGER_RATIO = 0.9;
-	constexpr double CAPTURE_PEAK_PENALTY_WEIGHT = 1.5;
+	constexpr size_t PRUNE_MAX_PASSES = 1;
+	constexpr double CAPTURE_REFILL_TRIGGER_RATIO = 0.9;
+	constexpr size_t CAPTURE_REFILL_MAX_TIERS = 2;
+	constexpr double CAPTURE_TOGGLE_WEIGHT_RATIO = 0.1;
+	constexpr double BALANCED_CAPTURE_GRADIENT_SCALE = 0.25;
+	constexpr double SHIFT_REFILL_TRIGGER_RATIO = 0.95;
+	constexpr size_t SHIFT_REFILL_MAX_TIERS = 1;
+
 	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 8;
 	constexpr size_t TDF_DTC_MAX_FAILED_ATTEMPTS = 8;
 	constexpr double TDF_DTC_MIN_X_DENSITY = 0.20;
@@ -82,6 +88,12 @@ namespace CoreNs
 		{
 			NO_CONTRADICTORY = 0,
 			CONTRADICTORY
+		};
+		enum POWER_FILL_MODE
+		{
+			FILL_BALANCED = 0,
+			FILL_CAPTURE_PRIORITY,
+			FILL_SHIFT_PRIORITY
 		};
 
 		// class Atpg main method
@@ -150,10 +162,9 @@ namespace CoreNs
 		size_t tdfDtcRejectedCandidates_;
 		size_t tdfDtcDetectedDrops_;
 		size_t tdfDtcNewSpecifiedBits_;
-		std::vector<size_t> powerFillPiImpact_;							// cached response impact for each PI
-		std::vector<int> powerFillPiOrder_;								// PIs sorted by descending response impact
-		std::vector<std::vector<int>> powerFillPi1FanoutCones_;			// affected gates for incremental PI1 power fill simulation
-		std::vector<std::vector<int>> powerFillPi2FanoutCones_;			// affected gates for incremental PI2 power fill simulation
+		std::vector<double> fillSignalProb_;								// per-gate 1-probability for the expectation-guided fill
+		std::vector<double> fillCostGradient_;
+		std::vector<double> fillCaptureGradient_;							// per-gate adjoint dE/dp of the expected unload+capture cost
 		Gate *firstTimeFrameHeadLine_;									// this parameter is for multiple time frame
 
 		// ---------------private methods----------------- //
@@ -227,7 +238,6 @@ namespace CoreNs
 		size_t pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit);
 		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns);
-		void refreshPowerFillDontCareMasks(PatternProcessor *pPatternProcessor);
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
 
@@ -287,8 +297,11 @@ namespace CoreNs
 		// X-Fill helper methods
 		void randomFill(Pattern &pattern);
 		void adjacentFill(Pattern &pattern);
-		void initializePowerFillOrder();
-		void postProcessPowerFill(PatternProcessor *pPatternProcessor);
+		void runFillProbabilityForwardPass(const Pattern &pattern);
+		double computeExpectedCaptureCost(const Pattern &pattern);
+		void computeFillCostGradient(const Pattern &pattern, const bool &capturePriority);
+		void powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMode = FILL_BALANCED);
+		void powerAwareXFill(PatternProcessor *pPatternProcessor);
 		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);
 		void xFillPattern(PatternProcessor *pPatternProcessor, Pattern &pattern);
 		void XFill(PatternProcessor *pPatternProcessor); // final X-fill pass for compressed pattern sets
