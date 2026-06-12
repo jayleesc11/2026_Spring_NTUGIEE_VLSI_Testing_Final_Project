@@ -30,7 +30,6 @@
 #    scan flip-flops                            1728
 #    shift FFTC
 #      ---------------------------------------------
-#      shift operations                          190
 #      shift cycles evaluated                 328320
 #      total FFTC                           19514664
 #      average FFTC                            59.44
@@ -39,13 +38,13 @@
 #    -----------------------------------------------
 #    capture FFTC
 #      ---------------------------------------------
-#      total FFTC                             179195
 #      capture cycles evaluated                  380
+#      total FFTC                             179195
 #      average FFTC                           471.57
 #      maximum FFTC                             1417
 #      unknown transitions                         0
 #    -----------------------------------------------
 #    overall average FFTC                      59.91
 #  -------------------------------------------------
-#  ATPG runtime                              20.34 s
+#  ATPG runtime                              28.46 s
 #  -------------------------------------------------

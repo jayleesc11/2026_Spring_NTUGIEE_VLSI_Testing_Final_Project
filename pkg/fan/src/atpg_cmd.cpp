@@ -1089,7 +1089,6 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 	}
 	else
 	{
-		std::cout << "#      shift operations          " << std::setw(19) << shiftFftcStats.shiftOperationCount_ << "\n";
 		std::cout << "#      shift cycles evaluated    " << std::setw(19) << shiftFftcStats.shiftCycleCount_ << "\n";
 		std::cout << "#      total FFTC                " << std::setw(19) << shiftFftcStats.totalShiftFFTC_ << "\n";
 		printFftcAverage("#      average FFTC              ", shiftFftcStats.averageShiftFFTC_);
@@ -1105,14 +1104,14 @@ bool ReportStatsCmd::exec(const std::vector<std::string> &argv)
 	}
 	else
 	{
-		std::cout << "#      total FFTC                " << std::setw(19) << fftcStats.totalCaptureFFTC_ << "\n";
 		std::cout << "#      capture cycles evaluated  " << std::setw(19) << fftcStats.captureCycleCount_ << "\n";
+		std::cout << "#      total FFTC                " << std::setw(19) << fftcStats.totalCaptureFFTC_ << "\n";
 		printFftcAverage("#      average FFTC              ", fftcStats.averageCaptureFFTC_);
 		std::cout << "#      maximum FFTC              " << std::setw(19) << fftcStats.maxCaptureFFTC_ << "\n";
 		std::cout << "#      unknown transitions       " << std::setw(19) << fftcStats.totalUnknownCapturePairs_ << "\n";
 	}
 	std::cout << "#    -----------------------------------------------\n";
-	std::cout << "#    overall average FFTC        " << std::setw(19) << double(fftcStats.totalCaptureFFTC_ + shiftFftcStats.totalShiftFFTC_) / (fftcStats.captureCycleCount_ + shiftFftcStats.shiftCycleCount_) << "\n";
+	printFftcAverage("#    overall average FFTC        ", double(fftcStats.totalCaptureFFTC_ + shiftFftcStats.totalShiftFFTC_) / (fftcStats.captureCycleCount_ + shiftFftcStats.shiftCycleCount_));
 	std::cout << "#  -------------------------------------------------\n";
 	std::cout << "#  ATPG runtime                  " << std::setw(17) << rtime;
 	std::cout << " s\n";
