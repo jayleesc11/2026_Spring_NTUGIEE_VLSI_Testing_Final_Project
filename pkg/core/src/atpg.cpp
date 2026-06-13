@@ -5500,10 +5500,10 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 		patternMetrics.push_back(entry);
 	}
 
-	std::vector<size_t> forwardIndexOrder(originalPatterns.size());
+	std::vector<size_t> essentialFirstOrder(originalPatterns.size());
 	for (size_t i = 0; i < originalPatterns.size(); ++i)
 	{
-		forwardIndexOrder[i] = i;
+		essentialFirstOrder[i] = i;
 	}
 
 	std::vector<char> essentialPattern(originalPatterns.size(), 0);
@@ -5523,7 +5523,6 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 		++uniqueDetectionCount[detectorIndex];
 	}
 
-	std::vector<size_t> essentialFirstOrder = forwardIndexOrder;
 	std::stable_sort(essentialFirstOrder.begin(), essentialFirstOrder.end(), [&](size_t lhs, size_t rhs) {
 		if (essentialPattern[lhs] != essentialPattern[rhs])
 		{
@@ -5589,9 +5588,9 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	return originalPatterns.size() - keptPatternCount;
 }
 
-size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns)
+size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor)
 {
-	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2 || maxMergedPatterns == 0)
+	if (!pPatternProcessor || pPatternProcessor->patternVector_.size() < 2)
 	{
 		return 0;
 	}
@@ -5630,12 +5629,9 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		mergeValues(lhs.SI_, rhs.SI_);
 	};
 
-	auto scanTransitionPowerFromBits = [](std::vector<int> &scanBits, long long *transitionCount = nullptr) -> long long {
+	auto scanTransitionPowerFromBits = [](std::vector<int> &scanBits, long long &transitionCount) -> long long {
 		const size_t scanLength = scanBits.size();
-		if (transitionCount)
-		{
-			*transitionCount = 0;
-		}
+		transitionCount = 0;
 		if (scanLength < 2)
 		{
 			return 0;
@@ -5682,15 +5678,12 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 				++count;
 			}
 		}
-		if (transitionCount)
-		{
-			*transitionCount = count;
-		}
+		transitionCount = count;
 		return power;
 	};
 
 	std::vector<int> scanScratch;
-	auto weightedScanTransitionPower = [&](const Pattern &pattern, long long *transitionCount = nullptr) -> long long {
+	auto weightedScanTransitionPower = [&](const Pattern &pattern, long long &transitionCount) -> long long {
 		scanScratch.resize(pattern.PPI_.size());
 		for (size_t i = 0; i < pattern.PPI_.size(); ++i)
 		{
@@ -5706,7 +5699,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 	std::vector<long long> scanCount(cubes.size(), 0);
 	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
 	{
-		scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex], &scanCount[patternIndex]);
+		scanPower[patternIndex] = weightedScanTransitionPower(cubes[patternIndex], scanCount[patternIndex]);
 	}
 
 	struct CubeCompatibilityMask
@@ -5804,18 +5797,15 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 
 	long long initialPeakScanPower = 0;
 	long long initialPeakScanCount = 0;
-	for (const long long &power : scanPower)
+	for (size_t patternIndex = 0; patternIndex < cubes.size(); ++patternIndex)
 	{
-		if (power > initialPeakScanPower)
+		if (scanPower[patternIndex] > initialPeakScanPower)
 		{
-			initialPeakScanPower = power;
+			initialPeakScanPower = scanPower[patternIndex];
 		}
-	}
-	for (const long long &count : scanCount)
-	{
-		if (count > initialPeakScanCount)
+		if (scanCount[patternIndex] > initialPeakScanCount)
 		{
-			initialPeakScanCount = count;
+			initialPeakScanCount = scanCount[patternIndex];
 		}
 	}
 	// Decouple the average bound (weighted-transition / WTM) from the peak bound
@@ -5848,12 +5838,12 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 		}
 
 		long long mergedCount = 0;
-		const long long mergedPower = scanTransitionPowerFromBits(scanScratch, &mergedCount);
-		if (preservePowerLimit && static_cast<double>(mergedPower) > peakPowerLimit)
+		const long long mergedPower = scanTransitionPowerFromBits(scanScratch, mergedCount);
+		if (static_cast<double>(mergedPower) > peakPowerLimit)
 		{
 			return false;
 		}
-		if (preservePowerLimit && static_cast<double>(mergedCount) > peakCountLimit)
+		if (static_cast<double>(mergedCount) > peakCountLimit)
 		{
 			return false;
 		}
@@ -5874,9 +5864,8 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 	};
 
 	size_t activeCount = cubes.size();
-	size_t mergedPatterns = 0;
 	size_t selectionCursor = 0;
-	while (activeCount > 1 && mergedPatterns < maxMergedPatterns)
+	while (activeCount > 1)
 	{
 		bool mergedThisRound = false;
 		for (size_t selectedAttempts = 0; selectedAttempts < cubes.size(); ++selectedAttempts)
@@ -5920,10 +5909,9 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, boo
 
 			mergePattern(cubes[selected], cubes[bestOther]);
 			rebuildCubeMask(selected);
-			scanPower[selected] = weightedScanTransitionPower(cubes[selected], &scanCount[selected]);
+			scanPower[selected] = weightedScanTransitionPower(cubes[selected], scanCount[selected]);
 			active[bestOther] = 0;
 			--activeCount;
-			++mergedPatterns;
 			mergedThisRound = true;
 			break;
 		}
@@ -5957,7 +5945,7 @@ void Atpg::staticTestCompression(PatternProcessor *pPatternProcessor)
 	// Keep the merged patterns as cubes. The following X-fill and power-fill
 	// stages consume the remaining X bits directly; coverage is recovered after
 	// those fills have produced the final specified patterns.
-	compactCompatibleTestCubes(pPatternProcessor, true, pPatternProcessor->patternVector_.size());
+	compactCompatibleTestCubes(pPatternProcessor);
 }
 
 void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrList &remainingFaults)
@@ -6017,7 +6005,7 @@ void Atpg::recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrLis
 	const size_t fallbackRecoveredPatternCountBeforeStc = recoveryProcessor.patternVector_.size();
 	if (recoveryProcessor.patternVector_.size() > STC_RECOVERY_PATTERN_RETRY_LIMIT)
 	{
-		compactCompatibleTestCubes(&recoveryProcessor, true, recoveryProcessor.patternVector_.size());
+		compactCompatibleTestCubes(&recoveryProcessor);
 	}
 	recoveryProcessor.XFillMode_ = pPatternProcessor->XFillMode_;
 	if (recoveryProcessor.XFillMode_ != PatternProcessor::XFILL_OFF)
@@ -7185,19 +7173,19 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	// the violating patterns; cf. iFill / LSC-filling): the re-fill is
 	// criterion-triggered and committed unconditionally — no candidate
 	// comparison and no rollback.
-	auto realizedCapturePeak = [&](const Pattern &pattern) -> size_t {
-		auto toggleCount = [&](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) {
-			size_t toggles = 0;
-			const size_t comparePairs = std::min(fromValues.size(), toValues.size());
-			for (size_t j = 0; j < comparePairs; ++j)
+	const auto toggleCount = [](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) {
+		size_t toggles = 0;
+		const size_t comparePairs = std::min(fromValues.size(), toValues.size());
+		for (size_t j = 0; j < comparePairs; ++j)
+		{
+			if ((fromValues[j] == L || fromValues[j] == H) && (toValues[j] == L || toValues[j] == H) && fromValues[j] != toValues[j])
 			{
-				if ((fromValues[j] == L || fromValues[j] == H) && (toValues[j] == L || toValues[j] == H) && fromValues[j] != toValues[j])
-				{
-					++toggles;
-				}
+				++toggles;
 			}
-			return toggles;
-		};
+		}
+		return toggles;
+	};
+	auto realizedCapturePeak = [&](const Pattern &pattern) -> size_t {
 		if (!pattern.PPO1_.empty())
 		{
 			return std::max(toggleCount(pattern.PPI_, pattern.PPO1_), toggleCount(pattern.PPO1_, pattern.PPO_));
@@ -7434,12 +7422,7 @@ void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 		}
 	};
 
-	if (buckets[1].empty() && buckets[2].empty())
-	{
-		emitState0Loops();
-		emitState1Loops();
-	}
-	else if (buckets[1].size() >= buckets[2].size())
+	if (buckets[1].size() >= buckets[2].size())
 	{
 		while (!buckets[1].empty())
 		{

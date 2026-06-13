@@ -238,7 +238,7 @@ namespace CoreNs
 		void recoverFaultCoverage(PatternProcessor *pPatternProcessor, FaultPtrList &remainingFaults);
 		size_t pruneRedundantPatterns(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
 		size_t pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults);
-		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor, bool preservePowerLimit, size_t maxMergedPatterns);
+		size_t compactCompatibleTestCubes(PatternProcessor *pPatternProcessor);
 
 		int setUpFirstTimeFrame(Fault &fault); // this function is for multiple time frame
 
