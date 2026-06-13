@@ -19,6 +19,37 @@
 
 using namespace CoreNs;
 
+namespace
+{
+	inline bool isLogicLow(Value value) { return value == L || value == B; }
+	inline bool isLogicHigh(Value value) { return value == H || value == D; }
+	inline bool isSpecifiedValue(Value value) { return isLogicLow(value) || isLogicHigh(value); }
+	inline int valueToTernaryBit(Value value) { return isLogicLow(value) ? 0 : (isLogicHigh(value) ? 1 : -1); }
+
+	inline size_t binaryToggleCount(const std::vector<Value> &fromValues, const std::vector<Value> &toValues)
+	{
+		size_t toggles = 0;
+		const size_t comparePairs = std::min(fromValues.size(), toValues.size());
+		for (size_t i = 0; i < comparePairs; ++i)
+		{
+			if ((fromValues[i] == L || fromValues[i] == H) && (toValues[i] == L || toValues[i] == H) && fromValues[i] != toValues[i])
+			{
+				++toggles;
+			}
+		}
+		return toggles;
+	}
+
+	inline size_t capturePeakToggles(const Pattern &pattern)
+	{
+		if (!pattern.PPO1_.empty())
+		{
+			return std::max(binaryToggleCount(pattern.PPI_, pattern.PPO1_), binaryToggleCount(pattern.PPO1_, pattern.PPO_));
+		}
+		return binaryToggleCount(pattern.PPI_, pattern.PPO_);
+	}
+}
+
 // **************************************************************************
 // Function   [ Atpg::generatePatternSet ]
 // Commenter  [ CAL WWS ]
@@ -204,9 +235,6 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 		powerAwareXFill(pPatternProcessor);
 		printPowerPhaseTime("power-aware X-fill");
 
-		// Restore fault coverage after the final power-aware fill. The following
-		// prune pass only removes patterns that are redundant under fault
-		// simulation, and final fault simulation validates the resulting set.
 		FaultPtrList remainingAfterPowerFill = faultSimPatternSet(pPatternProcessor, faultVectorForXid);
 		recoverFaultCoverage(pPatternProcessor, remainingAfterPowerFill);
 		printPowerPhaseTime("post-powerfill recovery");
@@ -587,24 +615,6 @@ void Atpg::identifyGateUniquePath()
 	}
 }
 
-// **************************************************************************
-// Function   [ Atpg::TransitionDelayFaultATPG ]
-// Commenter  [ HKY CYW WWS ]
-// Synopsis   [ usage: Do transition delay fault model ATPG
-//
-// 							description:
-// 								This function is implemented very similar to the
-// 								StuckAtFaultATPG() except for the following differences.
-// 								1.	The fault model used is transition delay fault instead
-// 										of stuck at fault.
-// 								2.	Dynamic test compression is not implemented for
-// 										transition delay fault.
-//
-// 							arguments:
-// 								Please see the documentation of Atpg::StuckAtFaultATPG().
-//            ]
-// Date       [ HKY Ver. 1.0 started 2014/09/01 last modified 2023/01/05 ]
-// **************************************************************************
 void Atpg::initializeTdfInfluenceMeasures()
 {
 	if (tdfInfluenceMeasuresValid_)
@@ -1255,12 +1265,12 @@ void Atpg::updateInfluenceSpecifiedInputsFromCircuit()
 	for (size_t inputIndex = 0; inputIndex < influenceInputGateIDs_.size(); ++inputIndex)
 	{
 		const Value value = pCircuit_->circuitGates_[influenceInputGateIDs_[inputIndex]].atpgVal_;
-		if (value == L || value == B)
+		if (isLogicLow(value))
 		{
 			influenceSpecifiedInputValues_[inputIndex] = 1;
 			influenceSpecifiedInputIndices_.push_back(static_cast<int>(inputIndex));
 		}
-		else if (value == H || value == D)
+		else if (isLogicHigh(value))
 		{
 			influenceSpecifiedInputValues_[inputIndex] = 2;
 			influenceSpecifiedInputIndices_.push_back(static_cast<int>(inputIndex));
@@ -1354,6 +1364,24 @@ Gate *Atpg::findInfluenceInput(Gate *pGate, Value atpgValOfpGate)
 	return bestGate;
 }
 
+// **************************************************************************
+// Function   [ Atpg::TransitionDelayFaultATPG ]
+// Commenter  [ HKY CYW WWS ]
+// Synopsis   [ usage: Do transition delay fault model ATPG
+//
+// 							description:
+// 								This function is implemented very similar to the
+// 								StuckAtFaultATPG() except for the following differences.
+// 								1.	The fault model used is transition delay fault instead
+// 										of stuck at fault.
+// 								2.	Dynamic test compression is not implemented for
+// 										transition delay fault.
+//
+// 							arguments:
+// 								Please see the documentation of Atpg::StuckAtFaultATPG().
+//            ]
+// Date       [ HKY Ver. 1.0 started 2014/09/01 last modified 2023/01/05 ]
+// **************************************************************************
 void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternProcessor *pPatternProcessor, int &numOfAtpgUntestableFaults, bool powerAwareSTC)
 {
 	if (faultPtrListForGen.empty())
@@ -1392,11 +1420,6 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 		Pattern filledPatternForFaultSim;
 		if (powerAwareSTC)
 		{
-			// Fill a copy for fault-dropping with the high-activity adjacent fill:
-			// dropping benefits from maximum incidental detection (fewer generated
-			// patterns and faster fault-list shrinkage). Detections that the
-			// low-activity final fill does not reproduce are regenerated by the
-			// post-fill recovery ATPG.
 			filledPatternForFaultSim = pPatternProcessor->patternVector_.back();
 			xFillPattern(pPatternProcessor, filledPatternForFaultSim);
 			pFaultSimPattern = &filledPatternForFaultSim;
@@ -1460,10 +1483,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		}
 	};
 
-	auto isSpecifiedInputValue = [](Value value) {
-		return value == L || value == H || value == B || value == D;
-	};
-
 	auto countXBits = [&](const Pattern &targetPattern) {
 		size_t xBits = 0;
 		auto countVectorX = [&](const std::vector<Value> &values) {
@@ -1497,7 +1516,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 			const size_t valueCount = std::min(beforeValues.size(), afterValues.size());
 			for (size_t i = 0; i < valueCount; ++i)
 			{
-				if (!isSpecifiedInputValue(beforeValues[i]) && isSpecifiedInputValue(afterValues[i]))
+				if (!isSpecifiedValue(beforeValues[i]) && isSpecifiedValue(afterValues[i]))
 				{
 					++newlySpecified;
 				}
@@ -5399,10 +5418,8 @@ size_t Atpg::pruneRedundantPatterns(PatternProcessor *pPatternProcessor, const s
 		return 0;
 	}
 
-	// Run the reverse-fault-sim prune once. This is a greedy essential-first set
-	// cover; final fault simulation validates the resulting pattern set.
 	const size_t prePrunePatternCount = pPatternProcessor->patternVector_.size();
-	const size_t prunedPatterns = pruneRedundantPatternsByReverseFaultSimulation(pPatternProcessor, faults);
+	const size_t prunedPatterns = pruneRedundantPatternsBySetCover(pPatternProcessor, faults);
 	if (prunedPatterns > 0)
 	{
 		std::cout << "#  redundant pattern prune";
@@ -5411,7 +5428,7 @@ size_t Atpg::pruneRedundantPatterns(PatternProcessor *pPatternProcessor, const s
 	return prunedPatterns;
 }
 
-size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults)
+size_t Atpg::pruneRedundantPatternsBySetCover(PatternProcessor *pPatternProcessor, const std::vector<Fault *> &faults)
 {
 	if (!pPatternProcessor || pPatternProcessor->patternVector_.empty() || faults.empty())
 	{
@@ -5443,48 +5460,23 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	pSimulator_->collectFaultDetectionStatsWithAllPatterns(pPatternProcessor, pruneFaults, firstDetectorByFault, detectionCountByFault);
 
 	std::vector<Pattern> originalPatterns = std::move(pPatternProcessor->patternVector_);
-	auto binaryValue = [](Value value) {
-		if (value == L || value == B)
+	auto weightedShiftTransitions = [&](const std::vector<Value> &values, bool scanIn) -> size_t {
+		const size_t n = values.size();
+		size_t weighted = 0;
+		for (size_t k = 1; k < n; ++k)
 		{
-			return 0;
-		}
-		if (value == H || value == D)
-		{
-			return 1;
-		}
-		return -1;
-	};
-	auto captureTransitionCount = [&](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) {
-		size_t transitions = 0;
-		const size_t compareSize = std::min(fromValues.size(), toValues.size());
-		for (size_t i = 0; i < compareSize; ++i)
-		{
-			const int fromValue = binaryValue(fromValues[i]);
-			const int toValue = binaryValue(toValues[i]);
-			if (fromValue < 0 || toValue < 0 || fromValue != toValue)
-			{
-				++transitions;
-			}
-		}
-		transitions += fromValues.size() > toValues.size() ? fromValues.size() - toValues.size() : toValues.size() - fromValues.size();
-		return transitions;
-	};
-	auto scanTransitionCount = [&](const Pattern &pattern) {
-		size_t transitions = 0;
-		for (size_t i = 1; i < pattern.PPI_.size(); ++i)
-		{
-			const int previousValue = binaryValue(pattern.PPI_[i - 1]);
-			const int currentValue = binaryValue(pattern.PPI_[i]);
+			const int previousValue = valueToTernaryBit(values[k - 1]);
+			const int currentValue = valueToTernaryBit(values[k]);
 			if (previousValue < 0 || currentValue < 0 || previousValue != currentValue)
 			{
-				++transitions;
+				weighted += scanIn ? k : (n - k);
 			}
 		}
-		return transitions;
+		return weighted;
 	};
 	struct PrunePatternMetric
 	{
-		size_t scanTransitions_;
+		size_t shiftTransitions_;
 		size_t capturePeak_;
 	};
 	std::vector<PrunePatternMetric> patternMetrics;
@@ -5492,11 +5484,9 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	for (size_t patternIndex = 0; patternIndex < originalPatterns.size(); ++patternIndex)
 	{
 		const Pattern &pattern = originalPatterns[patternIndex];
-		const size_t launchCapture = captureTransitionCount(pattern.PPI_, pattern.PPO1_.empty() ? pattern.PPO_ : pattern.PPO1_);
-		const size_t captureResponse = pattern.PPO1_.empty() ? 0 : captureTransitionCount(pattern.PPO1_, pattern.PPO_);
 		PrunePatternMetric entry;
-		entry.scanTransitions_ = scanTransitionCount(pattern);
-		entry.capturePeak_ = launchCapture > captureResponse ? launchCapture : captureResponse;
+		entry.shiftTransitions_ = weightedShiftTransitions(pattern.PPI_, true) + weightedShiftTransitions(pattern.PPO_, false);
+		entry.capturePeak_ = capturePeakToggles(pattern);
 		patternMetrics.push_back(entry);
 	}
 
@@ -5507,7 +5497,6 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 	}
 
 	std::vector<char> essentialPattern(originalPatterns.size(), 0);
-	std::vector<size_t> uniqueDetectionCount(originalPatterns.size(), 0);
 	for (size_t faultIndex = 0; faultIndex < detectionCountByFault.size() && faultIndex < firstDetectorByFault.size(); ++faultIndex)
 	{
 		if (detectionCountByFault[faultIndex] != 1)
@@ -5520,7 +5509,6 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 			continue;
 		}
 		essentialPattern[detectorIndex] = 1;
-		++uniqueDetectionCount[detectorIndex];
 	}
 
 	std::stable_sort(essentialFirstOrder.begin(), essentialFirstOrder.end(), [&](size_t lhs, size_t rhs) {
@@ -5528,13 +5516,9 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 		{
 			return essentialPattern[lhs] > essentialPattern[rhs];
 		}
-		if (uniqueDetectionCount[lhs] != uniqueDetectionCount[rhs])
+		if (patternMetrics[lhs].shiftTransitions_ != patternMetrics[rhs].shiftTransitions_)
 		{
-			return uniqueDetectionCount[lhs] > uniqueDetectionCount[rhs];
-		}
-		if (patternMetrics[lhs].scanTransitions_ != patternMetrics[rhs].scanTransitions_)
-		{
-			return patternMetrics[lhs].scanTransitions_ < patternMetrics[rhs].scanTransitions_;
+			return patternMetrics[lhs].shiftTransitions_ < patternMetrics[rhs].shiftTransitions_;
 		}
 		if (patternMetrics[lhs].capturePeak_ != patternMetrics[rhs].capturePeak_)
 		{
@@ -5565,7 +5549,7 @@ size_t Atpg::pruneRedundantPatternsByReverseFaultSimulation(PatternProcessor *pP
 		}
 		else if (leftFaultCount < orderedRemainingFaults.size())
 		{
-			std::cerr << "Bug: pruneRedundantPatternsByReverseFaultSimulation() unexpected behavior\n";
+			std::cerr << "Bug: pruneRedundantPatternsBySetCover() unexpected behavior\n";
 			std::cin.get();
 		}
 	}
@@ -5595,24 +5579,8 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor)
 		return 0;
 	}
 
-	auto normalizeBinaryInput = [](Value value) -> int {
-		if (value == L || value == B)
-		{
-			return 0;
-		}
-		if (value == H || value == D)
-		{
-			return 1;
-		}
-		return -1;
-	};
-
 	auto mergeValue = [&](Value lhs, Value rhs) {
-		if (normalizeBinaryInput(lhs) >= 0)
-		{
-			return lhs;
-		}
-		return rhs;
+		return isSpecifiedValue(lhs) ? lhs : rhs;
 	};
 
 	auto mergeValues = [&](std::vector<Value> &lhs, const std::vector<Value> &rhs) {
@@ -5688,7 +5656,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor)
 		for (size_t i = 0; i < pattern.PPI_.size(); ++i)
 		{
 			const size_t ppiIndex = pattern.PPI_.size() - 1 - i;
-			scanScratch[i] = normalizeBinaryInput(pattern.PPI_[ppiIndex]);
+			scanScratch[i] = valueToTernaryBit(pattern.PPI_[ppiIndex]);
 		}
 		return scanTransitionPowerFromBits(scanScratch, transitionCount);
 	};
@@ -5719,7 +5687,7 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor)
 	};
 
 	auto markMaskedValue = [&](CubeCompatibilityMask &mask, bool scanValue, size_t bitIndex, Value value) {
-		const int binaryValue = normalizeBinaryInput(value);
+		const int binaryValue = valueToTernaryBit(value);
 		if (binaryValue < 0)
 		{
 			return;
@@ -5828,8 +5796,8 @@ size_t Atpg::compactCompatibleTestCubes(PatternProcessor *pPatternProcessor)
 		for (size_t i = 0; i < cubes[lhs].PPI_.size(); ++i)
 		{
 			const size_t ppiIndex = cubes[lhs].PPI_.size() - 1 - i;
-			const int lhsValue = normalizeBinaryInput(cubes[lhs].PPI_[ppiIndex]);
-			const int rhsValue = normalizeBinaryInput(cubes[rhs].PPI_[ppiIndex]);
+			const int lhsValue = valueToTernaryBit(cubes[lhs].PPI_[ppiIndex]);
+			const int rhsValue = valueToTernaryBit(cubes[rhs].PPI_[ppiIndex]);
 			if (lhsValue >= 0 && rhsValue >= 0 && lhsValue != rhsValue)
 			{
 				return false;
@@ -6698,15 +6666,7 @@ void Atpg::runFillProbabilityForwardPass(const Pattern &pattern)
 	fillSignalProb_.assign(totalGate, 0.5);
 
 	auto valueProb = [](Value value) -> double {
-		if (value == L || value == B)
-		{
-			return 0.0;
-		}
-		if (value == H || value == D)
-		{
-			return 1.0;
-		}
-		return 0.5;
+		return isLogicLow(value) ? 0.0 : (isLogicHigh(value) ? 1.0 : 0.5);
 	};
 	auto xorProb = [](double a, double b) -> double {
 		return a * (1.0 - b) + b * (1.0 - a);
@@ -7013,22 +6973,21 @@ void Atpg::powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMo
 	const int numPI = pCircuit_->numPI_;
 	const int numGate = pCircuit_->numGate_;
 	const double captureToggleWeight = CAPTURE_TOGGLE_WEIGHT_RATIO * static_cast<double>(pCircuit_->numPPI_);
-	for (int i = 0; i < numPI && i < static_cast<int>(pattern.PI1_.size()); ++i)
-	{
-		if (pattern.PI1_[i] == X)
+	// Each unspecified PI bit (no scan-in cost) follows the sign of its expected
+	// cost gradient; the second frame's gates are offset by numGate.
+	auto gradientFillPrimaryInputs = [&](std::vector<Value> &primaryInputs, int gradientOffset) {
+		for (int i = 0; i < numPI && i < static_cast<int>(primaryInputs.size()); ++i)
 		{
-			pattern.PI1_[i] = piGradient[i] > 0.0 ? L : H;
-		}
-	}
-	if (!pattern.PI2_.empty() && pCircuit_->numFrame_ > 1)
-	{
-		for (int i = 0; i < numPI && i < static_cast<int>(pattern.PI2_.size()); ++i)
-		{
-			if (pattern.PI2_[i] == X)
+			if (primaryInputs[i] == X)
 			{
-				pattern.PI2_[i] = piGradient[numGate + i] > 0.0 ? L : H;
+				primaryInputs[i] = piGradient[gradientOffset + i] > 0.0 ? L : H;
 			}
 		}
+	};
+	gradientFillPrimaryInputs(pattern.PI1_, 0);
+	if (!pattern.PI2_.empty() && pCircuit_->numFrame_ > 1)
+	{
+		gradientFillPrimaryInputs(pattern.PI2_, numGate);
 	}
 	if (!pattern.SI_.empty() && pattern.SI_[0] == X)
 	{
@@ -7037,15 +6996,7 @@ void Atpg::powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMo
 
 	const int numPPI = std::min(pCircuit_->numPPI_, static_cast<int>(pattern.PPI_.size()));
 	auto flankBinaryValue = [](Value value) -> Value {
-		if (value == L || value == B)
-		{
-			return L;
-		}
-		if (value == H || value == D)
-		{
-			return H;
-		}
-		return X;
+		return isLogicLow(value) ? L : (isLogicHigh(value) ? H : X);
 	};
 	int bitIndex = 0;
 	while (bitIndex < numPPI)
@@ -7173,30 +7124,10 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	// the violating patterns; cf. iFill / LSC-filling): the re-fill is
 	// criterion-triggered and committed unconditionally — no candidate
 	// comparison and no rollback.
-	const auto toggleCount = [](const std::vector<Value> &fromValues, const std::vector<Value> &toValues) {
-		size_t toggles = 0;
-		const size_t comparePairs = std::min(fromValues.size(), toValues.size());
-		for (size_t j = 0; j < comparePairs; ++j)
-		{
-			if ((fromValues[j] == L || fromValues[j] == H) && (toValues[j] == L || toValues[j] == H) && fromValues[j] != toValues[j])
-			{
-				++toggles;
-			}
-		}
-		return toggles;
-	};
-	auto realizedCapturePeak = [&](const Pattern &pattern) -> size_t {
-		if (!pattern.PPO1_.empty())
-		{
-			return std::max(toggleCount(pattern.PPI_, pattern.PPO1_), toggleCount(pattern.PPO1_, pattern.PPO_));
-		}
-		return toggleCount(pattern.PPI_, pattern.PPO_);
-	};
-
 	std::vector<size_t> capturePeak(patternCount, 0);
 	for (size_t patternIndex = 0; patternIndex < patternCount; ++patternIndex)
 	{
-		capturePeak[patternIndex] = realizedCapturePeak(pPatternProcessor->patternVector_[patternIndex]);
+		capturePeak[patternIndex] = capturePeakToggles(pPatternProcessor->patternVector_[patternIndex]);
 	}
 
 	// Iterate to the fixpoint: re-fill every not-yet-re-filled pattern in the
@@ -7238,7 +7169,7 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 			pattern.SI_ = preFillInputs[patternIndex].SI_;
 			powerAwareFillPattern(pattern, FILL_CAPTURE_PRIORITY);
 			updatePatternOutput(pattern);
-			capturePeak[patternIndex] = realizedCapturePeak(pattern);
+			capturePeak[patternIndex] = capturePeakToggles(pattern);
 			refilledOnce[patternIndex] = 1;
 			refilledAny = true;
 		}
@@ -7376,7 +7307,7 @@ void Atpg::reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor)
 
 	const size_t scanLength = static_cast<size_t>(pCircuit_->numPPI_);
 	auto valueToBit = [](Value value) -> int {
-		return (value == H || value == D) ? 1 : 0;
+		return isLogicHigh(value) ? 1 : 0;
 	};
 	auto patternTailBit = [&](const Pattern &pattern) -> int {
 		if (pattern.PPI_.size() < scanLength)
