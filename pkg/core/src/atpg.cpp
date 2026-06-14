@@ -244,9 +244,6 @@ void Atpg::generatePatternSet(PatternProcessor *pPatternProcessor, FaultListExtr
 
 		reorderPatternsForShiftPower(pPatternProcessor);
 		printPowerPhaseTime("shift reorder");
-
-		originalFaultPtrList = faultSimPatternSet(pPatternProcessor, faultVectorForXid);
-		printPowerPhaseTime("final fault simulation");
 	}
 
 	if (tdfDtcAttemptedCandidates_ > 0 || tdfDtcSelectedFaults_ > 0)
@@ -1453,10 +1450,6 @@ void Atpg::TransitionDelayFaultATPG(FaultPtrList &faultPtrListForGen, PatternPro
 bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForGen, Pattern &pattern)
 {
 	Fault *primaryFault = faultPtrListForGen.empty() ? NULL : faultPtrListForGen.front();
-
-	pSimulator_->assignPatternToCircuitInputs(pattern);
-	pSimulator_->goodSim();
-	writeGoodSimValToPatternPO(pattern);
 
 	initializeTdfInfluenceMeasures();
 	resetPrevAtpgValStored();
@@ -5490,12 +5483,6 @@ size_t Atpg::pruneRedundantPatternsBySetCover(PatternProcessor *pPatternProcesso
 		patternMetrics.push_back(entry);
 	}
 
-	std::vector<size_t> essentialFirstOrder(originalPatterns.size());
-	for (size_t i = 0; i < originalPatterns.size(); ++i)
-	{
-		essentialFirstOrder[i] = i;
-	}
-
 	std::vector<char> essentialPattern(originalPatterns.size(), 0);
 	for (size_t faultIndex = 0; faultIndex < detectionCountByFault.size() && faultIndex < firstDetectorByFault.size(); ++faultIndex)
 	{
@@ -5511,11 +5498,24 @@ size_t Atpg::pruneRedundantPatternsBySetCover(PatternProcessor *pPatternProcesso
 		essentialPattern[detectorIndex] = 1;
 	}
 
-	std::stable_sort(essentialFirstOrder.begin(), essentialFirstOrder.end(), [&](size_t lhs, size_t rhs) {
-		if (essentialPattern[lhs] != essentialPattern[rhs])
+	std::vector<size_t> coverOrder;
+	coverOrder.reserve(originalPatterns.size());
+	for (size_t i = 0; i < originalPatterns.size(); ++i)
+	{
+		if (essentialPattern[i])
 		{
-			return essentialPattern[lhs] > essentialPattern[rhs];
+			coverOrder.push_back(i);
 		}
+	}
+	const size_t nonEssentialBegin = coverOrder.size();
+	for (size_t i = 0; i < originalPatterns.size(); ++i)
+	{
+		if (!essentialPattern[i])
+		{
+			coverOrder.push_back(i);
+		}
+	}
+	std::stable_sort(coverOrder.begin() + nonEssentialBegin, coverOrder.end(), [&](size_t lhs, size_t rhs) {
 		if (patternMetrics[lhs].shiftTransitions_ != patternMetrics[rhs].shiftTransitions_)
 		{
 			return patternMetrics[lhs].shiftTransitions_ < patternMetrics[rhs].shiftTransitions_;
@@ -5538,7 +5538,7 @@ size_t Atpg::pruneRedundantPatternsBySetCover(PatternProcessor *pPatternProcesso
 	std::vector<char> keepPattern(originalPatterns.size(), 0);
 	size_t keptPatternCount = 0;
 	FaultPtrList::size_type leftFaultCount = orderedRemainingFaults.size();
-	for (size_t patternIndex : essentialFirstOrder)
+	for (size_t patternIndex : coverOrder)
 	{
 		pSimulator_->parallelFaultFaultSimWithOnePattern(originalPatterns[patternIndex], orderedRemainingFaults);
 		if (leftFaultCount > orderedRemainingFaults.size())
@@ -6650,7 +6650,7 @@ void Atpg::adjacentFill(Pattern &pattern)
 //              over the two-frame circuit. Forward: every gate's
 //              1-probability under the independence model, with specified
 //              inputs at 0/1 and unspecified inputs at 1/2. Reverse: the
-//              adjoint dE/dp of the expected unload + capture cost E seeded
+//              adjoint dE/dp of the selected expected response cost E seeded
 //              at the response flip-flop pairs and propagated through the
 //              gate derivative of each probability function. Gradients of
 //              the input gates are left in fillCostGradient_. ]
@@ -6784,7 +6784,7 @@ void Atpg::runFillProbabilityForwardPass(const Pattern &pattern)
 	}
 }
 
-void Atpg::computeFillCostGradient(const Pattern &pattern, bool capturePriority)
+void Atpg::computeFillCostGradient(const Pattern &pattern, bool includeUnloadCost, bool includeCaptureCost)
 {
 	runFillProbabilityForwardPass(pattern);
 	const int totalGate = pCircuit_->totalGate_;
@@ -6795,9 +6795,8 @@ void Atpg::computeFillCostGradient(const Pattern &pattern, bool capturePriority)
 
 	// Adjoint seeds: dE/dp of the expected toggle count of each response pair.
 	// D(a, b) = P(a != b) = p_a + p_b - 2 p_a p_b ; dD/dp_a = 1 - 2 p_b.
-	// capturePriority drops the unload seeds: for capture-peak-risk patterns
-	// the fill objective is the expected capture cost alone (the exact scan-in
-	// run costs still apply in powerAwareFillPattern either way).
+	// The caller chooses which response-dependent terms participate. Stage 2
+	// uses capture only; stage 3 uses scan-out/unload transitions only.
 	const int ppo1Offset = numGate - numPPI;
 	const int ppoOffset = ppo1Offset + numGate * (pCircuit_->numFrame_ - 1);
 	auto seedPairCost = [&](int gateA, int gateB, double weight) {
@@ -6807,11 +6806,15 @@ void Atpg::computeFillCostGradient(const Pattern &pattern, bool capturePriority)
 	for (int j = 0; j < numPPI; ++j)
 	{
 		// Unload cost: response pair (j-1, j) rides the chain for (n-j) cycles.
-		if (!capturePriority && j > 0)
+		if (includeUnloadCost && j > 0)
 		{
 			seedPairCost(ppoOffset + j - 1, ppoOffset + j, static_cast<double>(numPPI - j));
 		}
 		// Capture cost: launch-vs-first-capture and first-vs-second-capture.
+		if (!includeCaptureCost)
+		{
+			continue;
+		}
 		if (pCircuit_->numFrame_ > 1)
 		{
 			seedPairCost(numPI + j, ppo1Offset + j, 1.0);
@@ -6961,12 +6964,12 @@ void Atpg::powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMo
 	const bool needFullGradient = fillMode != FILL_CAPTURE_PRIORITY;
 	if (needCaptureGradient)
 	{
-		computeFillCostGradient(pattern, true);
+		computeFillCostGradient(pattern, false, true);
 		fillCaptureGradient_ = fillCostGradient_;
 	}
 	if (needFullGradient)
 	{
-		computeFillCostGradient(pattern, false);
+		computeFillCostGradient(pattern, true, fillMode != FILL_SHIFT_PRIORITY);
 	}
 	const std::vector<double> &piGradient = needFullGradient ? fillCostGradient_ : fillCaptureGradient_;
 
@@ -7053,9 +7056,9 @@ void Atpg::powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMo
 				tieGradient = captureGradientSum;
 				break;
 			case FILL_SHIFT_PRIORITY:
-				// Shift-peak-risk patterns: the full expected unload+capture
-				// cost enters at its exact metric weight, smoothing the
-				// response this pattern ships into the next load.
+				// Shift-peak-risk patterns: only the expected scan-out/unload
+				// transition cost participates, so stage 3 does not trade
+				// shift peak against capture transitions.
 				runGradient = fullGradientSum;
 				tieGradient = fullGradientSum;
 				break;
@@ -7183,9 +7186,9 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 	// per-cycle toggle count of loading pattern i into the chain content it
 	// meets (the previous pattern's response; the all-0 initial chain for the
 	// first pattern) mirrors the reported shift FFTC model exactly. Patterns
-	// in the top tier are re-filled once with the full expected-cost objective
-	// (unload + capture at their exact metric weights), which smooths both the
-	// scan vector and the response they ship into the next load.
+	// in the top tier are re-filled once with the expected scan-out/unload
+	// transition objective, which smooths the response they ship into the next
+	// load without adding capture-transition gradient pressure.
 	const int numPPI = pCircuit_->numPPI_;
 	auto realizedShiftPeak = [&](size_t patternIndex) -> size_t {
 		const Pattern &pattern = pPatternProcessor->patternVector_[patternIndex];
@@ -7279,14 +7282,10 @@ void Atpg::powerAwareXFill(PatternProcessor *pPatternProcessor)
 			{
 				continue;
 			}
-			// The peak load of pattern i runs between the PREVIOUS pattern's
-			// response (the chain content being unloaded) and pattern i's own
-			// scan vector; both contribute cycles, so both are re-filled.
 			if (patternIndex > 0)
 			{
 				refilledAny = shiftRefillOne(patternIndex - 1) || refilledAny;
 			}
-			refilledAny = shiftRefillOne(patternIndex) || refilledAny;
 		}
 		if (!refilledAny)
 		{

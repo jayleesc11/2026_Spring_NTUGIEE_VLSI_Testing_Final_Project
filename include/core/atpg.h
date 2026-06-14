@@ -35,7 +35,7 @@ namespace CoreNs
 	constexpr size_t CAPTURE_REFILL_MAX_TIERS = 2;
 	constexpr double CAPTURE_TOGGLE_WEIGHT_RATIO = 0.1;
 	constexpr double BALANCED_CAPTURE_GRADIENT_SCALE = 0.25;
-	constexpr double SHIFT_REFILL_TRIGGER_RATIO = 0.95;
+	constexpr double SHIFT_REFILL_TRIGGER_RATIO = 0.92;
 	constexpr size_t SHIFT_REFILL_MAX_TIERS = 1;
 
 	constexpr size_t TDF_DTC_MAX_SELECTED_FAULTS = 8;
@@ -297,7 +297,7 @@ namespace CoreNs
 		void randomFill(Pattern &pattern);
 		void adjacentFill(Pattern &pattern);
 		void runFillProbabilityForwardPass(const Pattern &pattern);
-		void computeFillCostGradient(const Pattern &pattern, bool capturePriority);
+		void computeFillCostGradient(const Pattern &pattern, bool includeUnloadCost, bool includeCaptureCost);
 		void powerAwareFillPattern(Pattern &pattern, const POWER_FILL_MODE &fillMode = FILL_BALANCED);
 		void powerAwareXFill(PatternProcessor *pPatternProcessor);
 		void reorderPatternsForShiftPower(PatternProcessor *pPatternProcessor);

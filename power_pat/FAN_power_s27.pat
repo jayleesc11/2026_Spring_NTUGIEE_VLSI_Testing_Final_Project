@@ -3,7 +3,7 @@ U_G5 U_G6 U_G7  |
 G17 
 LAUNCH_ON_CAPTURE
 _num_of_pattern_7
-_pattern_1 0101 | 1111 | 011 |  | 0 | 1 | 100
+_pattern_1 0101 | 1111 | 111 |  | 1 | 1 | 100
 _pattern_2 0111 | 1010 | 111 |  | 1 | 1 | 100
 _pattern_3 1111 | 0101 | 111 |  | 1 | 1 | 001
 _pattern_4 1011 | 0110 | 000 |  | 0 | 0 | 010
