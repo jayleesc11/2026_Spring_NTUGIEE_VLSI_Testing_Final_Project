@@ -1581,11 +1581,9 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	struct CandidateScore
 	{
 		int classRank;
-		int conflictCount;
 		int detOverlap;
 		int structuralOverlap;
 		int observabilityCost;
-		int controlCost;
 		size_t detSize;
 		int gateID;
 	};
@@ -1602,34 +1600,20 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		const InfluenceSet &structuralSet = getStructuralSet(candidate);
 		const int structuralOverlap = countInfluenceOverlap(structuralSet);
 		const int detOverlap = countInfluenceOverlap(*candidate.detSet);
-		const int conflictCount = countInfluenceConflicts(*candidate.detSet);
-		int classRank = 3;
-		if (conflictCount == 0 && structuralOverlap == 0)
+		int classRank = 2;
+		if (structuralOverlap == 0)
 		{
 			classRank = 0;
 		}
-		else if (conflictCount == 0 && detOverlap == 0)
+		else if (detOverlap == 0)
 		{
 			classRank = 1;
 		}
-		else if (conflictCount == 0)
-		{
-			classRank = 2;
-		}
 		CandidateScore score;
 		score.classRank = classRank;
-		score.conflictCount = conflictCount;
 		score.detOverlap = detOverlap;
 		score.structuralOverlap = structuralOverlap;
 		score.observabilityCost = candidate.activationGate ? candidate.activationGate->co_ : INFINITE;
-		if (candidate.activationGate)
-		{
-			score.controlCost = candidate.fault->faultType_ == Fault::STR ? candidate.activationGate->cc1_ : candidate.activationGate->cc0_;
-		}
-		else
-		{
-			score.controlCost = INFINITE;
-		}
 		score.detSize = candidate.detSet->literals_.size();
 		score.gateID = candidate.fault->gateID_;
 		return score;
@@ -1638,16 +1622,12 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	auto scoreLess = [](const CandidateScore &lhs, const CandidateScore &rhs) {
 		if (lhs.classRank != rhs.classRank)
 			return lhs.classRank < rhs.classRank;
-		if (lhs.conflictCount != rhs.conflictCount)
-			return lhs.conflictCount < rhs.conflictCount;
 		if (lhs.detOverlap != rhs.detOverlap)
 			return lhs.detOverlap < rhs.detOverlap;
 		if (lhs.structuralOverlap != rhs.structuralOverlap)
 			return lhs.structuralOverlap < rhs.structuralOverlap;
 		if (lhs.observabilityCost != rhs.observabilityCost)
 			return lhs.observabilityCost < rhs.observabilityCost;
-		if (lhs.controlCost != rhs.controlCost)
-			return lhs.controlCost < rhs.controlCost;
 		if (lhs.detSize != rhs.detSize)
 			return lhs.detSize < rhs.detSize;
 		return lhs.gateID < rhs.gateID;
@@ -1677,24 +1657,18 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	struct CheapCandidateInfo
 	{
 		CandidateFaultInfo *candidate;
-		int conflictCount;
 		int detOverlap;
 		int observabilityCost;
-		int controlCost;
 		size_t detSize;
 		int gateID;
 	};
 	std::vector<CheapCandidateInfo> cheapCandidates;
 	cheapCandidates.reserve(candidateFaults.size());
 	auto cheapCandidateLess = [](const CheapCandidateInfo &lhs, const CheapCandidateInfo &rhs) {
-		if (lhs.conflictCount != rhs.conflictCount)
-			return lhs.conflictCount < rhs.conflictCount;
 		if (lhs.detOverlap != rhs.detOverlap)
 			return lhs.detOverlap < rhs.detOverlap;
 		if (lhs.observabilityCost != rhs.observabilityCost)
 			return lhs.observabilityCost < rhs.observabilityCost;
-		if (lhs.controlCost != rhs.controlCost)
-			return lhs.controlCost < rhs.controlCost;
 		if (lhs.detSize != rhs.detSize)
 			return lhs.detSize < rhs.detSize;
 		return lhs.gateID < rhs.gateID;
@@ -1705,7 +1679,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	       currentXDensity() >= TDF_DTC_MIN_X_DENSITY)
 	{
 		CandidateFaultInfo *selectedCandidate = NULL;
-		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
+		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
 
 		cheapCandidates.clear();
 		for (CandidateFaultInfo &candidate : candidateFaults)
@@ -1715,10 +1689,8 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 				continue;
 			}
 			cheapCandidates.push_back({&candidate,
-			                           countInfluenceConflicts(*candidate.detSet),
 			                           countInfluenceOverlap(*candidate.detSet),
 			                           candidate.activationGate ? candidate.activationGate->co_ : INFINITE,
-			                           candidate.activationGate ? (candidate.fault->faultType_ == Fault::STR ? candidate.activationGate->cc1_ : candidate.activationGate->cc0_) : INFINITE,
 			                           candidate.detSet->literals_.size(),
 			                           candidate.fault->gateID_});
 		}
@@ -5467,20 +5439,12 @@ size_t Atpg::pruneRedundantPatternsBySetCover(PatternProcessor *pPatternProcesso
 		}
 		return weighted;
 	};
-	struct PrunePatternMetric
-	{
-		size_t shiftTransitions_;
-		size_t capturePeak_;
-	};
-	std::vector<PrunePatternMetric> patternMetrics;
-	patternMetrics.reserve(originalPatterns.size());
+	std::vector<size_t> patternShiftTransitions;
+	patternShiftTransitions.reserve(originalPatterns.size());
 	for (size_t patternIndex = 0; patternIndex < originalPatterns.size(); ++patternIndex)
 	{
 		const Pattern &pattern = originalPatterns[patternIndex];
-		PrunePatternMetric entry;
-		entry.shiftTransitions_ = weightedShiftTransitions(pattern.PPI_, true) + weightedShiftTransitions(pattern.PPO_, false);
-		entry.capturePeak_ = capturePeakToggles(pattern);
-		patternMetrics.push_back(entry);
+		patternShiftTransitions.push_back(weightedShiftTransitions(pattern.PPI_, true) + weightedShiftTransitions(pattern.PPO_, false));
 	}
 
 	std::vector<char> essentialPattern(originalPatterns.size(), 0);
@@ -5516,13 +5480,9 @@ size_t Atpg::pruneRedundantPatternsBySetCover(PatternProcessor *pPatternProcesso
 		}
 	}
 	std::stable_sort(coverOrder.begin() + nonEssentialBegin, coverOrder.end(), [&](size_t lhs, size_t rhs) {
-		if (patternMetrics[lhs].shiftTransitions_ != patternMetrics[rhs].shiftTransitions_)
+		if (patternShiftTransitions[lhs] != patternShiftTransitions[rhs])
 		{
-			return patternMetrics[lhs].shiftTransitions_ < patternMetrics[rhs].shiftTransitions_;
-		}
-		if (patternMetrics[lhs].capturePeak_ != patternMetrics[rhs].capturePeak_)
-		{
-			return patternMetrics[lhs].capturePeak_ < patternMetrics[rhs].capturePeak_;
+			return patternShiftTransitions[lhs] < patternShiftTransitions[rhs];
 		}
 		return lhs > rhs;
 	});
