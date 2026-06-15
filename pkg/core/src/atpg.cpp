@@ -1583,7 +1583,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		int classRank;
 		int detOverlap;
 		int structuralOverlap;
-		int observabilityCost;
 		size_t detSize;
 		int gateID;
 	};
@@ -1613,7 +1612,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 		score.classRank = classRank;
 		score.detOverlap = detOverlap;
 		score.structuralOverlap = structuralOverlap;
-		score.observabilityCost = candidate.activationGate ? candidate.activationGate->co_ : INFINITE;
 		score.detSize = candidate.detSet->literals_.size();
 		score.gateID = candidate.fault->gateID_;
 		return score;
@@ -1626,8 +1624,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 			return lhs.detOverlap < rhs.detOverlap;
 		if (lhs.structuralOverlap != rhs.structuralOverlap)
 			return lhs.structuralOverlap < rhs.structuralOverlap;
-		if (lhs.observabilityCost != rhs.observabilityCost)
-			return lhs.observabilityCost < rhs.observabilityCost;
 		if (lhs.detSize != rhs.detSize)
 			return lhs.detSize < rhs.detSize;
 		return lhs.gateID < rhs.gateID;
@@ -1658,7 +1654,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	{
 		CandidateFaultInfo *candidate;
 		int detOverlap;
-		int observabilityCost;
 		size_t detSize;
 		int gateID;
 	};
@@ -1667,8 +1662,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	auto cheapCandidateLess = [](const CheapCandidateInfo &lhs, const CheapCandidateInfo &rhs) {
 		if (lhs.detOverlap != rhs.detOverlap)
 			return lhs.detOverlap < rhs.detOverlap;
-		if (lhs.observabilityCost != rhs.observabilityCost)
-			return lhs.observabilityCost < rhs.observabilityCost;
 		if (lhs.detSize != rhs.detSize)
 			return lhs.detSize < rhs.detSize;
 		return lhs.gateID < rhs.gateID;
@@ -1679,7 +1672,7 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 	       currentXDensity() >= TDF_DTC_MIN_X_DENSITY)
 	{
 		CandidateFaultInfo *selectedCandidate = NULL;
-		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
+		CandidateScore bestScore = {INFINITE, INFINITE, INFINITE, static_cast<size_t>(INFINITE), INFINITE};
 
 		cheapCandidates.clear();
 		for (CandidateFaultInfo &candidate : candidateFaults)
@@ -1690,7 +1683,6 @@ bool Atpg::applyTransitionDelayDynamicCompression(FaultPtrList &faultPtrListForG
 			}
 			cheapCandidates.push_back({&candidate,
 			                           countInfluenceOverlap(*candidate.detSet),
-			                           candidate.activationGate ? candidate.activationGate->co_ : INFINITE,
 			                           candidate.detSet->literals_.size(),
 			                           candidate.fault->gateID_});
 		}
