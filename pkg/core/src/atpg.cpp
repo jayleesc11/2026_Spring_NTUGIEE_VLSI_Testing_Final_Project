@@ -1321,7 +1321,6 @@ Gate *Atpg::findInfluenceInput(Gate *pGate, Value atpgValOfpGate)
 	int bestConflicts = INFINITE;
 	int bestOverlap = INFINITE;
 	size_t bestSize = static_cast<size_t>(INFINITE);
-	int bestControlCost = INFINITE;
 
 	for (const int &faninID : pGate->faninVector_)
 	{
@@ -1344,18 +1343,15 @@ Gate *Atpg::findInfluenceInput(Gate *pGate, Value atpgValOfpGate)
 		const int conflicts = countInfluenceConflicts(*set);
 		const int overlap = countInfluenceOverlap(*set);
 		const size_t size = set->impossible_ ? static_cast<size_t>(INFINITE) : set->literals_.size();
-		const int controlCost = atpgValOfpGate == L ? pFaninGate->cc0_ : pFaninGate->cc1_;
 		if (!bestGate ||
 		    conflicts < bestConflicts ||
 		    (conflicts == bestConflicts && overlap < bestOverlap) ||
-		    (conflicts == bestConflicts && overlap == bestOverlap && size < bestSize) ||
-		    (conflicts == bestConflicts && overlap == bestOverlap && size == bestSize && controlCost < bestControlCost))
+		    (conflicts == bestConflicts && overlap == bestOverlap && size < bestSize))
 		{
 			bestGate = pFaninGate;
 			bestConflicts = conflicts;
 			bestOverlap = overlap;
 			bestSize = size;
-			bestControlCost = controlCost;
 		}
 	}
 	return bestGate;
