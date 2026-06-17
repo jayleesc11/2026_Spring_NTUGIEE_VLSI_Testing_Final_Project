@@ -1096,7 +1096,7 @@ report_power -per_pattern -percentage
       Average Capture Switching                  5.06 28.09%
       Peak Shift Switching                       13 72.22% (pattern: 107 cycle: 0)
       Peak Capture Switching                     14 77.78% (pattern: 46)
-write_patterns tmax/pat_power/s1238.stil -format stil -replace
+write_patterns tmax/power_pat/s1238.stil -format stil -replace
  Patterns written reference 1421 V statements, generating 5518 test cycles
  End writing file 's1238.stil' with 240 patterns, File_size = 69911, CPU_time = 0.0 sec.
 exit

@@ -46,7 +46,8 @@ ATPG:
   normal       TestMAX LOC/TDF ATPG: set_atpg -fill 0
   power        TestMAX LOC/TDF ATPG: adjacent fill + shift power effort
   --nocomp
-               Disable compression and output to tmax/*_<mode>_nocomp folders.
+               Disable compression and output to tmax/<mode>_nocomp_pat and
+               tmax/<mode>_nocomp_rpt folders.
                Default is compression on.
 
 Environment overrides:
@@ -79,8 +80,8 @@ write_tmax_script() {
   if [[ "${NO_COMPRESSION}" == "1" ]]; then
     output_mode="${ATPG_MODE}_nocomp"
   fi
-  local rpt_dir="tmax/rpt_${output_mode}"
-  local pat_dir="tmax/pat_${output_mode}"
+  local rpt_dir="tmax/${output_mode}_rpt"
+  local pat_dir="tmax/${output_mode}_pat"
 
   [[ -f "${netlist}" ]] || die "missing ${netlist}"
   script="$(mktemp "${TMPDIR:-/tmp}/tmax_${circuit}.tcl.XXXXXX")"
@@ -157,8 +158,8 @@ write_fsim_script() {
   if [[ "${NO_COMPRESSION}" == "1" ]]; then
     output_mode="${ATPG_MODE}_nocomp"
   fi
-  local rpt_dir="tmax/rpt_${output_mode}"
-  local pat_dir="tmax/pat_${output_mode}"
+  local rpt_dir="tmax/${output_mode}_rpt"
+  local pat_dir="tmax/${output_mode}_pat"
 
   script="$(mktemp "${TMPDIR:-/tmp}/fsim_${circuit}.script.XXXXXX")"
   TMP_FILES+=("${script}")
@@ -187,8 +188,8 @@ run_one() {
   if [[ "${NO_COMPRESSION}" == "1" ]]; then
     output_mode="${ATPG_MODE}_nocomp"
   fi
-  local pat_dir="tmax/pat_${output_mode}"
-  local rpt_dir="tmax/rpt_${output_mode}"
+  local pat_dir="tmax/${output_mode}_pat"
+  local rpt_dir="tmax/${output_mode}_rpt"
   local stil="${pat_dir}/${circuit}.stil"
   local pat="${pat_dir}/${circuit}.pat"
 
@@ -261,7 +262,7 @@ main() {
   if [[ "${NO_COMPRESSION}" == "1" ]]; then
     output_mode="${ATPG_MODE}_nocomp"
   fi
-  mkdir -p "tmax/pat_${output_mode}" "tmax/rpt_${output_mode}"
+  mkdir -p "tmax/${output_mode}_pat" "tmax/${output_mode}_rpt"
 
   local target="$2"
   if [[ "${target}" == "all" ]]; then

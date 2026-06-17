@@ -14,17 +14,17 @@ CSV_PATH = os.path.join(TMAX_DIR, 'result_summary.csv')
 
 def ensure_header(header, rows):
     derived_columns = (
-        'powerpatterns_delta_pct_vs_method',
         'overall_avg_fftc',
-        'poweroverall_avg_fftc_delta_pct_vs_method',
         'runtime_sec',
-        'power_runtime_delta_pct_vs_method',
     )
     old_derived_columns = (
         'total_fftc',
         'power_total_fftc_delta_pct_vs_method',
         'total_fftc_delta_pct_vs_power',
         'runtime_delta_pct_vs_power',
+        'powerpatterns_delta_pct_vs_method',
+        'poweroverall_avg_fftc_delta_pct_vs_method',
+        'power_runtime_delta_pct_vs_method',
     )
     header = [column for column in list(header or []) if column not in derived_columns and column not in old_derived_columns]
     header.extend(derived_columns)
@@ -139,39 +139,10 @@ def tmax_log_path_for_rpt(rpt):
         return os.path.join(directory, match.group(1) + '_tmax.log')
     return None
 
-def format_power_delta_pct(power_value, method_value):
-    try:
-        power_value = float(power_value)
-        method_value = float(method_value)
-    except (TypeError, ValueError):
-        return ''
-    if method_value == 0.0:
-        return ''
-    return f'{((power_value - method_value) / method_value) * 100.0:+.2f}%'
-
-def update_delta_columns(rows):
-    power_by_circuit = {}
-    for row in rows:
-        if row.get('method') == 'power':
-            power_by_circuit[row.get('circuit')] = row
-
-    for row in rows:
-        power_row = power_by_circuit.get(row.get('circuit'))
-        if not power_row:
-            continue
-        row['powerpatterns_delta_pct_vs_method'] = format_power_delta_pct(
-            power_row.get('patterns'), row.get('patterns')
-        )
-        row['poweroverall_avg_fftc_delta_pct_vs_method'] = format_power_delta_pct(
-            power_row.get('overall_avg_fftc'), row.get('overall_avg_fftc')
-        )
-        row['power_runtime_delta_pct_vs_method'] = format_power_delta_pct(
-            power_row.get('runtime_sec'), row.get('runtime_sec')
-        )
-
 def method_from_path(path):
-    # tmax/rpt_power/ -> tmax_power
-    if '/rpt_power/' in path:
+    normalized_path = path.replace(os.sep, '/')
+    # tmax/power_rpt/ -> tmax_power
+    if '/tmax/power_rpt/' in normalized_path or normalized_path.startswith('tmax/power_rpt/'):
         return 'tmax_power'
     # power_rpt/FAN_power_sXXX_ad.rpt -> adjacent
     bn = os.path.basename(path)
@@ -198,7 +169,7 @@ def main():
 
     # gather rpt files
     rpt_files = []
-    rpt_files += glob.glob(os.path.join(TMAX_DIR, 'rpt_power', '*.rpt'))
+    rpt_files += glob.glob(os.path.join(TMAX_DIR, 'power_rpt', '*.rpt'))
     rpt_files += glob.glob(os.path.join(PROJECT_ROOT, 'power_rpt', '*.rpt'))
 
     rpt_files = sorted(set(rpt_files))
@@ -232,8 +203,6 @@ def main():
             if k in row and v is not None:
                 row[k] = v
         updated += 1
-
-    update_delta_columns(rows)
 
     with open(CSV_PATH, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=header, lineterminator='\n')

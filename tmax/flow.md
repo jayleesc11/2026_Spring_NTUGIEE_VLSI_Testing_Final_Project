@@ -27,7 +27,7 @@ Run all supported circuits:
 
 Supported circuits are the scan netlists in `mod_netlist/`: `s27`, `s208`, `s510`, `s953`, `s1196`, `s1238`, `s5378`, `s9234`, `s15850`, `s35932`, `s38417`, and `s38584`.
 
-The script runs TestMAX LOC/TDF ATPG, converts the generated scan STIL into FAN `.pat`, then runs FAN TDF fault simulation. `power` uses adjacent fill and shift-power reduction. `normal` uses `set_atpg -fill 0`. The default is compression on with `run_atpg -auto_compression`, writing to the selected ATPG mode's regular `tmax/rpt_<mode>` and `tmax/pat_<mode>` outputs. Add `--nocomp` to disable compression; no-compression outputs are written to `tmax/rpt_<mode>_nocomp` and `tmax/pat_<mode>_nocomp`.
+The script runs TestMAX LOC/TDF ATPG, converts the generated scan STIL into FAN `.pat`, then runs FAN TDF fault simulation. `power` uses adjacent fill and shift-power reduction. `normal` uses `set_atpg -fill 0`. The default is compression on with `run_atpg -auto_compression`, writing to the selected ATPG mode's regular `tmax/<mode>_rpt` and `tmax/<mode>_pat` outputs. Add `--nocomp` to disable compression; no-compression outputs are written to `tmax/<mode>_nocomp_rpt` and `tmax/<mode>_nocomp_pat`.
 
 `run_flow.sh` creates temporary TestMAX Tcl and FAN fsim scripts under `/tmp`, so adding a circuit usually only requires adding its name to the `CIRCUITS` list in `run_flow.sh`.
 
@@ -36,7 +36,7 @@ The script runs TestMAX LOC/TDF ATPG, converts the generated scan STIL into FAN 
 The generated TestMAX Tcl is equivalent to:
 
 ```
-set_messages -log tmax/rpt_<mode>/<circuit>_tmax.log -replace
+set_messages -log tmax/<mode>_rpt/<circuit>_tmax.log -replace
 read_netlist techlib/NangateOpenCellLibrary.v -format verilog -define TETRAMAX -library
 read_netlist mod_netlist/<circuit>.v -format verilog
 run_build_model <circuit>
@@ -66,7 +66,7 @@ Finally, by default:
 add_faults -all
 run_atpg -auto_compression
 report_power -per_pattern -percentage
-write_patterns tmax/pat_<mode>/<circuit>.stil -format stil -replace
+write_patterns tmax/<mode>_pat/<circuit>.stil -format stil -replace
 exit
 ```
 
@@ -77,15 +77,15 @@ set_atpg -merge Off
 add_faults -all
 run_atpg fast_sequential_only
 report_power -per_pattern -percentage
-write_patterns tmax/pat_<mode>_nocomp/<circuit>.stil -format stil -replace
+write_patterns tmax/<mode>_nocomp_pat/<circuit>.stil -format stil -replace
 exit
 ```
 
 After TestMAX, the script converts and simulates:
 
 ```
-python3 tmax/utility/scan_stil_to_fan_pat.py tmax/pat_<mode>/<circuit>.stil --out tmax/pat_<mode>/<circuit>.pat --pattern-type loc
+python3 tmax/utility/scan_stil_to_fan_pat.py tmax/<mode>_pat/<circuit>.stil --out tmax/<mode>_pat/<circuit>.pat --pattern-type loc
 ./bin/opt/fan -f <temporary-fsim-script>
 ```
 
-The generated FAN fsim report is `tmax/rpt_<mode>/<circuit>_fsim.rpt`, or `tmax/rpt_<mode>_nocomp/<circuit>_fsim.rpt` for `--nocomp` no-compression runs.
+The generated FAN fsim report is `tmax/<mode>_rpt/<circuit>_fsim.rpt`, or `tmax/<mode>_nocomp_rpt/<circuit>_fsim.rpt` for `--nocomp` no-compression runs.
