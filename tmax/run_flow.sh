@@ -19,7 +19,7 @@ CIRCUITS=(
   s38584
 )
 
-TMAX_SETUP="${TMAX_SETUP:-/work/cad/synopsys/CIC/tmax.cshrc}"
+TMAX_SETUP="${TMAX_SETUP:-}"
 TMAX_BIN="${TMAX_BIN:-tmax}"
 PYTHON="${PYTHON:-python3}"
 FAN_BIN="${FAN_BIN:-./bin/opt/fan}"
@@ -50,8 +50,10 @@ ATPG:
                tmax/<mode>_nocomp_rpt folders.
                Default is compression on.
 
-Environment overrides:
+Required environment:
   TMAX_SETUP=/path/to/tmax.cshrc
+
+Optional environment:
   TMAX_BIN=tmax
   PYTHON=python3
   FAN_BIN=./bin/opt/fan
@@ -193,6 +195,8 @@ run_one() {
   local stil="${pat_dir}/${circuit}.stil"
   local pat="${pat_dir}/${circuit}.pat"
 
+  [[ -n "${TMAX_SETUP}" ]] || die "TMAX_SETUP must be set, e.g. TMAX_SETUP=/path/to/tmax.cshrc $0 ${ATPG_MODE} ${circuit}"
+  [[ -f "${TMAX_SETUP}" ]] || die "TMAX_SETUP does not exist: ${TMAX_SETUP}"
   [[ -x "${FAN_BIN}" ]] || die "missing executable FAN binary: ${FAN_BIN}. Run make first or set FAN_BIN."
   mkdir -p "${pat_dir}" "${rpt_dir}"
   write_tmax_script "${circuit}"
@@ -205,7 +209,7 @@ run_one() {
   else
     echo "==> [${circuit}] TestMAX ATPG (${ATPG_MODE})"
   fi
-  tcsh -f -c "source ${TMAX_SETUP}; ${TMAX_BIN} -shell ${tmax_script}"
+  tcsh -f -c "source \"${TMAX_SETUP}\"; \"${TMAX_BIN}\" -shell \"${tmax_script}\""
 
   echo "==> [${circuit}] Convert STIL to FAN PAT"
   "${PYTHON}" tmax/utility/scan_stil_to_fan_pat.py "${stil}" --out "${pat}" --pattern-type loc
